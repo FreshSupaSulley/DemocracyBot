@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+	<property name="logPath" value="./botData" />
+	<property name="printFormat"
+		value="%p %d{MM/dd HH:mm:ss.SSS} [%c] --- %m%n" />
+	<property name="maxSize" value="50MB" />
+
+	<appender name="console"
+		class="ch.qos.logback.core.ConsoleAppender">
+		<!-- Deny logs with levels below DEBUG -->
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>INFO</level>
+		</filter>
+		<encoder>
+			<pattern>${printFormat}</pattern>
+		</encoder>
+	</appender>
+	
+	<!-- DemocracyBot file -->
+	<appender name="democracy"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		
+		<!-- Deny logs with levels below INFO -->
+		<!-- TRACE, DEBUG, INFO, WARN, ERROR -->
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>INFO</level>
+		</filter>
+		<file>${logPath}/DBLogs.log</file>
+		<append>true</append>
+		<encoder>
+			<pattern>${printFormat}</pattern>
+		</encoder>
+		
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${logPath}/archived/DBLogs_%d{MM-dd-yyyy}.%i.log
+			</fileNamePattern>
+			
+			<maxFileSize>${maxSize}</maxFileSize>
+			<maxHistory>3</maxHistory>
+			<totalSizeCap>250MB</totalSizeCap>
+		</rollingPolicy>
+	</appender>
+
+	<!-- Default logger outputs to console additivity == false -->
+	<!-- Additivity (true) == logging to more than 1 appender -->
+	<root level="all">
+		<appender-ref ref="console" />
+	</root>
+
+	<!-- JDA logger -->
+	<logger name="net.dv8tion" level="all"
+		additivity="${logback.debug}">
+		<appender-ref ref="democracy" />
+	</logger>
+
+	<!-- DemocracyBot logger -->
+	<logger name="democracy" level="all"
+		additivity="${logback.debug}">
+		<appender-ref ref="democracy" />
+	</logger>
+</configuration>

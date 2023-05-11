@@ -1,0 +1,5 @@
+.DS_Store
+/target
+/bin
+/src/main/resources/OLDsecretCommands.txt
+/botData
