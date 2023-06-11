@@ -124,7 +124,7 @@ public class InputListener extends ListenerAdapter {
 					if(option != null) minutes = option.getAsInt();
 					else minutes = 1;
 					
-					activePolls.add(new Poll(Color.red, type, "Timeout " + mentioned.getName(), "Do the people agree **" + mentioned.getName() + "** has violated our constitution / amendments? Violator will be timed out for " + minutes + " minute(s).", mentioned, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> guild.timeoutFor(guild.retrieveMemberById(mentioned.getIdLong()).complete(), minutes, TimeUnit.MINUTES)));
+					activePolls.add(new Poll(Color.red, type, "Timeout " + mentioned.getName(), "Do the people agree **" + mentioned.getName() + "** has violated our constitution / amendments? Violator will be timed out for " + minutes + " minute(s).", mentioned, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> guild.timeoutFor(guild.retrieveMemberById(mentioned.getIdLong()).complete(), minutes, TimeUnit.MINUTES).complete()));
 				}
 				
 				return;

@@ -394,11 +394,11 @@ public class DMain {
 		}
 		
 		// Next is JSON secret commands
-		Map<String, Object> result = WebUtils.parseJSON(WebUtils.MAP, toRead[2]);
+		Map<String, Object> result = WebUtils.parseJSON(WebUtils.MAP, toRead[2 + totalAmendments]);
 		result.forEach((key, value) -> secretCommands.put(key.toLowerCase(), value.toString()));
 		
 		// ServerMember data
-		for(int i = 3; i < toRead.length; i++)
+		for(int i = 3 + totalAmendments; i < toRead.length; i++)
 		{
 			String[] memberData = toRead[i].split(",");
 			members.add(new ServerMember(memberData[0].substring(1, memberData[0].lastIndexOf("\"")), memberData[1], Long.parseLong(memberData[2])));
