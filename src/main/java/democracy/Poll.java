@@ -1,19 +1,16 @@
 package democracy;
 
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
+import net.dv8tion.jda.api.entities.messages.MessagePoll;
+import net.dv8tion.jda.api.entities.messages.MessagePoll.Answer;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
+import net.dv8tion.jda.api.utils.messages.MessagePollData;
 
 public class Poll {
 	
@@ -24,151 +21,89 @@ public class Poll {
 	private PollType type;
 	private User pollFocusMember;
 	
-	private long messageID, messageTime, afterMessageTime;
+	private long messageID;
 	private Message afterMessage;
 	
-	private boolean decided;
-	private String summary;
+	private String question;
 	
-	public Poll(Color color, PollType type, String summary, String description, User pollFocusMember, TextChannel channel, Callable<?>... actions)
+	public Poll(PollType type, String question, User pollFocusMember, TextChannel channel, Callable<?>... actions)
 	{
 		this.type = type;
-		this.summary = summary;
+		this.question = question;
 		this.pollFocusMember = pollFocusMember;
 		this.channel = channel;
 		this.actions = actions;
 		
-		messageTime = System.currentTimeMillis();
+		MessageCreateAction action = null;
 		
 		// Create message
-		channel.sendMessageEmbeds(pollCreate(type, description, color)).queue(message ->
+		if(question.length() > MessagePoll.MAX_ANSWER_TEXT_LENGTH)
 		{
-			message.addReaction(Emoji.fromUnicode(YES_EMOJI)).queue();
-			message.addReaction(Emoji.fromUnicode(NO_EMOJI)).queue();
+			action = channel.sendMessage(question).setPoll(generatePoll());
+		}
+		else
+		{
+			action = channel.sendMessagePoll(generatePoll());
+		}
+		
+		action.queue(message ->
+		{
 			messageID = message.getIdLong();
 		});
 	}
 	
-	public boolean isComplete()
+	private MessagePollData generatePoll()
 	{
-		if(decided)
+		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_ANSWER_TEXT_LENGTH))).setDuration(type.votingWindow, TimeUnit.MILLISECONDS).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
+	}
+	
+	public void endPoll(Message message)
+	{
+		MessagePoll poll = message.getPoll();
+		int numYes = 0;
+		int numNo = 0;
+		
+		for(Answer answer : poll.getAnswers())
 		{
-			// After messages last 1 hour
-			if(System.currentTimeMillis() - afterMessageTime > type.votingCooldown)
+			if(answer.getText().equals("Yes"))
 			{
-				afterMessage.delete().queue();
-				return true;
-			}
-		}
-		else if(System.currentTimeMillis() - messageTime > type.votingWindow)
-		{
-			DMain.log("Poll \"" + summary + "\" has closed its voting window. Deciding...");
-			
-			decided = true;
-			afterMessageTime = System.currentTimeMillis();
-			
-			Message message = null;
-			
-			try {
-				message = channel.retrieveMessageById(messageID).complete();
-			} catch(Exception e) {
-				DMain.error("Could not retrieve original poll vote message");
-				DMain.log(e);
-				return true;
-			}
-			
-			List<User> yesVoters = new ArrayList<User>();
-			List<User> noVoters = new ArrayList<User>();
-			
-			// Add reactions
-			for(MessageReaction r : message.getReactions())
-			{
-				EmojiUnion emoji = r.getEmoji();
-				if(emoji.getType() == Emoji.Type.CUSTOM) continue;
-				
-				switch(emoji.asUnicode().getAsCodepoints())
-				{
-					case YES_EMOJI:
-					{
-						yesVoters = r.retrieveUsers().complete();
-						break;
-					}
-					case NO_EMOJI:
-					{
-						noVoters = r.retrieveUsers().complete();
-						break;
-					}
-				}
-			}
-			
-			// Delete duplicates
-			Iterator<User> yesIterator = yesVoters.iterator();
-			while(yesIterator.hasNext())
-			{
-				User yesVoter = yesIterator.next();
-				
-				Iterator<User> noIterator = noVoters.iterator();
-				while(noIterator.hasNext())
-				{
-					User noVoter = noIterator.next();
-					
-					if(yesVoter.getIdLong() == noVoter.getIdLong())
-					{
-						DMain.log("Duplicate voter: " + noVoter.getName());
-						yesIterator.remove();
-						noIterator.remove();
-					}
-				}
-			}
-			
-			int numYes = yesVoters.size();
-			int numNo = noVoters.size();
-			
-			DMain.log("To decide: Yes = " + numYes + ", No = " + numNo);
-			
-			// Delete voting message
-			message.delete().queue();
-			
-			// Check for ratio
-			if(type.passesPoll(numYes, numNo))
-			{
-				DMain.log("***" + type.name() + (pollFocusMember != null ? " <@" + pollFocusMember.getName() + ">" : "") + "*** poll (" + summary + ") passed!");
-				afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + summary + ") passed!").complete();
-				
-				// Perform actions
-				for(Callable<?> action : actions)
-				{
-					try {
-						action.call();
-					} catch(Exception e) {
-						DMain.error("Error running action during passed poll");
-						DMain.log(e);
-					}
-				}
+				numYes++;
 			}
 			else
 			{
-				DMain.log("***" + type.name() + (pollFocusMember != null ? " <@" + pollFocusMember.getName() + ">" : "") + "*** poll (" + summary + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.");
-				afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + summary + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.").complete();
+				numNo++;
 			}
 		}
 		
-		return false;
-	}
-	
-	public boolean isDecided()
-	{
-		return decided;
-	}
-	
-	public PollType getType()
-	{
-		return type;
-	}
-	
-	public long getFocusMemberID()
-	{
-		return pollFocusMember.getIdLong();
+		DMain.log("To decide: Yes = " + numYes + ", No = " + numNo);
+		
+		// Delete voting message
+		message.delete().queue();
+		
+		// Check for ratio
+		if(type.passesPoll(numYes, numNo))
+		{
+			DMain.log("***" + type.name() + (pollFocusMember != null ? " <@" + pollFocusMember.getName() + ">" : "") + "*** poll (" + question + ") passed!");
+			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") passed!").complete();
+			
+			// Perform actions
+			for(Callable<?> action : actions)
+			{
+				try {
+					action.call();
+				} catch(Exception e) {
+					DMain.error("Error running action during passed poll");
+					DMain.log(e);
+				}
+			}
+		}
+		else
+		{
+			DMain.log("***" + type.name() + (pollFocusMember != null ? " <@" + pollFocusMember.getName() + ">" : "") + "*** poll (" + question + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.");
+			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.").complete();
+		}
+		
+		afterMessage.delete().queueAfter(1, TimeUnit.HOURS);
 	}
 	
 	public long getMessageID()
@@ -176,25 +111,10 @@ public class Poll {
 		return messageID;
 	}
 	
-	private MessageEmbed pollCreate(PollType type, String description, Color color)
-	{
-		EmbedBuilder e = new EmbedBuilder();
-		e.setTitle(DMain.BOT_NAME + " Vote");
-		e.setDescription(description);
-		e.setColor(color);
-		
-		e.setFooter("Requires " + (int) (type.ratio * 100) + "% majority and " + type.minParticipation + " minimum voters. Decision in " + type.votingTimeParsed + ".");
-		return e.build();
-	}
-	
 	public enum PollType {
 		
-		VIOLATION(0.51f, 2, 60000, 60000),
-		IMPEACH(0.75f, 7, 86400000, 259200000),
 		PROPOSE(0.51f, 3, 3600000, 43200000),
-		ARCHIVE(0.65f, 3, 3600000, 43200000),
-		REPEAL(0.51f, 3, 3600000, 43200000),
-		CREATE_PARTY(0.35f, 2, 3600000, 600000);
+		REPEAL(0.51f, 3, 3600000, 43200000);
 		
 		private float ratio;
 		private int minParticipation;

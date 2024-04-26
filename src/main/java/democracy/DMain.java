@@ -44,7 +44,10 @@ public class DMain {
 	public static final String DEFAULT_PREFIX = "!";
 	
 	// Ignore the tokens.txt file in .gitignore
-	private static final String DEMOCRACY_BOT_TOKEN = loadAsString(new BufferedReader(new InputStreamReader(DMain.class.getClassLoader().getResourceAsStream("tokens.txt"))));
+	private static final String DEMOCRACY_BOT_TOKEN;
+	private static final String WEEVE_BOT_TOKEN;
+	private static final String WEEVE_OWNER_ID;
+	public static final String STARTGG_TOKEN;
 	
 	public static String BOT_NAME;
 	public static long BOT_ID;
@@ -59,12 +62,14 @@ public class DMain {
 	public static final File serverFile;
 	public static final File logs;
 	
+	public static final File JAR_FILE = new File(System.getProperty("user.home") + "/Desktop/DemocracyBot.jar");
+	
 	// Member data absolute path on pi: /root/Desktop/botData/serverData.txt
 	public static final boolean inIDE;
 	
 	// Server Data
 	public static long SERVER_ID = 1102048289202917441L;
-	public static long THE_CONSTIPATION = 1102051128067248169L, LIBRARY_OF_CONGRESS = 1102307566182219966L, AMENDMENTS = 1102051223277928509L, VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L, TEST_CHANNEL = 1105627214587904010L;
+	public static long THE_CONSTIPATION = 1102051128067248169L, AMENDMENTS = 1102051223277928509L, VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L, TEST_CHANNEL = 1105627214587904010L;
 	public static long THE_WHITE_HOUSE_CATEGORY = 1102050716819918948L, MAGNA_FARTA_CATEGORY = 1102050764756635668L;
 	
 	// Roles
@@ -81,7 +86,15 @@ public class DMain {
 	
 	static
 	{
-		System.out.println(DEMOCRACY_BOT_TOKEN);
+		// Load tokens
+		String raw = loadAsString(new BufferedReader(new InputStreamReader(DMain.class.getClassLoader().getResourceAsStream("tokens.txt"))));
+		Map<String, Object> result = WebUtils.parseJSON(WebUtils.MAP, raw);
+		
+		DEMOCRACY_BOT_TOKEN = result.get("democracy").toString();
+		STARTGG_TOKEN = result.get("smash").toString();
+		WEEVE_BOT_TOKEN = result.get("weeve").toString();
+		WEEVE_OWNER_ID = result.get("weeve_owner_id").toString();
+		
 		// If we're in a jar file, set debug to false
 		String resource = DMain.class.getResource("DMain.class").toString();
 		if(resource.startsWith("jar:") || resource.startsWith("rsrc:")) inIDE = false;
@@ -116,6 +129,30 @@ public class DMain {
 	
 	public DMain()
 	{
+//		String hi = "query Uhh {"
+//											+ "  tournaments(query: {"
+//											+ "    page: 1"
+//											+ "    filter: {"
+//											+ "      name: \"Tuesday Trials\""
+//											+ "    }"
+//											+ "  }) {"
+//											+ "    nodes {"
+//											+ "      name"
+//											+ "    }"
+//											+ "  }"
+//											+ "}";
+//		String getID = "query YourQueryNameHere { currentUser { id }}";
+//		try
+//		{
+//			System.out.println("{\"query\": \"" + hi + "\"}");
+//			System.out.println(WebUtils.postRequest(PrivateHandler.ENDPOINT, new StringEntity("{\"query\": \"" + hi + "\"}", ContentType.APPLICATION_JSON), new BasicNameValuePair(HttpHeaders.AUTHORIZATION, "Bearer " + STARTGG_TOKEN), new BasicNameValuePair(HttpHeaders.CONTENT_TYPE, "application/json")));
+//		} catch(IOException e1)
+//		{
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
+//		
+//		if(true) return;
 		// Set up directories, read from files, etc.
 		InputListener listener = null;
 		
@@ -264,7 +301,7 @@ public class DMain {
 		}
 		
 		// If still not connected
-		if(jda.getStatus() != Status.CONNECTED)
+		if(jda == null || jda.getStatus() != Status.CONNECTED)
 		{
 			DMain.error("Could not connect to JDA");
 			System.exit(1);
@@ -275,17 +312,17 @@ public class DMain {
 		errorHandler = new ErrorHandler(privateChannel);
 		
 		// Public slash commands
-		CommandData[] publicCommands = new CommandData[9];
-		publicCommands[0] = Commands.slash("violation", "Report a violation of the rules").addOption(OptionType.USER, "violator", "The one who violated the rules", true).addOptions(new OptionData(OptionType.INTEGER, "minutes", "prison time of violator").setRequiredRange(1, 3));
-		publicCommands[1] = Commands.slash("impeach", "Impeach the President");
-		publicCommands[2] = Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOption(OptionType.STRING, "slogan", "Your campaign slogan", true);
-		publicCommands[3] = Commands.slash("next-election", "Returns next election time");
-		publicCommands[4] = Commands.slash("propose", "Propose an amendment").addOption(OptionType.STRING, "amendment", "The amendment to add", true);
-		publicCommands[5] = Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1));
+		CommandData[] publicCommands = new CommandData[6];
+//		publicCommands[0] = Commands.slash("violation", "Report a violation of the rules").addOption(OptionType.USER, "violator", "The one who violated the rules", true).addOptions(new OptionData(OptionType.INTEGER, "minutes", "prison time of violator").setRequiredRange(1, 3));
+//		publicCommands[1] = Commands.slash("impeach", "Impeach the President");
+		publicCommands[0] = Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOption(OptionType.STRING, "slogan", "Your campaign slogan", true);
+		publicCommands[1] = Commands.slash("next-election", "Returns next election time");
+		publicCommands[2] = Commands.slash("propose", "Propose an amendment").addOption(OptionType.STRING, "amendment", "The amendment to add", true);
+		publicCommands[3] = Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1));
 //		publicCommands[6] = Commands.slash("party", "View political party commands").addSubcommands(new SubcommandData("create", "Create a political party").addOption(OptionType.STRING, "name", "Name of the party", true), new SubcommandData("join", "Join a political party").addOption(OptionType.ROLE, "party", "The party to join", true), new SubcommandData("leave", "Leave a political party").addOption(OptionType.ROLE, "party", "The party to leave", true));
-		publicCommands[6] = Commands.slash("archive", "Propose addition to the Library of Congress").addOption(OptionType.STRING, "entry", "The library of congress entry to add", true);
-		publicCommands[7] = Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true), new OptionData(OptionType.STRING, "response-2", "Another response to the new command", false), new OptionData(OptionType.STRING, "response-3", "Another response to the new command", false));
-		publicCommands[8] = Commands.slash("unsecret", "Remove a word from secret commands").addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true));
+//		publicCommands[6] = Commands.slash("archive", "Propose addition to the Library of Congress").addOption(OptionType.STRING, "entry", "The library of congress entry to add", true);
+		publicCommands[4] = Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true));
+		publicCommands[5] = Commands.slash("unsecret", "Remove a word from secret commands").addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true));
 		
 		// Update public commands
 		if(!inIDE)
@@ -362,19 +399,35 @@ public class DMain {
 		String[] localFile = loadAsString(new BufferedReader(new InputStreamReader(new FileInputStream(serverFile)))).split("\n");
 		String[] toRead = localFile;
 		
-		// If the reset file data is blank
-		if(resetFile.length != 1)
+		// length == 1 and not 0 because split gives you an empty slot for ""
+		// Check if local file is empty
+		if(localFile.length == 1)
 		{
-			// Initial values (in case data is empty)
-			long resetTime = Long.parseLong(resetFile[0]);
-			long fileTime = Long.parseLong(localFile[0]);
-			DMain.log("Reset time: " + resetTime + ", File time: " + fileTime);
+			DMain.log("Local file is empty. Interesting...");
+			toRead = resetFile;
 			
-			// If the local file has newer data than the reset file
-			if(resetTime > fileTime)
+			if(resetFile.length == 1)
 			{
-				// Use the reset file instead of the reset file
-				toRead = resetFile;
+				privateChannel.sendMessage("Local file is blank, AND the reset file is blank").complete();
+				System.exit(1);
+			}
+		}
+		else
+		{
+			// If the reset file data isn't blank
+			if(resetFile.length != 1)
+			{
+				// Initial values (in case data is empty)
+				long resetTime = Long.parseLong(resetFile[0]);
+				long fileTime = Long.parseLong(localFile[0]);
+				DMain.log("Reset time: " + resetTime + ", File time: " + fileTime);
+				
+				// If the local file has newer data than the reset file
+				if(resetTime > fileTime)
+				{
+					// Use the reset file instead of the reset file
+					toRead = resetFile;
+				}
 			}
 		}
 		
@@ -401,7 +454,7 @@ public class DMain {
 		for(int i = 3 + totalAmendments; i < toRead.length; i++)
 		{
 			String[] memberData = toRead[i].split(",");
-			members.add(new ServerMember(memberData[0].substring(1, memberData[0].lastIndexOf("\"")), memberData[1], Long.parseLong(memberData[2])));
+			members.add(new ServerMember(memberData[0].substring(1, memberData[0].lastIndexOf("\"")), Long.parseLong(memberData[1])));
 		}
 		
 		DMain.log("President has " + (termEndTime - System.currentTimeMillis()) / 8.64e+7 + " days remaining in office");
@@ -444,7 +497,7 @@ public class DMain {
 	public static void error(String error)
 	{
 		log.error(error);
-		errorHandler.queue(error);
+		if(errorHandler != null) errorHandler.queue(error);
 	}
 	
 	private static String loadAsString(BufferedReader reader)
@@ -454,6 +507,10 @@ public class DMain {
 		StringBuilder builder = new StringBuilder();
 		
 		try {
+			String initString = reader.readLine();
+			if(initString == null) return "";
+			builder.append(initString);
+			
 			for(String line = null; (line = reader.readLine()) != null;)
 			{
 				builder.append("\n");
@@ -464,11 +521,53 @@ public class DMain {
 			e.printStackTrace();
 		}
 		
-		return builder.toString().substring(1);
+		return builder.toString();
+	}
+	
+	/**
+	 * Restarts the bot
+	 */
+	public static void reboot()
+	{
+		DMain.sendToOperator("Rebooting...");
+		
+		// Reboot
+		try {
+			Process p = Runtime.getRuntime().exec("sudo reboot");
+			p.waitFor();
+		} catch(InterruptedException | IOException e) {
+			System.err.println("An error occured rebooting bot");
+			e.printStackTrace();
+		}
 	}
 	
 	public static void main(String[] args)
 	{
+		if(!inIDE)
+		{
+			Thread runnable = new Thread()
+			{
+				@Override
+				public void run()
+				{
+					try {
+						com.supasulley.main.Main.main(new String[] {"--token=" + WEEVE_BOT_TOKEN, "--owner_id=" + WEEVE_OWNER_ID, "--notify_errors"});
+					} catch(Throwable t) {
+						DMain.error(t.toString());
+					}
+				}
+				
+				@Override
+				public void setUncaughtExceptionHandler(UncaughtExceptionHandler eh)
+				{
+					DMain.error(eh.toString());
+				}
+			};
+			
+			runnable.setName("weeve");
+			runnable.start();
+		}
+		
 		new DMain();
 	}
 }

@@ -1,10 +1,15 @@
 package democracy;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.dropbox.core.BadRequestException;
+import com.dropbox.core.DbxRequestConfig;
+import com.dropbox.core.v2.DbxClientV2;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
@@ -19,6 +24,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 public class PrivateHandler extends MessageHandler {
 	
+	public static final String ENDPOINT = "https://api.start.gg/gql/alpha", OWNER_ID = "735931";
 	private JDA jda;
 	
 	public PrivateHandler(InputListener listener, JDA jda)
@@ -35,6 +41,7 @@ public class PrivateHandler extends MessageHandler {
 											"edit*Edits a message*message ID + new text",
 											"amendment*Force pass an amendment*text",
 											"ip*Retrieves local IP address",
+											"update*Updates the bot from the JAR in the dropbox",
 											"logs*Retrieve logs in a file and clears them",
 											"data*Returns server data",
 											"shutdown*Forces shutdown of " + DMain.BOT_NAME,
@@ -133,18 +140,40 @@ public class PrivateHandler extends MessageHandler {
 				} catch(IOException e) {
 					return "Could not access IP address: " + e.toString();
 				}
-			case (11):
-				DMain.sendLogs();
-				return null;
+			case(11):
+			{
+				try {
+					DMain.sendToOperator("Updating...");
+					
+					DbxClientV2 client = new DbxClientV2(DbxRequestConfig.newBuilder("susbox").build(), message);
+			        
+					try {
+						FileOutputStream stream = new FileOutputStream(DMain.JAR_FILE);
+						client.files().downloadBuilder("/DemocracyBot.jar").download(stream);
+						stream.close();
+						DMain.reboot();
+					} catch(BadRequestException e) {
+						return "Invalid access token \"" + message + "\"";
+					}
+					
+		            return null;
+				} catch(Exception e) {
+					e.printStackTrace();
+					return "An error occured updating PaneraBot";
+				}
+			}
 			case (12):
-				DMain.updateServerData();
-				DMain.sendServerData();
+				DMain.sendLogs();
 				return null;
 			case (13):
 				DMain.updateServerData();
-				DMain.shutdown();
+				DMain.sendServerData();
 				return null;
 			case (14):
+				DMain.updateServerData();
+				DMain.shutdown();
+				return null;
+			case (15):
 				MessageHistory history = new MessageHistory(channel);
 				List<Message> messages2 = history.retrievePast(100).complete();
 				List<Message> toDelete = new ArrayList<Message>();
@@ -176,7 +205,7 @@ public class PrivateHandler extends MessageHandler {
 					toDelete.get(0).delete().queue();
 				}
 				return null;
-			case (15):
+			case (16):
 				channel.sendMessageEmbeds(getUsage()).queue();
 				return null;
 			default:

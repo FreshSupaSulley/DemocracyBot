@@ -25,7 +25,8 @@ public class Server {
 	private long presidentID;
 	private String slogan;
 	// Term length is 30 days
-	private long termLength = 2592000000L, termEndTime;
+	private final long termLength = 2592000000L;
+	private long termEndTime;
 	private int amendments = 0;
 	private ArrayList<String> messageIDs;
 	
@@ -110,7 +111,9 @@ public class Server {
 	
 	public boolean isLastTerm()
 	{
-		return lastTerm;
+		// Amendment 2
+		return false;
+//		return lastTerm;
 	}
 	
 	public long millsRemainingInTerm()

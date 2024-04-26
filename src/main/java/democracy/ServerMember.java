@@ -4,24 +4,22 @@ import democracy.Poll.PollType;
 
 public class ServerMember {
 	
-	private String name, discriminator;
+	private String name;
 	
 	private final long userID;
 	
 	// Times of proposing each type of poll
 	private long[] pollProposalTimes = new long[PollType.values().length];
 	
-	public ServerMember(String name, String discriminator, long userID)
+	public ServerMember(String name, long userID)
 	{
 		this.name = name;
-		this.discriminator = discriminator;
 		this.userID = userID;
 	}
 	
-	public void update(String name, String discriminator)
+	public void update(String name)
 	{
 		this.name = name;
-		this.discriminator = discriminator;
 	}
 	
 	/**
@@ -60,11 +58,6 @@ public class ServerMember {
 		return name;
 	}
 	
-	public String getDiscriminator()
-	{
-		return discriminator;
-	}
-	
 	public long getID()
 	{
 		return userID;
@@ -73,6 +66,6 @@ public class ServerMember {
 	@Override
 	public String toString()
 	{
-		return "\"" + name + "\"," + discriminator + "," + userID + ",";
+		return "\"" + name + "\"," + userID + ",";
 	}
 }

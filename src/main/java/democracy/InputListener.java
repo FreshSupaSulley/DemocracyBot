@@ -7,7 +7,10 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import democracy.Poll.PollType;
@@ -25,15 +28,16 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
-import net.dv8tion.jda.api.events.DisconnectEvent;
+import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.events.ExceptionEvent;
-import net.dv8tion.jda.api.events.ResumedEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.events.session.SessionDisconnectEvent;
+import net.dv8tion.jda.api.events.session.SessionResumeEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.requests.CloseCode;
 import net.dv8tion.jda.api.utils.FileUpload;
 
@@ -93,69 +97,69 @@ public class InputListener extends ListenerAdapter {
 		
 		DMain.log("[SLASH COMMAND (" + guild.getId() + ", channel #" + event.getChannel().getId() + ") - '" + user.getName() + "']: \"" + event.getCommandString() + "\"");
 		
-		switch(event.getCommandPath())
+		switch(event.getFullCommandName())
 		{
-			case "violation":
-			{
-				PollType type = PollType.VIOLATION;
-				User mentioned = event.getOption("violator").getAsUser();
-				
-				if(mentioned.getIdLong() == DMain.BOT_ID)
-				{
-					event.reply("Go to hell.").queue();
-					return;
-				}
-				
-				// Check if we already have a poll open for this
-				if(pollAlreadyOpen(type, mentioned.getIdLong()))
-				{
-					event.reply("Poll is already open!").queue();
-				}
-				else if(!sender.canPropose(type))
-				{
-					event.reply("You are forbidden from proposing timeouts this frequently.").queue();
-				}
-				else
-				{
-					event.reply("Poll added!").queue();
-					
-					OptionMapping option = event.getOption("minutes");
-					int minutes;
-					if(option != null) minutes = option.getAsInt();
-					else minutes = 1;
-					
-					activePolls.add(new Poll(Color.red, type, "Timeout " + mentioned.getName(), "Do the people agree **" + mentioned.getName() + "** has violated our constitution / amendments? Violator will be timed out for " + minutes + " minute(s).", mentioned, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> guild.timeoutFor(guild.retrieveMemberById(mentioned.getIdLong()).complete(), minutes, TimeUnit.MINUTES).complete()));
-				}
-				
-				return;
-			}
-			case "impeach":
-			{
-				// Check if we have a president to overthrow
-				if(!DMain.server.hasPresident())
-				{
-					event.reply("There is no President to impeach!").queue();
-				}
-				else if(pollAlreadyOpen(PollType.IMPEACH, 0))
-				{
-					event.reply("Poll is already open!").queue();
-				}
-				else if(presidentialVote != null)
-				{
-					event.reply("There is an active Presidential vote. If you are unhappy with the current President, vote to elect a new one.").queue();
-				}
-				else if(!sender.canPropose(PollType.IMPEACH))
-				{
-					event.reply("You cannot propose impeachment this frequently.").queue();
-				}
-				else
-				{
-					event.reply("Poll added!").queue();
-					activePolls.add(new Poll(Color.red, PollType.IMPEACH, "Impeach the President", "Has our President violated the Magna Farta? Do we, the people, decide to impeach <@" + DMain.server.getPresidentID() + ">?", null, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> DMain.server.impeachPresident(guild)));
-				}
-				
-				return;
-			}
+//			case "violation":
+//			{
+//				PollType type = PollType.VIOLATION;
+//				User mentioned = event.getOption("violator").getAsUser();
+//				
+//				if(mentioned.getIdLong() == DMain.BOT_ID)
+//				{
+//					event.reply("Go to hell.").queue();
+//					return;
+//				}
+//				
+//				// Check if we already have a poll open for this
+//				if(pollAlreadyOpen(type, mentioned.getIdLong()))
+//				{
+//					event.reply("Poll is already open!").queue();
+//				}
+//				else if(!sender.canPropose(type))
+//				{
+//					event.reply("You are forbidden from proposing timeouts this frequently.").queue();
+//				}
+//				else
+//				{
+//					event.reply("Poll added!").queue();
+//					
+//					OptionMapping option = event.getOption("minutes");
+//					int minutes;
+//					if(option != null) minutes = option.getAsInt();
+//					else minutes = 1;
+//					
+//					activePolls.add(new Poll(type, "Timeout " + mentioned.getName() + " (" + minutes + " minute(s))", mentioned, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> guild.timeoutFor(guild.retrieveMemberById(mentioned.getIdLong()).complete(), minutes, TimeUnit.MINUTES).complete()));
+//				}
+//				
+//				return;
+//			}
+//			case "impeach":
+//			{
+//				// Check if we have a president to overthrow
+//				if(!DMain.server.hasPresident())
+//				{
+//					event.reply("There is no President to impeach!").queue();
+//				}
+//				else if(pollAlreadyOpen(PollType.IMPEACH, 0))
+//				{
+//					event.reply("Poll is already open!").queue();
+//				}
+//				else if(presidentialVote != null)
+//				{
+//					event.reply("There is an active Presidential vote. If you are unhappy with the current President, vote to elect a new one.").queue();
+//				}
+//				else if(!sender.canPropose(PollType.IMPEACH))
+//				{
+//					event.reply("You cannot propose impeachment this frequently.").queue();
+//				}
+//				else
+//				{
+//					event.reply("Poll added!").queue();
+//					activePolls.add(new Poll(Color.red, PollType.IMPEACH, "Impeach the President", "Has our President violated the Magna Farta? Do we, the people, decide to impeach <@" + DMain.server.getPresidentID() + ">?", null, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> DMain.server.impeachPresident(guild)));
+//				}
+//				
+//				return;
+//			}
 			case "campaign":
 			{
 				String content = event.getOption("slogan").getAsString();
@@ -238,7 +242,7 @@ public class InputListener extends ListenerAdapter {
 				else
 				{
 					event.reply("Poll added!").queue();
-					activePolls.add(new Poll(DMain.BURPLE, PollType.PROPOSE, "Propose \"" + content + "\"", "Do the people agree to append the proposed legislation in <#" + DMain.AMENDMENTS + ">:\n\n\"" + content + "\"\n\nThe President is expected to enforce this new legislation.", null, jda.getTextChannelById(DMain.VOTING_BOOTH), DMain.server.addAmendment(jda, content)));
+					activePolls.add(new Poll(PollType.PROPOSE, "New Amendment: \"" + content + "\"", null, jda.getTextChannelById(DMain.VOTING_BOOTH), DMain.server.addAmendment(jda, content)));
 					break;
 				}
 				
@@ -262,7 +266,7 @@ public class InputListener extends ListenerAdapter {
 				{
 					number--;
 					event.reply("Poll added!").queue();
-					activePolls.add(new Poll(DMain.BURPLE, PollType.REPEAL, "Repeal \"" + DMain.server.getAmendment(jda, number) + "\"", "Do the people agree to repeal \"" + DMain.server.getAmendment(jda, number) + "\" from <#" + DMain.AMENDMENTS + ">?", null, jda.getTextChannelById(DMain.VOTING_BOOTH), DMain.server.repealAmendment(jda, number)));
+					activePolls.add(new Poll(PollType.REPEAL, "Repeal Amendment #" + (number + 1) + ": \"" + DMain.server.getAmendment(jda, number) + "\"", null, jda.getTextChannelById(DMain.VOTING_BOOTH), DMain.server.repealAmendment(jda, number)));
 				}
 				
 				return;
@@ -335,31 +339,29 @@ public class InputListener extends ListenerAdapter {
 //				
 //				return;
 //			}
-			case "archive":
-			{
-				String entry = event.getOption("entry").getAsString();
-				
-				if(!sender.canPropose(PollType.ARCHIVE))
-				{
-					event.reply("You cannot propose an entry to the Library of Congress this frequently.").queue();
-				}
-				else
-				{
-					event.reply("Poll added!").queue();
-					activePolls.add(new Poll(DMain.BURPLE, PollType.ARCHIVE, "Archive \"" + entry + "\"", "Do the people agree to archive the following text in <#" + DMain.LIBRARY_OF_CONGRESS + ">:\n\n\"" + entry + "\"\n\nThe President also has the power to archive by force.", null, jda.getTextChannelById(DMain.VOTING_BOOTH), jda.getTextChannelById(DMain.LIBRARY_OF_CONGRESS).sendMessage(entry)::complete));
-					break;
-				}
-				
-				return;
-			}
+//			case "archive":
+//			{
+//				String entry = event.getOption("entry").getAsString();
+//				
+//				if(!sender.canPropose(PollType.ARCHIVE))
+//				{
+//					event.reply("You cannot propose an entry to the Library of Congress this frequently.").queue();
+//				}
+//				else
+//				{
+//					event.reply("Poll added!").queue();
+//					activePolls.add(new Poll(DMain.BURPLE, PollType.ARCHIVE, "Archive \"" + entry + "\"", "Do the people agree to archive the following text in <#" + DMain.LIBRARY_OF_CONGRESS + ">:\n\n\"" + entry + "\"\n\nThe President also has the power to archive by force.", null, jda.getTextChannelById(DMain.VOTING_BOOTH), jda.getTextChannelById(DMain.LIBRARY_OF_CONGRESS).sendMessage(entry)::complete));
+//					break;
+//				}
+//				
+//				return;
+//			}
 			case "secret":
 			{
 				String word = event.getOption("word").getAsString().trim();
 				String response = event.getOption("response").getAsString().trim();
-				String response2 = event.getOption("response-2", "", option -> "\n" + option.getAsString().trim());
-				String response3 = event.getOption("response-3", "", option -> "\n" + option.getAsString().trim());
 				
-				DMain.server.addSecret(word, response + response2 + response3);
+				DMain.server.addSecret(word, response);
 				
 				event.reply("\"" + word + "\" is now a secret command (will send " + response + ")").queue();
 				return;
@@ -389,6 +391,32 @@ public class InputListener extends ListenerAdapter {
 		}
 	}
 	
+	@Override
+	public void onMessageUpdate(MessageUpdateEvent event)
+	{
+		Message message = event.getMessage();
+		MessagePoll poll = message.getPoll();
+		
+		if(poll != null)
+		{
+			Iterator<Poll> iterator = activePolls.iterator();
+			
+			while(iterator.hasNext())
+			{
+				Poll sample = iterator.next();
+				
+				if(sample.getMessageID() == event.getMessageIdLong())
+				{
+					sample.endPoll(message);
+					
+					DMain.log("Poll " + sample + " is complete! Removing...");
+					iterator.remove();
+					DMain.updateServerData();
+				}
+			}
+		}
+	}
+	
 	private MessageEmbed buildPresidentialVote()
 	{
 		EmbedBuilder e = new EmbedBuilder();
@@ -411,35 +439,6 @@ public class InputListener extends ListenerAdapter {
 		return e.build();
 	}
 	
-	/**
-	 * Check if we already have a poll open for this
-	 * @param type
-	 * @param pollFocusID
-	 * @return
-	 */
-	private boolean pollAlreadyOpen(PollType type, long pollFocusID)
-	{
-		for(Poll poll : activePolls)
-		{
-			// If poll of the same type already active
-			if(poll.getType() == type)
-			{
-				switch(type)
-				{
-					case VIOLATION:
-						if(poll.getFocusMemberID() == pollFocusID) return true;
-						break;
-					case IMPEACH:
-						return true;
-					default:
-						break;
-				}
-			}
-		}
-		
-		return false;
-	}
-	
 	public void guildMessageReceived(MessageReceivedEvent event)
 	{
 		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong()) return;
@@ -457,6 +456,7 @@ public class InputListener extends ListenerAdapter {
 //		boolean canReact = eventMessage.getGuild().getSelfMember().hasPermission(Permission.MESSAGE_ADD_REACTION);
 //		int numReacts = 0;
 		StringBuilder builder = new StringBuilder();
+		Map<String, String> commands = new HashMap<String, String>();
 		
 		// For each key (word)
 		for(String key : DMain.server.getSecretCommands().keySet())
@@ -474,6 +474,7 @@ public class InputListener extends ListenerAdapter {
 				
 				// Append command
 				builder.append(value + "\n");
+				commands.put(key, value);
 //				
 //				if(canReact && numReacts < Message.MAX_REACTIONS)
 //				{
@@ -483,16 +484,56 @@ public class InputListener extends ListenerAdapter {
 			}
 		}
 		
-		sendMessage(event.getChannel(), builder.toString());
+		// This can happen believe it or not (user can make a poll and then this blows tf up)
+		if(builder.toString().isEmpty()) return;
 		
-		// Discord mod secret command
-		if(event.getChannel().getName().contains("general"))
+		event.getChannel().sendMessage(builder.toString()).queue(queued ->
 		{
-			if(message.toLowerCase().contains("meme"))
+			// Wait before getting the new message
+			event.getChannel().retrieveMessageById(queued.getId()).queueAfter(3, TimeUnit.SECONDS, success ->
 			{
-				sendMessage(event.getChannel(), "https://tenor.com/view/discord-mod-discord-gif-18242678");
-			}
-		}
+				// For each secret
+				for(Entry<String, String> set : commands.entrySet())
+				{
+					String key = set.getKey();
+					String secret = set.getValue();
+					
+					// If that secret is a link (trying to be an embed)
+					if(secret.contains("http"))
+					{
+						boolean found = false;
+						
+						// Check if that link actually embedded properly
+						for(MessageEmbed embed : success.getEmbeds())
+						{
+							String url = embed.getUrl();
+							
+							if(url.equals(secret))
+							{
+								found = true;
+								break;
+							}
+						}
+						
+						if(!found)
+						{
+							DMain.log("Removing " + key + " from secret commands. Embed didn't work - " + secret);
+							DMain.server.getSecretCommands().remove(key);
+							
+							// If it was just one secret command, just delete the message
+							if(commands.size() == 1)
+							{
+								success.delete().queue();
+							}
+						}
+						else
+						{
+							System.out.println("nah it worked");
+						}
+					}
+				}
+			});
+		});
 	}
 	
 	/**
@@ -586,13 +627,13 @@ public class InputListener extends ListenerAdapter {
 			// If the user already exists, move to front of list
 			if(member.isUser(user.getIdLong()))
 			{
-				member.update(user.getName(), user.getDiscriminator());
+				member.update(user.getName());
 				return member;
 			}
 		}
 		
 		// If we couldn't find user / server, the ServerMember is new
-		ServerMember initMember = new ServerMember(user.getName(), user.getDiscriminator(), user.getIdLong());
+		ServerMember initMember = new ServerMember(user.getName(), user.getIdLong());
 		DMain.server.addMember(initMember);
 		return initMember;
 	}
@@ -602,21 +643,6 @@ public class InputListener extends ListenerAdapter {
 	 */
 	public void tick()
 	{
-		// Handle active polls
-		Iterator<Poll> iterator = activePolls.iterator();
-		
-		while(iterator.hasNext())
-		{
-			Poll poll = iterator.next();
-			
-			if(poll.isComplete())
-			{
-				DMain.log("Poll " + poll.getType() + " is complete! Removing...");
-				iterator.remove();
-				DMain.updateServerData();
-			}
-		}
-		
 		DMain.server.tick(jda);
 		
 		// If we're voting for President
@@ -636,7 +662,7 @@ public class InputListener extends ListenerAdapter {
 				
 				// Create vote, add first reaction (President re-election)
 				presidentialVote = jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).sendMessageEmbeds(buildPresidentialVote()).complete();
-				if(DMain.server.hasPresident()) presidentialVote.addReaction(Emoji.fromUnicode("U+31U+fe0fU+20e3")).queue();
+				if(!candidates.isEmpty()) presidentialVote.addReaction(Emoji.fromUnicode("U+31U+fe0fU+20e3")).queue();
 			}
 			// Tick vote if already created
 			else
@@ -760,7 +786,7 @@ public class InputListener extends ListenerAdapter {
 		event.getGuild().addRoleToMember(event.getMember(), DMain.IMMIGRANT).queue();
 		DMain.server.addImmigrant(event.getMember().getIdLong());
 		
-		DMain.log(event.getUser().getAsTag() + " joined!");
+		DMain.log(event.getUser().getName() + " " + event.getUser().getIdLong() + " joined!");
 	}
 	
 	@Override
@@ -846,17 +872,15 @@ public class InputListener extends ListenerAdapter {
 	}
 	
 	@Override
-	public void onDisconnect(DisconnectEvent event)
+	public void onSessionDisconnect(SessionDisconnectEvent event)
 	{
-		super.onDisconnect(event);
 		CloseCode code = event.getCloseCode();
 		DMain.log("DISCONNECTED! Close code: " + (code == null ? "null" : code.getCode() + ". Meaning: " + code.getMeaning()) + ". Closed by discord: " + event.isClosedByServer());
 	}
 	
 	@Override
-	public void onResumed(ResumedEvent event)
+	public void onSessionResume(SessionResumeEvent event)
 	{
-		super.onResumed(event);
 		DMain.log("Reconnected!");
 	}
 	
