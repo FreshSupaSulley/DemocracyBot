@@ -27,8 +27,7 @@ public class Server {
 	// Term length is 30 days
 	private final long termLength = 2592000000L;
 	private long termEndTime;
-	private int amendments = 0;
-	private ArrayList<String> messageIDs;
+	private ArrayList<String> amendmentIDs;
 	
 	// Secret command
 	private HashMap<String, String> secretCommands;
@@ -41,17 +40,19 @@ public class Server {
 		this.presidentID = presidentID;
 		this.slogan = slogan;
 		this.termEndTime = termEndTime;
-		this.amendments = amendments;
+//		this.amendments = amendments;
 		this.members = members;
-		this.messageIDs = messageIDs;
+		this.amendmentIDs = messageIDs;
 		this.secretCommands = secretCommands;
 		this.lastTerm = lastTerm;
 	}
 	
 	public boolean isPresident(ServerMember member)
 	{
-		if(!hasPresident()) return false;
-		if(member.getID() == presidentID) return true;
+		if(!hasPresident())
+			return false;
+		if(member.getID() == presidentID)
+			return true;
 		return false;
 	}
 	
@@ -113,17 +114,17 @@ public class Server {
 	{
 		// Amendment 2
 		return false;
-//		return lastTerm;
+		// return lastTerm;
 	}
 	
 	public long millsRemainingInTerm()
 	{
-		return termEndTime - System.currentTimeMillis();
+		return Math.max(0, termEndTime - System.currentTimeMillis());
 	}
 	
 	public int getAmendments()
 	{
-		return amendments;
+		return amendmentIDs.size();
 	}
 	
 	public String getPresidentialSlogan()
@@ -150,6 +151,7 @@ public class Server {
 	{
 		return new Callable<Void>()
 		{
+			
 			@Override
 			public Void call() throws Exception
 			{
@@ -169,10 +171,11 @@ public class Server {
 	{
 		return new Callable<Void>()
 		{
+			
 			@Override
 			public Void call() throws Exception
 			{
-				messageIDs.add(jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + ++amendments + "** - " + content).complete().getId());
+				amendmentIDs.add(jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + getAmendments() + 1 + "** - " + content).complete().getId());
 				return null;
 			}
 		};
@@ -182,10 +185,11 @@ public class Server {
 	{
 		return new Callable<Void>()
 		{
+			
 			@Override
 			public Void call() throws Exception
 			{
-				Message message = jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(messageIDs.get(number)).complete();
+				Message message = jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete();
 				String raw = message.getContentRaw();
 				
 				if(!raw.startsWith("~~") && !raw.endsWith("~~"))
@@ -219,9 +223,9 @@ public class Server {
 		termEndTime = System.currentTimeMillis() + termLength;
 	}
 	
-	public String getAmendment(JDA jda, int number)
+	public String getAmendment(JDA jda, int index)
 	{
-		return jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(messageIDs.get(number)).complete().getContentRaw();
+		return jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete().getContentRaw();
 	}
 	
 	public void addSecret(String word, String response)
@@ -242,10 +246,10 @@ public class Server {
 	@Override
 	public String toString()
 	{
-		StringBuilder builder = new StringBuilder(System.currentTimeMillis() + "\n\"" + slogan + "\" " + termEndTime + " " + amendments + " " + lastTerm + "\n");
+		StringBuilder builder = new StringBuilder(System.currentTimeMillis() + "\n\"" + slogan + "\" " + termEndTime + " " + getAmendments() + " " + lastTerm + "\n");
 		
 		// For each amendment
-		for(String sample : messageIDs)
+		for(String sample : amendmentIDs)
 		{
 			builder.append(sample + "\n");
 		}
@@ -263,5 +267,20 @@ public class Server {
 		
 		String result = builder.toString();
 		return result.substring(0, result.length() - 1);
+	}
+	
+	public String removeAmendment(JDA jda, int number)
+	{
+		if(number > 0 && number <= amendmentIDs.size())
+		{
+			// Decrement to indices
+			number--;
+			// Delete OG message
+			jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete().delete().queue();
+			// Remove from data
+			return "Deleted " + amendmentIDs.remove(number);
+		}
+		
+		return "Did not find amendment with ID " + number;
 	}
 }

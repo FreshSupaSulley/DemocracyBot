@@ -30,6 +30,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
+import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
@@ -69,7 +70,7 @@ public class DMain {
 	
 	// Server Data
 	public static long SERVER_ID = 1102048289202917441L;
-	public static long THE_CONSTIPATION = 1102051128067248169L, AMENDMENTS = 1102051223277928509L, VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L, TEST_CHANNEL = 1105627214587904010L;
+	public static long THE_CONSTIPATION = 1102051128067248169L, AMENDMENTS = 1102051223277928509L, COMMANDERS_AND_QUEEFS = 1303051774969512059L, VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L, TEST_CHANNEL = 1105627214587904010L;
 	public static long THE_WHITE_HOUSE_CATEGORY = 1102050716819918948L, MAGNA_FARTA_CATEGORY = 1102050764756635668L;
 	
 	// Roles
@@ -90,6 +91,7 @@ public class DMain {
 		String raw = loadAsString(new BufferedReader(new InputStreamReader(DMain.class.getClassLoader().getResourceAsStream("tokens.txt"))));
 		Map<String, Object> result = WebUtils.parseJSON(WebUtils.MAP, raw);
 		
+		// You don't need test tokens btw for a test bot
 		DEMOCRACY_BOT_TOKEN = result.get("democracy").toString();
 		STARTGG_TOKEN = result.get("smash").toString();
 		WEEVE_BOT_TOKEN = result.get("weeve").toString();
@@ -267,6 +269,7 @@ public class DMain {
 			// Set all channels to the test channel
 			THE_CONSTIPATION = TEST_CHANNEL;
 			AMENDMENTS = TEST_CHANNEL;
+			COMMANDERS_AND_QUEEFS = TEST_CHANNEL;
 			VOTING_BOOTH = TEST_CHANNEL;
 			VOTE_PROPOSAL = TEST_CHANNEL;
 		}
@@ -312,17 +315,18 @@ public class DMain {
 		errorHandler = new ErrorHandler(privateChannel);
 		
 		// Public slash commands
-		CommandData[] publicCommands = new CommandData[6];
+		CommandData[] publicCommands = new CommandData[7];
 //		publicCommands[0] = Commands.slash("violation", "Report a violation of the rules").addOption(OptionType.USER, "violator", "The one who violated the rules", true).addOptions(new OptionData(OptionType.INTEGER, "minutes", "prison time of violator").setRequiredRange(1, 3));
 //		publicCommands[1] = Commands.slash("impeach", "Impeach the President");
 		publicCommands[0] = Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOption(OptionType.STRING, "slogan", "Your campaign slogan", true);
-		publicCommands[1] = Commands.slash("next-election", "Returns next election time");
-		publicCommands[2] = Commands.slash("propose", "Propose an amendment").addOption(OptionType.STRING, "amendment", "The amendment to add", true);
-		publicCommands[3] = Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1));
+		publicCommands[1] = Commands.slash("slogan", "Change your slogan").addOption(OptionType.STRING, "slogan", "Your new slogan", true);
+		publicCommands[2] = Commands.slash("next-election", "Returns next election time");
+		publicCommands[3] = Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH));
+		publicCommands[4] = Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1));
 //		publicCommands[6] = Commands.slash("party", "View political party commands").addSubcommands(new SubcommandData("create", "Create a political party").addOption(OptionType.STRING, "name", "Name of the party", true), new SubcommandData("join", "Join a political party").addOption(OptionType.ROLE, "party", "The party to join", true), new SubcommandData("leave", "Leave a political party").addOption(OptionType.ROLE, "party", "The party to leave", true));
 //		publicCommands[6] = Commands.slash("archive", "Propose addition to the Library of Congress").addOption(OptionType.STRING, "entry", "The library of congress entry to add", true);
-		publicCommands[4] = Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true));
-		publicCommands[5] = Commands.slash("unsecret", "Remove a word from secret commands").addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true));
+		publicCommands[5] = Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true));
+		publicCommands[6] = Commands.slash("unsecret", "Remove a word from secret commands").addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true));
 		
 		// Update public commands
 		if(!inIDE)
@@ -543,7 +547,7 @@ public class DMain {
 	
 	public static void main(String[] args)
 	{
-		if(!inIDE)
+//		if(!inIDE)
 		{
 			Thread runnable = new Thread()
 			{

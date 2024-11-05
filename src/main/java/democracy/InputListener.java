@@ -28,13 +28,11 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
-import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.events.ExceptionEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.events.session.SessionDisconnectEvent;
 import net.dv8tion.jda.api.events.session.SessionResumeEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -66,7 +64,8 @@ public class InputListener extends ListenerAdapter {
 		super.onMessageReceived(event);
 		
 		// Ignore if we cannot speak in the channel
-		if(!event.getChannel().canTalk()) return;
+		if(!event.getChannel().canTalk())
+			return;
 		
 		// Public commands
 		if(event.getChannelType().isGuild())
@@ -99,67 +98,69 @@ public class InputListener extends ListenerAdapter {
 		
 		switch(event.getFullCommandName())
 		{
-//			case "violation":
-//			{
-//				PollType type = PollType.VIOLATION;
-//				User mentioned = event.getOption("violator").getAsUser();
-//				
-//				if(mentioned.getIdLong() == DMain.BOT_ID)
-//				{
-//					event.reply("Go to hell.").queue();
-//					return;
-//				}
-//				
-//				// Check if we already have a poll open for this
-//				if(pollAlreadyOpen(type, mentioned.getIdLong()))
-//				{
-//					event.reply("Poll is already open!").queue();
-//				}
-//				else if(!sender.canPropose(type))
-//				{
-//					event.reply("You are forbidden from proposing timeouts this frequently.").queue();
-//				}
-//				else
-//				{
-//					event.reply("Poll added!").queue();
-//					
-//					OptionMapping option = event.getOption("minutes");
-//					int minutes;
-//					if(option != null) minutes = option.getAsInt();
-//					else minutes = 1;
-//					
-//					activePolls.add(new Poll(type, "Timeout " + mentioned.getName() + " (" + minutes + " minute(s))", mentioned, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> guild.timeoutFor(guild.retrieveMemberById(mentioned.getIdLong()).complete(), minutes, TimeUnit.MINUTES).complete()));
-//				}
-//				
-//				return;
-//			}
-//			case "impeach":
-//			{
-//				// Check if we have a president to overthrow
-//				if(!DMain.server.hasPresident())
-//				{
-//					event.reply("There is no President to impeach!").queue();
-//				}
-//				else if(pollAlreadyOpen(PollType.IMPEACH, 0))
-//				{
-//					event.reply("Poll is already open!").queue();
-//				}
-//				else if(presidentialVote != null)
-//				{
-//					event.reply("There is an active Presidential vote. If you are unhappy with the current President, vote to elect a new one.").queue();
-//				}
-//				else if(!sender.canPropose(PollType.IMPEACH))
-//				{
-//					event.reply("You cannot propose impeachment this frequently.").queue();
-//				}
-//				else
-//				{
-//					event.reply("Poll added!").queue();
-//					activePolls.add(new Poll(Color.red, PollType.IMPEACH, "Impeach the President", "Has our President violated the Magna Farta? Do we, the people, decide to impeach <@" + DMain.server.getPresidentID() + ">?", null, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> DMain.server.impeachPresident(guild)));
-//				}
-//				
-//				return;
-//			}
+			// case "violation":
+			// {
+			// PollType type = PollType.VIOLATION;
+			// User mentioned = event.getOption("violator").getAsUser();
+			//
+			// if(mentioned.getIdLong() == DMain.BOT_ID)
+			// {
+			// event.reply("Go to hell.").queue();
+			// return;
+			// }
+			//
+			// // Check if we already have a poll open for this
+			// if(pollAlreadyOpen(type, mentioned.getIdLong()))
+			// {
+			// event.reply("Poll is already open!").queue();
+			// }
+			// else if(!sender.canPropose(type))
+			// {
+			// event.reply("You are forbidden from proposing timeouts this frequently.").queue();
+			// }
+			// else
+			// {
+			// event.reply("Poll added!").queue();
+			//
+			// OptionMapping option = event.getOption("minutes");
+			// int minutes;
+			// if(option != null) minutes = option.getAsInt();
+			// else minutes = 1;
+			//
+			// activePolls.add(new Poll(type, "Timeout " + mentioned.getName() + " (" + minutes + " minute(s))", mentioned, jda.getTextChannelById(DMain.VOTING_BOOTH), ()
+			// -> guild.timeoutFor(guild.retrieveMemberById(mentioned.getIdLong()).complete(), minutes, TimeUnit.MINUTES).complete()));
+			// }
+			//
+			// return;
+			// }
+			// case "impeach":
+			// {
+			// // Check if we have a president to overthrow
+			// if(!DMain.server.hasPresident())
+			// {
+			// event.reply("There is no President to impeach!").queue();
+			// }
+			// else if(pollAlreadyOpen(PollType.IMPEACH, 0))
+			// {
+			// event.reply("Poll is already open!").queue();
+			// }
+			// else if(presidentialVote != null)
+			// {
+			// event.reply("There is an active Presidential vote. If you are unhappy with the current President, vote to elect a new one.").queue();
+			// }
+			// else if(!sender.canPropose(PollType.IMPEACH))
+			// {
+			// event.reply("You cannot propose impeachment this frequently.").queue();
+			// }
+			// else
+			// {
+			// event.reply("Poll added!").queue();
+			// activePolls.add(new Poll(Color.red, PollType.IMPEACH, "Impeach the President", "Has our President violated the Magna Farta? Do we, the people, decide to
+			// impeach <@" + DMain.server.getPresidentID() + ">?", null, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> DMain.server.impeachPresident(guild)));
+			// }
+			//
+			// return;
+			// }
 			case "campaign":
 			{
 				String content = event.getOption("slogan").getAsString();
@@ -226,9 +227,41 @@ public class InputListener extends ListenerAdapter {
 				
 				return;
 			}
+			case "slogan":
+			{
+				String content = event.getOption("slogan").getAsString();
+				
+				if(presidentialVote == null)
+				{
+					event.reply("There is no active presidential election");
+					return;
+				}
+				// Check if already campaigning
+				for(Candidate candidate : candidates)
+				{
+					if(candidate.getID() == sender.getID())
+					{
+						candidate.setSlogan(content);
+						presidentialVote.editMessageEmbeds(buildPresidentialVote()).complete();
+						event.reply("Updated your slogan to \"" + content + "\"").queue();
+						return;
+					}
+				}
+				
+				event.reply("You're not campaigning! Use /campaign to register").queue();
+				return;
+			}
 			case "next-election":
 			{
-				event.reply("The next election opens on **" + getExactTime(System.currentTimeMillis() + DMain.server.millsRemainingInTerm() - presidentialVoteTime) + " EST**.").queue();
+				if(presidentialVote != null)
+				{
+					event.reply("The current election will end at **" + getExactTime(System.currentTimeMillis() + DMain.server.millsRemainingInTerm()) + " EST**.").queue();
+				}
+				else
+				{
+					event.reply("The next election opens on **" + getExactTime(System.currentTimeMillis() + DMain.server.millsRemainingInTerm() - presidentialVoteTime) + " EST**.").queue();
+				}
+				
 				return;
 			}
 			case "propose":
@@ -272,90 +305,94 @@ public class InputListener extends ListenerAdapter {
 				return;
 			}
 			// Unused
-//			case "party/create":
-//			{
-//				// Vote to create a new party
-//				String name = event.getOption("name").getAsString();
-//				
-//				if(!sender.canPropose(PollType.CREATE_PARTY))
-//				{
-//					event.reply("You cannot create parties this frequently.").queue();
-//				}
-//				else
-//				{
-//					event.reply("Poll added!").queue();
-//					activePolls.add(new Poll(DMain.BURPLE, PollType.CREATE_PARTY, "Create political party \"" + name + "\"", "Do the people agree to establish a new political party titled \"" + name + "\"?", null, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> DMain.VOTER.createCopy().setColor((int) (Math.random() * Math.pow(2, 24))).setName(name).complete()));
-//				}
-//				
-//				return;
-//			}
-//			case "party/join":
-//			{
-//				// Check for forbidden roles
-//				Role role = event.getOption("party").getAsRole();
-//				
-//				if(role.getPermissionsRaw() != DMain.VOTER.getPermissionsRaw())
-//				{
-//					event.reply("This role isn't a political party!").queue();
-//				}
-//				else
-//				{
-//					// If user already has the role
-//					if(!event.getMember().getRoles().contains(role))
-//					{
-//						event.reply("You are already a member of this political party.").queue();
-//					}
-//					else
-//					{
-//						guild.addRoleToMember(user, role).queue();
-//						event.reply("Joined political party **" + role.getName() + "**!").queue();
-//					}
-//				}
-//				
-//				return;
-//			}
-//			case "party/leave":
-//			{
-//				Role role = event.getOption("party").getAsRole();
-//				
-//				// If trying to leave a forbidden role
-//				if(role.getPermissionsRaw() != DMain.VOTER.getPermissionsRaw())
-//				{
-//					event.reply("This role isn't a political party!").queue();
-//				}
-//				else
-//				{
-//					// If user doesn't have the role
-//					if(!event.getMember().getRoles().contains(role))
-//					{
-//						event.reply("You aren't a member of this political party.").queue();
-//					}
-//					else
-//					{
-//						guild.removeRoleFromMember(user, role).complete();
-//						event.reply("Left political party **" + role.getName() + "**").queue();
-//					}
-//				}
-//				
-//				return;
-//			}
-//			case "archive":
-//			{
-//				String entry = event.getOption("entry").getAsString();
-//				
-//				if(!sender.canPropose(PollType.ARCHIVE))
-//				{
-//					event.reply("You cannot propose an entry to the Library of Congress this frequently.").queue();
-//				}
-//				else
-//				{
-//					event.reply("Poll added!").queue();
-//					activePolls.add(new Poll(DMain.BURPLE, PollType.ARCHIVE, "Archive \"" + entry + "\"", "Do the people agree to archive the following text in <#" + DMain.LIBRARY_OF_CONGRESS + ">:\n\n\"" + entry + "\"\n\nThe President also has the power to archive by force.", null, jda.getTextChannelById(DMain.VOTING_BOOTH), jda.getTextChannelById(DMain.LIBRARY_OF_CONGRESS).sendMessage(entry)::complete));
-//					break;
-//				}
-//				
-//				return;
-//			}
+			// case "party/create":
+			// {
+			// // Vote to create a new party
+			// String name = event.getOption("name").getAsString();
+			//
+			// if(!sender.canPropose(PollType.CREATE_PARTY))
+			// {
+			// event.reply("You cannot create parties this frequently.").queue();
+			// }
+			// else
+			// {
+			// event.reply("Poll added!").queue();
+			// activePolls.add(new Poll(DMain.BURPLE, PollType.CREATE_PARTY, "Create political party \"" + name + "\"", "Do the people agree to establish a new political
+			// party titled \"" + name + "\"?", null, jda.getTextChannelById(DMain.VOTING_BOOTH), () -> DMain.VOTER.createCopy().setColor((int) (Math.random() * Math.pow(2,
+			// 24))).setName(name).complete()));
+			// }
+			//
+			// return;
+			// }
+			// case "party/join":
+			// {
+			// // Check for forbidden roles
+			// Role role = event.getOption("party").getAsRole();
+			//
+			// if(role.getPermissionsRaw() != DMain.VOTER.getPermissionsRaw())
+			// {
+			// event.reply("This role isn't a political party!").queue();
+			// }
+			// else
+			// {
+			// // If user already has the role
+			// if(!event.getMember().getRoles().contains(role))
+			// {
+			// event.reply("You are already a member of this political party.").queue();
+			// }
+			// else
+			// {
+			// guild.addRoleToMember(user, role).queue();
+			// event.reply("Joined political party **" + role.getName() + "**!").queue();
+			// }
+			// }
+			//
+			// return;
+			// }
+			// case "party/leave":
+			// {
+			// Role role = event.getOption("party").getAsRole();
+			//
+			// // If trying to leave a forbidden role
+			// if(role.getPermissionsRaw() != DMain.VOTER.getPermissionsRaw())
+			// {
+			// event.reply("This role isn't a political party!").queue();
+			// }
+			// else
+			// {
+			// // If user doesn't have the role
+			// if(!event.getMember().getRoles().contains(role))
+			// {
+			// event.reply("You aren't a member of this political party.").queue();
+			// }
+			// else
+			// {
+			// guild.removeRoleFromMember(user, role).complete();
+			// event.reply("Left political party **" + role.getName() + "**").queue();
+			// }
+			// }
+			//
+			// return;
+			// }
+			// case "archive":
+			// {
+			// String entry = event.getOption("entry").getAsString();
+			//
+			// if(!sender.canPropose(PollType.ARCHIVE))
+			// {
+			// event.reply("You cannot propose an entry to the Library of Congress this frequently.").queue();
+			// }
+			// else
+			// {
+			// event.reply("Poll added!").queue();
+			// activePolls.add(new Poll(DMain.BURPLE, PollType.ARCHIVE, "Archive \"" + entry + "\"", "Do the people agree to archive the following text in <#" +
+			// DMain.LIBRARY_OF_CONGRESS + ">:\n\n\"" + entry + "\"\n\nThe President also has the power to archive by force.", null,
+			// jda.getTextChannelById(DMain.VOTING_BOOTH), jda.getTextChannelById(DMain.LIBRARY_OF_CONGRESS).sendMessage(entry)::complete));
+			// break;
+			// }
+			//
+			// return;
+			// }
 			case "secret":
 			{
 				String word = event.getOption("word").getAsString().trim();
@@ -391,32 +428,6 @@ public class InputListener extends ListenerAdapter {
 		}
 	}
 	
-	@Override
-	public void onMessageUpdate(MessageUpdateEvent event)
-	{
-		Message message = event.getMessage();
-		MessagePoll poll = message.getPoll();
-		
-		if(poll != null)
-		{
-			Iterator<Poll> iterator = activePolls.iterator();
-			
-			while(iterator.hasNext())
-			{
-				Poll sample = iterator.next();
-				
-				if(sample.getMessageID() == event.getMessageIdLong())
-				{
-					sample.endPoll(message);
-					
-					DMain.log("Poll " + sample + " is complete! Removing...");
-					iterator.remove();
-					DMain.updateServerData();
-				}
-			}
-		}
-	}
-	
 	private MessageEmbed buildPresidentialVote()
 	{
 		EmbedBuilder e = new EmbedBuilder();
@@ -431,7 +442,8 @@ public class InputListener extends ListenerAdapter {
 			description += "\n**#" + (++index) + ": <@" + candidate.getID() + ">** (<@&" + candidate.getRole().getId() + ">) - *\"" + candidate.getSlogan() + "\"*";
 		}
 		
-		if(candidates.isEmpty()) description += "\n*There are no active presidential candidates. Run for office with /campaign.*";
+		if(candidates.isEmpty())
+			description += "\n*There are no active presidential candidates. Run for office with /campaign.*";
 		
 		e.setImage("https://cdn.discordapp.com/app-icons/910579031391498330/c65afb3995baa1c31212e43f1f643e7e.png");
 		e.setDescription(description);
@@ -441,7 +453,8 @@ public class InputListener extends ListenerAdapter {
 	
 	public void guildMessageReceived(MessageReceivedEvent event)
 	{
-		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong()) return;
+		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong())
+			return;
 		
 		// Get user
 		TextChannel channel = event.getChannel().asTextChannel();
@@ -450,11 +463,13 @@ public class InputListener extends ListenerAdapter {
 		String message = event.getMessage().getContentDisplay().replaceAll("\n", "");
 		
 		// Secret commands
-		if(channel.getParentCategory() == null || channel.getParentCategory().getIdLong() == DMain.THE_WHITE_HOUSE_CATEGORY || channel.getParentCategory().getIdLong() == DMain.MAGNA_FARTA_CATEGORY) return;
-		if(message.contains("http")) return;
-		
-//		boolean canReact = eventMessage.getGuild().getSelfMember().hasPermission(Permission.MESSAGE_ADD_REACTION);
-//		int numReacts = 0;
+		if(channel.getParentCategory() == null || channel.getParentCategory().getIdLong() == DMain.THE_WHITE_HOUSE_CATEGORY || channel.getParentCategory().getIdLong() == DMain.MAGNA_FARTA_CATEGORY)
+			return;
+		if(message.contains("http"))
+			return;
+			
+		// boolean canReact = eventMessage.getGuild().getSelfMember().hasPermission(Permission.MESSAGE_ADD_REACTION);
+		// int numReacts = 0;
 		StringBuilder builder = new StringBuilder();
 		Map<String, String> commands = new HashMap<String, String>();
 		
@@ -475,17 +490,18 @@ public class InputListener extends ListenerAdapter {
 				// Append command
 				builder.append(value + "\n");
 				commands.put(key, value);
-//				
-//				if(canReact && numReacts < Message.MAX_REACTIONS)
-//				{
-//					numReacts++;
-//					eventMessage.addReaction(Emoji.fromUnicode(unicode)).queue();
-//				}
+				//
+				// if(canReact && numReacts < Message.MAX_REACTIONS)
+				// {
+				// numReacts++;
+				// eventMessage.addReaction(Emoji.fromUnicode(unicode)).queue();
+				// }
 			}
 		}
 		
 		// This can happen believe it or not (user can make a poll and then this blows tf up)
-		if(builder.toString().isEmpty()) return;
+		if(builder.toString().isEmpty())
+			return;
 		
 		event.getChannel().sendMessage(builder.toString()).queue(queued ->
 		{
@@ -541,7 +557,8 @@ public class InputListener extends ListenerAdapter {
 	 */
 	public void privateMessageReceived(MessageReceivedEvent event)
 	{
-		if(event.getAuthor().getIdLong() != DMain.OWNER_ID) return;
+		if(event.getAuthor().getIdLong() != DMain.OWNER_ID)
+			return;
 		
 		String message = event.getMessage().getContentDisplay();
 		String command = "";
@@ -565,13 +582,16 @@ public class InputListener extends ListenerAdapter {
 	
 	/**
 	 * Queues a message to be sent in a MessageChannel. Works for both public and private channels
+	 * 
 	 * @param channel
 	 * @param message
 	 */
 	public static void sendMessage(MessageChannel channel, String message)
 	{
-		try {
-			if(message == null) return;
+		try
+		{
+			if(message == null)
+				return;
 			
 			if(message.isEmpty())
 			{
@@ -588,7 +608,8 @@ public class InputListener extends ListenerAdapter {
 						System.err.println("[ERROR] Sending large message to a user that's not you!");
 					}
 					
-					try {
+					try
+					{
 						File temp = File.createTempFile("temp", ".txt");
 						
 						FileWriter writer = new FileWriter(temp);
@@ -597,8 +618,10 @@ public class InputListener extends ListenerAdapter {
 						
 						privateChannel.sendFiles(FileUpload.fromData(temp)).queue();
 						
-						if(!temp.delete()) System.err.println("Could not delete temp file");
-					} catch(IOException e) {
+						if(!temp.delete())
+							System.err.println("Could not delete temp file");
+					} catch(IOException e)
+					{
 						DMain.log(e);
 					}
 				}
@@ -613,7 +636,8 @@ public class InputListener extends ListenerAdapter {
 			
 			DMain.log("[SENDING IN CHANNEL " + channel.getName() + "]: \"" + message.substring(0, Math.min(message.length(), 40)).replace("\n", "") + "\"...");
 			channel.sendMessage(message).queue();
-		} catch(Exception e) {
+		} catch(Exception e)
+		{
 			System.err.println("Something went wrong sending message " + message + ". Discord issue? Check https://discordstatus.com/");
 			DMain.log(e);
 		}
@@ -643,6 +667,23 @@ public class InputListener extends ListenerAdapter {
 	 */
 	public void tick()
 	{
+		// Tick polls
+		// I don't think we need to worry about deletes here
+		Iterator<Poll> iterator = activePolls.iterator();
+		
+		while(iterator.hasNext())
+		{
+			Poll sample = iterator.next();
+			
+			// 1 day
+			if(System.currentTimeMillis() - sample.getStartTime() >= 8.64e+7)
+			{
+				DMain.log("ENDING THE POLL!");
+				sample.endPoll(jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(sample.getMessageID()).complete());
+				iterator.remove();
+			}
+		}
+		
 		DMain.server.tick(jda);
 		
 		// If we're voting for President
@@ -662,7 +703,8 @@ public class InputListener extends ListenerAdapter {
 				
 				// Create vote, add first reaction (President re-election)
 				presidentialVote = jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).sendMessageEmbeds(buildPresidentialVote()).complete();
-				if(!candidates.isEmpty()) presidentialVote.addReaction(Emoji.fromUnicode("U+31U+fe0fU+20e3")).queue();
+				if(!candidates.isEmpty())
+					presidentialVote.addReaction(Emoji.fromUnicode("U+31U+fe0fU+20e3")).queue();
 			}
 			// Tick vote if already created
 			else
@@ -681,7 +723,8 @@ public class InputListener extends ListenerAdapter {
 						for(MessageReaction r : presidentialVote.getReactions())
 						{
 							EmojiUnion emoji = r.getEmoji();
-							if(emoji.getType() == Emoji.Type.CUSTOM) continue;
+							if(emoji.getType() == Emoji.Type.CUSTOM)
+								continue;
 							
 							switch(emoji.asUnicode().getAsCodepoints())
 							{
@@ -757,6 +800,9 @@ public class InputListener extends ListenerAdapter {
 						afterMessageTime = System.currentTimeMillis();
 						guild.addRoleToMember(guild.retrieveMemberById(nextPreident.getID()).complete(), DMain.THE_PRESIDENT).complete();
 						
+						// Add to commanders and queefs
+						guild.getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessage("**" + new SimpleDateFormat("MM/dd/yyyy").format(new Date()) + " Term**: <@" + nextPreident.getID() + ">").queue();
+						
 						// Update data
 						DMain.updateServerData();
 					}
@@ -826,9 +872,11 @@ public class InputListener extends ListenerAdapter {
 		{
 			DMain.sendToOperator("The President left the running!");
 			
-			try {
+			try
+			{
 				DMain.server.impeachPresident(jda.getGuildById(DMain.SERVER_ID)).call();
-			} catch(Exception e) {
+			} catch(Exception e)
+			{
 				DMain.log(e);
 			}
 		}

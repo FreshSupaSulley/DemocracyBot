@@ -40,11 +40,13 @@ public class PrivateHandler extends MessageHandler {
 											"role*Get role from ID",
 											"edit*Edits a message*message ID + new text",
 											"amendment*Force pass an amendment*text",
+											"unamendment*Force remove an amendment*text",
 											"ip*Retrieves local IP address",
 											"update*Updates the bot from the JAR in the dropbox",
 											"logs*Retrieve logs in a file and clears them",
 											"data*Returns server data",
 											"shutdown*Forces shutdown of " + DMain.BOT_NAME,
+											"reboot*Reboots " + DMain.BOT_NAME,
 											"clear*Clears 100 " + DMain.BOT_NAME + " messages (bots cannot delete your private messages)",
 		});
 		
@@ -133,6 +135,17 @@ public class PrivateHandler extends MessageHandler {
 				return "Passed " + message;
 			}
 			case (10):
+			{
+				int amendment;
+				try {
+					amendment = Integer.parseInt(message);
+				} catch(Exception e) {
+					return "Not a valid amendment #";
+				}
+				
+				return DMain.server.removeAmendment(jda, amendment);
+			}
+			case (11):
 				Socket socket = new Socket();
 				try {
 					socket.connect(new InetSocketAddress("google.com", 80));
@@ -140,17 +153,21 @@ public class PrivateHandler extends MessageHandler {
 				} catch(IOException e) {
 					return "Could not access IP address: " + e.toString();
 				}
-			case(11):
+			case(12):
 			{
 				try {
 					DMain.sendToOperator("Updating...");
 					
+					// Need to click generate access token then paste that into !update your_token
 					DbxClientV2 client = new DbxClientV2(DbxRequestConfig.newBuilder("susbox").build(), message);
 			        
 					try {
 						FileOutputStream stream = new FileOutputStream(DMain.JAR_FILE);
 						client.files().downloadBuilder("/DemocracyBot.jar").download(stream);
 						stream.close();
+						
+						DMain.log("Done!");
+						DMain.sendToOperator("Done!");
 						DMain.reboot();
 					} catch(BadRequestException e) {
 						return "Invalid access token \"" + message + "\"";
@@ -159,21 +176,27 @@ public class PrivateHandler extends MessageHandler {
 		            return null;
 				} catch(Exception e) {
 					e.printStackTrace();
-					return "An error occured updating PaneraBot";
+					return "An error occured updating " + DMain.BOT_NAME;
 				}
 			}
-			case (12):
-				DMain.sendLogs();
-				return null;
 			case (13):
-				DMain.updateServerData();
-				DMain.sendServerData();
+				DMain.sendLogs();
 				return null;
 			case (14):
 				DMain.updateServerData();
-				DMain.shutdown();
+				DMain.sendServerData();
 				return null;
 			case (15):
+				DMain.updateServerData();
+				DMain.shutdown();
+				return null;
+			case (16):
+			{
+				DMain.updateServerData();
+				DMain.reboot();
+				return "Rebootin";
+			}
+			case (17):
 				MessageHistory history = new MessageHistory(channel);
 				List<Message> messages2 = history.retrievePast(100).complete();
 				List<Message> toDelete = new ArrayList<Message>();
@@ -205,7 +228,7 @@ public class PrivateHandler extends MessageHandler {
 					toDelete.get(0).delete().queue();
 				}
 				return null;
-			case (16):
+			case (18):
 				channel.sendMessageEmbeds(getUsage()).queue();
 				return null;
 			default:

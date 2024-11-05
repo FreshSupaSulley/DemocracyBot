@@ -9,7 +9,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.entities.messages.MessagePoll.Answer;
-import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.messages.MessagePollData;
 
 public class Poll {
@@ -21,7 +20,7 @@ public class Poll {
 	private PollType type;
 	private User pollFocusMember;
 	
-	private long messageID;
+	private long messageID, startTime;
 	private Message afterMessage;
 	
 	private String question;
@@ -34,27 +33,18 @@ public class Poll {
 		this.channel = channel;
 		this.actions = actions;
 		
-		MessageCreateAction action = null;
-		
 		// Create message
-		if(question.length() > MessagePoll.MAX_ANSWER_TEXT_LENGTH)
-		{
-			action = channel.sendMessage(question).setPoll(generatePoll());
-		}
-		else
-		{
-			action = channel.sendMessagePoll(generatePoll());
-		}
-		
-		action.queue(message ->
+		channel.sendMessagePoll(generatePoll()).queue(message ->
 		{
 			messageID = message.getIdLong();
+			startTime = System.currentTimeMillis();
 		});
 	}
 	
 	private MessagePollData generatePoll()
 	{
-		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_ANSWER_TEXT_LENGTH))).setDuration(type.votingWindow, TimeUnit.MILLISECONDS).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
+		// Make polls last a day not an hour
+		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(1, TimeUnit.DAYS).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
 	}
 	
 	public void endPoll(Message message)
@@ -111,34 +101,25 @@ public class Poll {
 		return messageID;
 	}
 	
+	public long getStartTime()
+	{
+		return startTime;
+	}
+	
 	public enum PollType {
 		
-		PROPOSE(0.51f, 3, 3600000, 43200000),
-		REPEAL(0.51f, 3, 3600000, 43200000);
+		PROPOSE(0.51f, 3, 43200000),
+		REPEAL(0.51f, 3, 43200000);
 		
 		private float ratio;
 		private int minParticipation;
-		private long votingWindow, votingCooldown;
-		private String votingTimeParsed;
+		private long votingCooldown;
 		
-		private PollType(float ratio, int minParticipation, long votingWindow, long votingCooldown)
+		private PollType(float ratio, int minParticipation, long votingCooldown)
 		{
 			this.ratio = ratio;
 			this.minParticipation = minParticipation;
-			this.votingWindow = votingWindow;
 			this.votingCooldown = votingCooldown;
-			
-			// Parse voting times
-			String unit = "hour";
-			double time = votingWindow / 3600000D;
-			
-			if(time < 1)
-			{
-				unit = "minute";
-				time = votingWindow / 60000;
-			}
-			
-			votingTimeParsed = (int) time + " " + unit + ((int) time != 1 ? "s" : "");
 		}
 		
 		public boolean passesPoll(int numYes, int numNo)
@@ -154,19 +135,9 @@ public class Poll {
 			return minParticipation;
 		}
 		
-		public long getVotingWindow()
-		{
-			return votingWindow;
-		}
-		
 		public long getVotingCooldown()
 		{
 			return votingCooldown;
-		}
-		
-		public String getVotingTimeParsed()
-		{
-			return votingTimeParsed;
 		}
 	}
 }

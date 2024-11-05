@@ -29,4 +29,9 @@ public class Candidate {
 	{
 		return role;
 	}
+	
+	public void setSlogan(String slogan)
+	{
+		this.slogan = slogan;
+	}
 }
