@@ -555,6 +555,7 @@ public class DMain {
 				public void run()
 				{
 					try {
+						// Set logback to use internal one
 						com.supasulley.main.Main.main(new String[] {"--token=" + WEEVE_BOT_TOKEN, "--owner_id=" + WEEVE_OWNER_ID, "--notify_errors"});
 					} catch(Throwable t) {
 						DMain.error(t.toString());
@@ -564,7 +565,7 @@ public class DMain {
 				@Override
 				public void setUncaughtExceptionHandler(UncaughtExceptionHandler eh)
 				{
-					DMain.error(eh.toString());
+					com.supasulley.main.Main.log.error(eh.toString());
 				}
 			};
 			

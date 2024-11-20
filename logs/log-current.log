@@ -1,0 +1,3 @@
+INFO 11/06 22:08:32.203 [com.supasulley.main.Main] --- PROGRAM START at 1730948912198
+INFO 11/06 22:09:00.980 [com.supasulley.main.Main] --- [SLASH COMMAND (276886864525262849) - 'kinghotsauce']: "/logs list"
+INFO 11/06 22:09:04.661 [com.supasulley.main.Main] --- [SLASH COMMAND (276886864525262849) - 'kinghotsauce']: "/logs get file: log-current.log"

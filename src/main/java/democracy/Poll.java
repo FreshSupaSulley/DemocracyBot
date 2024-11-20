@@ -21,7 +21,7 @@ public class Poll {
 	private User pollFocusMember;
 	
 	private long messageID, startTime;
-	private Message afterMessage;
+//	private Message afterMessage;
 	
 	private String question;
 	
@@ -74,7 +74,7 @@ public class Poll {
 		if(type.passesPoll(numYes, numNo))
 		{
 			DMain.log("***" + type.name() + (pollFocusMember != null ? " <@" + pollFocusMember.getName() + ">" : "") + "*** poll (" + question + ") passed!");
-			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") passed!").complete();
+//			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") passed!").complete();
 			
 			// Perform actions
 			for(Callable<?> action : actions)
@@ -89,11 +89,12 @@ public class Poll {
 		}
 		else
 		{
+			// Fancy polling does this for us
 			DMain.log("***" + type.name() + (pollFocusMember != null ? " <@" + pollFocusMember.getName() + ">" : "") + "*** poll (" + question + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.");
-			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.").complete();
+//			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.").complete();
 		}
 		
-		afterMessage.delete().queueAfter(1, TimeUnit.HOURS);
+//		afterMessage.delete().queueAfter(1, TimeUnit.HOURS);
 	}
 	
 	public long getMessageID()

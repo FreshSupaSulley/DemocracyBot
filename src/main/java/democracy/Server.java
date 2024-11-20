@@ -175,7 +175,7 @@ public class Server {
 			@Override
 			public Void call() throws Exception
 			{
-				amendmentIDs.add(jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + getAmendments() + 1 + "** - " + content).complete().getId());
+				amendmentIDs.add(jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + content).complete().getId());
 				return null;
 			}
 		};
