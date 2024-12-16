@@ -27,9 +27,9 @@ public class PrivateHandler extends MessageHandler {
 	public static final String ENDPOINT = "https://api.start.gg/gql/alpha", OWNER_ID = "735931";
 	private JDA jda;
 	
-	public PrivateHandler(InputListener listener, JDA jda)
+	public PrivateHandler(JDA jda)
 	{
-		super(listener, new String[] {
+		super(new String[] {
 											"activity*Change what DBot is doing*(\"default\", \"competing\", \"listening\", \"streaming\", \"watching\", \"none\") + content",
 											"enroll*Join the military for administrator access",
 											"unenroll*Leave the military",

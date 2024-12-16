@@ -1,5 +1,7 @@
 package democracy;
 
+import java.awt.Color;
+
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 
@@ -10,17 +12,14 @@ public class MessageHandler {
 	
 	// Commands that contain ! at the beginning are secret commands
 	protected String[] commands, commandDescriptions, commandErrors;
-	protected InputListener listener;
 	private MessageEmbed helpEmbed;
 	
 	/**
 	 * Provide array of all commands and their usages. Each inCommandError in the array is bound to the corresponding String in the commands array.
 	 * inCommandErrors.length() must equal inCommand.length().
 	 */
-	public MessageHandler(InputListener listener, String[] commands)
+	public MessageHandler(String[] commands)
 	{
-		this.listener = listener;
-		
 		this.commands = new String[commands.length + 1];
 		commandDescriptions = new String[commands.length + 1];
 		commandErrors = new String[commands.length + 1];
@@ -64,7 +63,7 @@ public class MessageHandler {
 		// Store standard + secret EmbedBuilders. Insert the command prefix when asked
 		EmbedBuilder e = new EmbedBuilder();
 		e.setTitle(DMain.BOT_NAME + " Usage");
-		e.setColor(DMain.BURPLE);
+		e.setColor(new Color(149, 177, 255)); // burple
 		e.setDescription(result.substring(0, result.length() - 1) + "\n\n*All votes are found in <#" + DMain.VOTING_BOOTH + ">*");
 		helpEmbed = e.build();
 	}

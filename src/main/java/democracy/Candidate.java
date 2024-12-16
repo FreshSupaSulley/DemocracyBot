@@ -4,15 +4,22 @@ import net.dv8tion.jda.api.entities.Role;
 
 public class Candidate {
 	
+	private int slot;
 	private long id;
 	private String slogan;
-	private Role role;
+	private long roleID;
 	
-	public Candidate(long id, String slogan, Role role)
+	public Candidate(int slot, long id, String slogan, Role role)
 	{
+		this.slot = slot;
 		this.id = id;
 		this.slogan = slogan;
-		this.role = role;
+		this.roleID = role.getIdLong();
+	}
+	
+	public int getSlot()
+	{
+		return slot;
 	}
 	
 	public long getID()
@@ -25,9 +32,9 @@ public class Candidate {
 		return slogan;
 	}
 	
-	public Role getRole()
+	public long getRoleID()
 	{
-		return role;
+		return roleID;
 	}
 	
 	public void setSlogan(String slogan)

@@ -1,25 +1,21 @@
 package democracy;
 
-import democracy.Poll.PollType;
+import java.util.HashMap;
+import java.util.Map;
 
+/**
+ * Used to track the proposal times of each member.
+ */
 public class ServerMember {
-	
-	private String name;
 	
 	private final long userID;
 	
 	// Times of proposing each type of poll
-	private long[] pollProposalTimes = new long[PollType.values().length];
+	private Map<Class<? extends Poll>, Long> pollProposalTimes = new HashMap<Class<? extends Poll>, Long>();
 	
-	public ServerMember(String name, long userID)
+	public ServerMember(long userID)
 	{
-		this.name = name;
 		this.userID = userID;
-	}
-	
-	public void update(String name)
-	{
-		this.name = name;
 	}
 	
 	/**
@@ -28,23 +24,14 @@ public class ServerMember {
 	 * @param typeNee
 	 * @return
 	 */
-	public boolean canPropose(PollType type)
+	public boolean canPropose(Poll poll)
 	{
-		for(int i = 0; i < PollType.values().length; i++)
+		if(System.currentTimeMillis() - pollProposalTimes.getOrDefault(poll.getClass(), 0L) > poll.getVotingCooldown())
 		{
-			if(type == PollType.values()[i])
-			{
-				if(System.currentTimeMillis() - pollProposalTimes[i] > type.getVotingCooldown())
-				{
-					pollProposalTimes[i] = System.currentTimeMillis();
-					return true;
-				}
-				
-				return false;
-			}
+			pollProposalTimes.put(poll.getClass(), System.currentTimeMillis());
+			return true;
 		}
 		
-		System.err.println("Unknown PollType " + type);
 		return false;
 	}
 	
@@ -53,19 +40,8 @@ public class ServerMember {
 		return id == userID;
 	}
 	
-	public String getName()
-	{
-		return name;
-	}
-	
 	public long getID()
 	{
 		return userID;
-	}
-	
-	@Override
-	public String toString()
-	{
-		return "\"" + name + "\"," + userID + ",";
 	}
 }

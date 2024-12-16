@@ -1,16 +1,15 @@
 package democracy;
 
-import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +18,9 @@ import javax.security.auth.login.LoginException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.supasulley.main.Main;
 import com.supasulley.utils.ErrorHandler;
+import com.supasulley.web.JsonUtils;
 import com.supasulley.web.WebUtils;
 
 import net.dv8tion.jda.api.JDA.Status;
@@ -32,6 +33,9 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.commands.Command;
+import net.dv8tion.jda.api.interactions.commands.Command.Subcommand;
+import net.dv8tion.jda.api.interactions.commands.ICommandReference;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -42,13 +46,14 @@ import net.dv8tion.jda.internal.JDAImpl;
 
 public class DMain {
 	
-	public static final String DEFAULT_PREFIX = "!";
+	public static final String DEFAULT_PREFIX = "!", ERROR_MSG = "<@" + DMain.OWNER_ID + "> hey dumbass your bot broke";
 	
 	// Ignore the tokens.txt file in .gitignore
 	private static final String DEMOCRACY_BOT_TOKEN;
 	private static final String WEEVE_BOT_TOKEN;
 	private static final String WEEVE_OWNER_ID;
-	public static final String STARTGG_TOKEN;
+	
+	private static List<Command> commands;
 	
 	public static String BOT_NAME;
 	public static long BOT_ID;
@@ -83,8 +88,6 @@ public class DMain {
 	
 	public static Server server;
 	
-	public static final Color BURPLE = new Color(149, 177, 255);
-	
 	static
 	{
 		// Load tokens
@@ -93,7 +96,6 @@ public class DMain {
 		
 		// You don't need test tokens btw for a test bot
 		DEMOCRACY_BOT_TOKEN = result.get("democracy").toString();
-		STARTGG_TOKEN = result.get("smash").toString();
 		WEEVE_BOT_TOKEN = result.get("weeve").toString();
 		WEEVE_OWNER_ID = result.get("weeve_owner_id").toString();
 		
@@ -131,40 +133,8 @@ public class DMain {
 	
 	public DMain()
 	{
-//		String hi = "query Uhh {"
-//											+ "  tournaments(query: {"
-//											+ "    page: 1"
-//											+ "    filter: {"
-//											+ "      name: \"Tuesday Trials\""
-//											+ "    }"
-//											+ "  }) {"
-//											+ "    nodes {"
-//											+ "      name"
-//											+ "    }"
-//											+ "  }"
-//											+ "}";
-//		String getID = "query YourQueryNameHere { currentUser { id }}";
-//		try
-//		{
-//			System.out.println("{\"query\": \"" + hi + "\"}");
-//			System.out.println(WebUtils.postRequest(PrivateHandler.ENDPOINT, new StringEntity("{\"query\": \"" + hi + "\"}", ContentType.APPLICATION_JSON), new BasicNameValuePair(HttpHeaders.AUTHORIZATION, "Bearer " + STARTGG_TOKEN), new BasicNameValuePair(HttpHeaders.CONTENT_TYPE, "application/json")));
-//		} catch(IOException e1)
-//		{
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
-//		
-//		if(true) return;
 		// Set up directories, read from files, etc.
-		InputListener listener = null;
-		
-		try {
-			listener = initialize();
-		} catch(IOException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-		
+		CustomListener listener = initialize();
 		int lastHour = Integer.parseInt(getTime("HH"));
 		
 		// Infinite loop to send logs, update serverData, etc.
@@ -197,21 +167,26 @@ public class DMain {
 	
 	public static void updateServerData()
 	{
+		// For recovery mode
+		if(!DMain.serverFile.exists())
+		{
+			DMain.log("Refusing to update server data, serverFile doesn't exist");
+			return;
+		}
+		
 		DMain.log("Updating serverData...");
 		
 		try {
+			// This can throw errors! We need this to fail before we open FileWriter
+			String newData = DMain.server.toString();
+			
 			FileWriter writer = new FileWriter(DMain.serverFile);
-			writer.write(DMain.server.toString());
+			writer.write(newData);
 			writer.close();
-		} catch(IOException e) {
-			DMain.error("Could not write to serverData file!");
-			DMain.log(e);
+		} catch(Throwable t) {
+			DMain.error("Could not write to serverData file", t);
+			throw new IllegalStateException(t); // transform to runtime exception
 		}
-	}
-	
-	public static boolean isOffline()
-	{
-		return jda.getStatus() != Status.CONNECTED;
 	}
 	
 	public static String getTime(String format)
@@ -244,7 +219,7 @@ public class DMain {
 	
 	public static void sendToOperator(String message)
 	{
-		InputListener.sendMessage(privateChannel, message);
+		EventHandler.sendMessage(privateChannel, message);
 	}
 	
 	public static void shutdown()
@@ -262,7 +237,7 @@ public class DMain {
 	 * @throws LoginException
 	 * @throws InterruptedException
 	 */
-	private InputListener initialize() throws IOException
+	private CustomListener initialize()
 	{
 		if(debug)
 		{
@@ -318,7 +293,7 @@ public class DMain {
 		CommandData[] publicCommands = new CommandData[7];
 //		publicCommands[0] = Commands.slash("violation", "Report a violation of the rules").addOption(OptionType.USER, "violator", "The one who violated the rules", true).addOptions(new OptionData(OptionType.INTEGER, "minutes", "prison time of violator").setRequiredRange(1, 3));
 //		publicCommands[1] = Commands.slash("impeach", "Impeach the President");
-		publicCommands[0] = Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOption(OptionType.STRING, "slogan", "Your campaign slogan", true);
+		publicCommands[0] = Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH)));
 		publicCommands[1] = Commands.slash("slogan", "Change your slogan").addOption(OptionType.STRING, "slogan", "Your new slogan", true);
 		publicCommands[2] = Commands.slash("next-election", "Returns next election time");
 		publicCommands[3] = Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH));
@@ -332,7 +307,7 @@ public class DMain {
 		if(!inIDE)
 		{
 			DMain.log("Updating slash commands");
-			jda.updateCommands().addCommands(publicCommands).complete();
+			DMain.commands = jda.updateCommands().addCommands(publicCommands).complete();
 		}
 		
 		BOT_NAME = jda.getSelfUser().getName();
@@ -341,9 +316,40 @@ public class DMain {
 		BOT_ID = jda.getSelfUser().getIdLong();
 		
 		// Create InputListener
-		InputListener listener = loadServerData(attempts);
+		CustomListener listener;
+		
+		try {
+			listener = loadServerData(attempts);
+		} catch(Throwable t) {
+			DMain.error(t);
+			DMain.sendToOperator("Something went wrong booting server. Bot is in recovery mode");
+			listener = new GenericEventHandler(jda);
+		}
+		
 		jda.addEventListener(listener);
 		return listener;
+	}
+	
+	public static ICommandReference getCommandByName(String commandName)
+	{
+		for(Command command : commands)
+		{
+			for(Subcommand subcommand : command.getSubcommands())
+			{
+				if(subcommand.getFullCommandName().equals(commandName))
+				{
+					return subcommand;
+				}
+			}
+			
+			if(command.getName().equals(commandName))
+			{
+				return command;
+			}
+		}
+		
+		Main.log.error("Failed to find command by name " + commandName);
+		return null;
 	}
 	
 	/**
@@ -351,7 +357,7 @@ public class DMain {
 	 * @throws IllegalStateException
 	 * @throws IOException 
 	 */
-	private InputListener loadServerData(int attempts) throws IOException
+	private CustomListener loadServerData(int attempts) throws IOException
 	{
 		Guild guild = jda.getGuildById(DMain.SERVER_ID);
 		
@@ -375,108 +381,56 @@ public class DMain {
 		// Get current president
 		Member president = null;
 		
-		try {
-			// Get President
-			List<Member> presidents = guild.findMembersWithRoles(THE_PRESIDENT).get();
-			
-			if(presidents.size() == 1) president = presidents.get(0);
-			else if(presidents.size() > 1) throw new IllegalStateException("More than 1 President exists!");
-		} catch(IllegalStateException e) {
-			DMain.log(e);
-			System.err.println("Failed server verification. Dispatching The Military...");
-			guild.addRoleToMember(guild.retrieveMemberById(DMain.OWNER_ID).complete(), DMain.THE_MILITARY).complete();
-			DMain.sendFileToOperator(DMain.logs);
-			System.exit(1);
-		}
+		// Get President
+		// Says you can't use .get but fuck you
+		List<Member> presidents = guild.findMembersWithRoles(THE_PRESIDENT).get();
+		
+		if(presidents.size() == 1)
+			president = presidents.get(0);
+		else if(presidents.size() > 1)
+			throw new IllegalStateException("More than 1 President exists!");
 		
 		DMain.log("President: " + (president != null ? president.getEffectiveName() : "does not exist"));
 		
+		// Reset file
+		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("serverData.txt");
+		boolean usingResetFile = resetFile != null;
+		
 		// Check for reset data as an internal resource
 		// Both files MUST exist
-		if(!serverFile.exists())
+		if(!usingResetFile && !serverFile.exists())
 		{
-			privateChannel.sendMessage("Failed to find serverData file at " + serverFile.getPath() + ". This needs to exist before running.").complete();
-			System.exit(1);
+			throw new IllegalStateException("Server file doesn't exist, and reset file wasn't provided");
 		}
 		
-		String[] resetFile = loadAsString(new BufferedReader(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("serverData.txt")))).split("\n");
-		String[] localFile = loadAsString(new BufferedReader(new InputStreamReader(new FileInputStream(serverFile)))).split("\n");
-		String[] toRead = localFile;
+		// Use reset file if not there
+		String toRead = loadAsString(new BufferedReader(new InputStreamReader(usingResetFile ? resetFile : new FileInputStream(serverFile))));
 		
-		// length == 1 and not 0 because split gives you an empty slot for ""
-		// Check if local file is empty
-		if(localFile.length == 1)
+		// If we're using the reset file
+		if(usingResetFile)
 		{
-			DMain.log("Local file is empty. Interesting...");
-			toRead = resetFile;
-			
-			if(resetFile.length == 1)
-			{
-				privateChannel.sendMessage("Local file is blank, AND the reset file is blank").complete();
-				System.exit(1);
-			}
-		}
-		else
-		{
-			// If the reset file data isn't blank
-			if(resetFile.length != 1)
-			{
-				// Initial values (in case data is empty)
-				long resetTime = Long.parseLong(resetFile[0]);
-				long fileTime = Long.parseLong(localFile[0]);
-				DMain.log("Reset time: " + resetTime + ", File time: " + fileTime);
-				
-				// If the local file has newer data than the reset file
-				if(resetTime > fileTime)
-				{
-					// Use the reset file instead of the reset file
-					toRead = resetFile;
-				}
-			}
+			DMain.log("Using reset file");
+			// Send the old file
+			DMain.sendFileToOperator(serverFile);
 		}
 		
-		String slogan = toRead[1].substring(1, toRead[1].lastIndexOf("\""));
-		String[] data = toRead[1].substring(toRead[1].lastIndexOf("\"") + 2).split(" ");
-		long termEndTime = Long.parseLong(data[0]);
-		int totalAmendments = Integer.parseInt(data[1]);
-		boolean lastTerm = Boolean.parseBoolean(data[2]);
-		ArrayList<String> messageIDs = new ArrayList<String>();
-		HashMap<String, String> secretCommands = new HashMap<String, String>();
-		ArrayList<ServerMember> members = new ArrayList<ServerMember>();
+		// Deserialize (test if data is null or empty)
+		DMain.server = JsonUtils.deserialize(Server.class, toRead);
 		
-		// Read amendment message IDs
-		for(int i = 0; i < totalAmendments; i++)
+		// Can be null if the read file is blank
+		if(DMain.server == null)
 		{
-			messageIDs.add(toRead[i + 2]);
+			throw new IllegalStateException("Server file seems to be blank as server == null");
 		}
+//		if(president == null)
+//		{
+//			DMain.sendToOperator("No President could be found");
+//			DMain.server.updatePresident(0);
+//		}
 		
-		// Next is JSON secret commands
-		Map<String, Object> result = WebUtils.parseJSON(WebUtils.MAP, toRead[2 + totalAmendments]);
-		result.forEach((key, value) -> secretCommands.put(key.toLowerCase(), value.toString()));
-		
-		// ServerMember data
-		for(int i = 3 + totalAmendments; i < toRead.length; i++)
-		{
-			String[] memberData = toRead[i].split(",");
-			members.add(new ServerMember(memberData[0].substring(1, memberData[0].lastIndexOf("\"")), Long.parseLong(memberData[1])));
-		}
-		
-		DMain.log("President has " + (termEndTime - System.currentTimeMillis()) / 8.64e+7 + " days remaining in office");
-		
-		if(president == null)
-		{
-			DMain.sendToOperator("No President could be found");
-			DMain.server = new Server(0, null, 0, totalAmendments, members, messageIDs, secretCommands, false);
-		}
-		else
-		{
-			DMain.server = new Server(president.getIdLong(), slogan, termEndTime, totalAmendments, members, messageIDs, secretCommands, lastTerm);
-		}
-		
-		// Save data to file
 		updateServerData();
-		privateChannel.sendMessage(DMain.BOT_NAME + " is online (reset data == **" + (toRead == resetFile) + "**, attempts == **" + attempts + "**) running Java version " + System.getProperty("java.version")).complete();
-		return new InputListener(jda);
+		privateChannel.sendMessage(DMain.BOT_NAME + " is online (reset file == **" + (usingResetFile) + "**, attempts == **" + attempts + "**) running Java version " + System.getProperty("java.version")).complete();
+		return new EventHandler(jda);
 	}
 	
 	// Convenience methods for loggin
@@ -498,10 +452,21 @@ public class DMain {
 		log.error(error.toString());
 	}
 	
+	public static void error(String error, Throwable t)
+	{
+		log.error(error, t);
+		if(errorHandler != null) errorHandler.queue(error);
+	}
+	
 	public static void error(String error)
 	{
 		log.error(error);
 		if(errorHandler != null) errorHandler.queue(error);
+	}
+	
+	public static void error(Throwable t)
+	{
+		DMain.error(t.getMessage(), t);
 	}
 	
 	private static String loadAsString(BufferedReader reader)
@@ -545,7 +510,7 @@ public class DMain {
 		}
 	}
 	
-	public static void main(String[] args)
+	public static void main(String[] args) throws FileNotFoundException
 	{
 //		if(!inIDE)
 		{

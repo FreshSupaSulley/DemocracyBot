@@ -1,3 +1,326 @@
 INFO 11/06 22:08:32.203 [com.supasulley.main.Main] --- PROGRAM START at 1730948912198
 INFO 11/06 22:09:00.980 [com.supasulley.main.Main] --- [SLASH COMMAND (276886864525262849) - 'kinghotsauce']: "/logs list"
 INFO 11/06 22:09:04.661 [com.supasulley.main.Main] --- [SLASH COMMAND (276886864525262849) - 'kinghotsauce']: "/logs get file: log-current.log"
+INFO 11/27 21:05:42.802 [com.supasulley.main.Main] --- PROGRAM START at 1732759542796
+INFO 11/27 21:05:45.079 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 11/27 21:05:45.819 [com.supasulley.main.Main] --- main
+java.lang.StringIndexOutOfBoundsException: begin 1, end -1, length 13
+	at java.base/java.lang.String.checkBoundsBeginEnd(String.java:3319)
+	at java.base/java.lang.String.substring(String.java:1874)
+	at democracy.DMain.loadServerData(DMain.java:442)
+	at democracy.DMain.initialize(DMain.java:346)
+	at democracy.DMain.<init>(DMain.java:164)
+	at democracy.DMain.main(DMain.java:586)
+INFO 11/27 21:06:02.377 [com.supasulley.main.Main] --- PROGRAM START at 1732759562371
+INFO 11/27 21:06:04.186 [com.supasulley.main.Main] --- Updating slash commands
+INFO 11/27 21:08:15.219 [com.supasulley.main.Main] --- PROGRAM START at 1732759695213
+INFO 11/27 21:08:16.931 [com.supasulley.main.Main] --- Updating slash commands
+INFO 11/27 21:09:32.514 [com.supasulley.main.Main] --- PROGRAM START at 1732759772507
+INFO 11/27 21:09:34.179 [com.supasulley.main.Main] --- Updating slash commands
+INFO 11/27 21:12:35.649 [com.supasulley.main.Main] --- PROGRAM START at 1732759955642
+INFO 11/27 21:12:37.454 [com.supasulley.main.Main] --- Updating slash commands
+INFO 11/27 21:24:25.673 [com.supasulley.main.Main] --- PROGRAM START at 1732760665667
+INFO 11/27 21:24:27.489 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 11/27 21:24:27.856 [com.supasulley.main.Main] --- main
+java.lang.Error: Unresolved compilation problems: 
+	The constructor Server(int, int, null, int, int, ArrayList<ServerMember>, ArrayList<String>, HashMap<String,String>, boolean) is undefined
+	The constructor Server(int, long, String, long, int, ArrayList<ServerMember>, ArrayList<String>, HashMap<String,String>, boolean) is undefined
+
+	at democracy.DMain.loadServerData(DMain.java:471)
+	at democracy.DMain.initialize(DMain.java:346)
+	at democracy.DMain.<init>(DMain.java:164)
+	at democracy.DMain.main(DMain.java:584)
+INFO 11/27 21:24:36.476 [com.supasulley.main.Main] --- PROGRAM START at 1732760676469
+INFO 11/27 21:24:38.073 [com.supasulley.main.Main] --- Updating slash commands
+INFO 11/27 21:24:59.116 [com.supasulley.main.Main] --- PROGRAM START at 1732760699109
+INFO 11/27 21:25:00.690 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/13 21:18:35.246 [com.supasulley.main.Main] --- PROGRAM START at 1734142715238
+INFO 12/13 21:18:36.980 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/13 21:19:53.287 [com.supasulley.main.Main] --- PROGRAM START at 1734142793282
+INFO 12/13 21:19:54.796 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/13 21:21:29.753 [com.supasulley.main.Main] --- PROGRAM START at 1734142889747
+INFO 12/13 21:21:31.243 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/13 21:25:03.959 [com.supasulley.main.Main] --- PROGRAM START at 1734143103953
+INFO 12/13 21:25:05.727 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/13 21:25:47.175 [com.supasulley.main.Main] --- PROGRAM START at 1734143147167
+INFO 12/13 21:25:48.688 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 11:51:55.116 [com.supasulley.main.Main] --- PROGRAM START at 1734281515111
+INFO 12/15 11:51:56.900 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 11:51:58.349 [com.supasulley.main.Main] --- main
+net.dv8tion.jda.api.exceptions.ErrorResponseException: -1: java.lang.IllegalArgumentException
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:233)
+	at net.dv8tion.jda.api.requests.RestAction.complete(RestAction.java:632)
+	at democracy.InputListener.<init>(InputListener.java:51)
+	at democracy.DMain.loadServerData(DMain.java:436)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:142)
+	at democracy.DMain.main(DMain.java:544)
+Caused by: java.lang.IllegalArgumentException: UNKNOWN_MESSAGE_TYPE
+	at net.dv8tion.jda.internal.entities.EntityBuilder.createMessage0(EntityBuilder.java:1721)
+	at net.dv8tion.jda.internal.entities.EntityBuilder.createMessageWithChannel(EntityBuilder.java:1663)
+	at net.dv8tion.jda.api.entities.channel.middleman.MessageChannel.lambda$retrieveMessageById$1(MessageChannel.java:884)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.handleSuccess(RestActionImpl.java:307)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.handleResponse(RestActionImpl.java:285)
+	at net.dv8tion.jda.api.requests.Request.handleResponse(Request.java:304)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.handleResponse(Requester.java:423)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.access$300(Requester.java:359)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:233)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:145)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:128)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.execute(Requester.java:387)
+	at net.dv8tion.jda.api.requests.SequentialRestRateLimiter$Bucket.execute(SequentialRestRateLimiter.java:477)
+	at net.dv8tion.jda.api.requests.SequentialRestRateLimiter$Bucket.run(SequentialRestRateLimiter.java:517)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+Caused by: net.dv8tion.jda.api.exceptions.ContextException: null
+	at net.dv8tion.jda.api.exceptions.ContextException.here(ContextException.java:54)
+	at net.dv8tion.jda.api.requests.Request.<init>(Request.java:77)
+	at net.dv8tion.jda.api.requests.RestFuture.<init>(RestFuture.java:40)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.submit(RestActionImpl.java:215)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:225)
+	at net.dv8tion.jda.api.requests.RestAction.complete(RestAction.java:632)
+	at democracy.InputListener.<init>(InputListener.java:51)
+	at democracy.DMain.loadServerData(DMain.java:436)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:142)
+	at democracy.DMain.main(DMain.java:544)
+INFO 12/15 11:55:35.892 [com.supasulley.main.Main] --- PROGRAM START at 1734281735886
+INFO 12/15 11:55:37.375 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 11:55:38.588 [com.supasulley.main.Main] --- main
+net.dv8tion.jda.api.exceptions.ErrorResponseException: -1: java.lang.IllegalArgumentException
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:233)
+	at net.dv8tion.jda.api.requests.RestAction.complete(RestAction.java:632)
+	at democracy.InputListener.<init>(InputListener.java:51)
+	at democracy.DMain.loadServerData(DMain.java:436)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:142)
+	at democracy.DMain.main(DMain.java:544)
+Caused by: java.lang.IllegalArgumentException: UNKNOWN_MESSAGE_TYPE
+	at net.dv8tion.jda.internal.entities.EntityBuilder.createMessage0(EntityBuilder.java:1721)
+	at net.dv8tion.jda.internal.entities.EntityBuilder.createMessageWithChannel(EntityBuilder.java:1663)
+	at net.dv8tion.jda.api.entities.channel.middleman.MessageChannel.lambda$retrieveMessageById$1(MessageChannel.java:884)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.handleSuccess(RestActionImpl.java:307)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.handleResponse(RestActionImpl.java:285)
+	at net.dv8tion.jda.api.requests.Request.handleResponse(Request.java:304)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.handleResponse(Requester.java:423)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.access$300(Requester.java:359)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:233)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:145)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:128)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.execute(Requester.java:387)
+	at net.dv8tion.jda.api.requests.SequentialRestRateLimiter$Bucket.execute(SequentialRestRateLimiter.java:477)
+	at net.dv8tion.jda.api.requests.SequentialRestRateLimiter$Bucket.run(SequentialRestRateLimiter.java:517)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+Caused by: net.dv8tion.jda.api.exceptions.ContextException: null
+	at net.dv8tion.jda.api.exceptions.ContextException.here(ContextException.java:54)
+	at net.dv8tion.jda.api.requests.Request.<init>(Request.java:77)
+	at net.dv8tion.jda.api.requests.RestFuture.<init>(RestFuture.java:40)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.submit(RestActionImpl.java:215)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:225)
+	at net.dv8tion.jda.api.requests.RestAction.complete(RestAction.java:632)
+	at democracy.InputListener.<init>(InputListener.java:51)
+	at democracy.DMain.loadServerData(DMain.java:436)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:142)
+	at democracy.DMain.main(DMain.java:544)
+INFO 12/15 11:56:22.902 [com.supasulley.main.Main] --- PROGRAM START at 1734281782897
+INFO 12/15 11:56:24.303 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 11:56:25.585 [com.supasulley.main.Main] --- main
+net.dv8tion.jda.api.exceptions.ErrorResponseException: -1: java.lang.IllegalArgumentException
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:233)
+	at net.dv8tion.jda.api.requests.RestAction.complete(RestAction.java:632)
+	at democracy.InputListener.<init>(InputListener.java:51)
+	at democracy.DMain.loadServerData(DMain.java:436)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:142)
+	at democracy.DMain.main(DMain.java:544)
+Caused by: java.lang.IllegalArgumentException: UNKNOWN_MESSAGE_TYPE
+	at net.dv8tion.jda.internal.entities.EntityBuilder.createMessage0(EntityBuilder.java:1721)
+	at net.dv8tion.jda.internal.entities.EntityBuilder.createMessageWithChannel(EntityBuilder.java:1663)
+	at net.dv8tion.jda.api.entities.channel.middleman.MessageChannel.lambda$retrieveMessageById$1(MessageChannel.java:884)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.handleSuccess(RestActionImpl.java:307)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.handleResponse(RestActionImpl.java:285)
+	at net.dv8tion.jda.api.requests.Request.handleResponse(Request.java:304)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.handleResponse(Requester.java:423)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.access$300(Requester.java:359)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:233)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:145)
+	at net.dv8tion.jda.internal.requests.Requester.execute(Requester.java:128)
+	at net.dv8tion.jda.internal.requests.Requester$WorkTask.execute(Requester.java:387)
+	at net.dv8tion.jda.api.requests.SequentialRestRateLimiter$Bucket.execute(SequentialRestRateLimiter.java:477)
+	at net.dv8tion.jda.api.requests.SequentialRestRateLimiter$Bucket.run(SequentialRestRateLimiter.java:517)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+Caused by: net.dv8tion.jda.api.exceptions.ContextException: null
+	at net.dv8tion.jda.api.exceptions.ContextException.here(ContextException.java:54)
+	at net.dv8tion.jda.api.requests.Request.<init>(Request.java:77)
+	at net.dv8tion.jda.api.requests.RestFuture.<init>(RestFuture.java:40)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.submit(RestActionImpl.java:215)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:225)
+	at net.dv8tion.jda.api.requests.RestAction.complete(RestAction.java:632)
+	at democracy.InputListener.<init>(InputListener.java:51)
+	at democracy.DMain.loadServerData(DMain.java:436)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:142)
+	at democracy.DMain.main(DMain.java:544)
+INFO 12/15 12:00:14.329 [com.supasulley.main.Main] --- PROGRAM START at 1734282014322
+INFO 12/15 12:00:15.919 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 12:00:17.015 [com.supasulley.main.Main] --- main
+net.dv8tion.jda.api.exceptions.ErrorResponseException: 10008: Unknown Message
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:233)
+	at net.dv8tion.jda.api.requests.RestAction.complete(RestAction.java:632)
+	at democracy.InputListener.<init>(InputListener.java:51)
+	at democracy.DMain.loadServerData(DMain.java:436)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:142)
+	at democracy.DMain.main(DMain.java:544)
+Caused by: net.dv8tion.jda.api.exceptions.ContextException: null
+	at net.dv8tion.jda.api.exceptions.ContextException.here(ContextException.java:54)
+	at net.dv8tion.jda.api.requests.Request.<init>(Request.java:77)
+	at net.dv8tion.jda.api.requests.RestFuture.<init>(RestFuture.java:40)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.submit(RestActionImpl.java:215)
+	at net.dv8tion.jda.internal.requests.RestActionImpl.complete(RestActionImpl.java:225)
+	... 6 common frames omitted
+INFO 12/15 12:01:25.680 [com.supasulley.main.Main] --- PROGRAM START at 1734282085675
+INFO 12/15 12:01:27.102 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 12:02:23.889 [com.supasulley.main.Main] --- PROGRAM START at 1734282143882
+INFO 12/15 12:02:25.371 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 12:03:59.089 [com.supasulley.main.Main] --- PROGRAM START at 1734282239084
+INFO 12/15 12:04:00.522 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 12:34:11.804 [com.supasulley.main.Main] --- PROGRAM START at 1734284051798
+INFO 12/15 12:34:13.369 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 14:18:07.649 [com.supasulley.main.Main] --- PROGRAM START at 1734290287641
+INFO 12/15 14:18:09.319 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 14:18:23.437 [com.supasulley.main.Main] --- PROGRAM START at 1734290303431
+INFO 12/15 14:18:24.913 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 14:22:53.593 [com.supasulley.main.Main] --- PROGRAM START at 1734290573587
+INFO 12/15 14:22:55.081 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 14:23:32.443 [com.supasulley.main.Main] --- PROGRAM START at 1734290612437
+INFO 12/15 14:23:33.875 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 14:23:58.377 [com.supasulley.main.Main] --- PROGRAM START at 1734290638371
+INFO 12/15 14:23:59.840 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 14:25:48.686 [com.supasulley.main.Main] --- PROGRAM START at 1734290748679
+INFO 12/15 14:25:50.246 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 14:26:10.981 [com.supasulley.main.Main] --- PROGRAM START at 1734290770974
+INFO 12/15 14:26:12.460 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 15:56:13.624 [com.supasulley.main.Main] --- PROGRAM START at 1734296173617
+INFO 12/15 15:56:15.155 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:12:49.342 [com.supasulley.main.Main] --- PROGRAM START at 1734297169336
+INFO 12/15 16:12:50.880 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:13:03.928 [com.supasulley.main.Main] --- PROGRAM START at 1734297183922
+INFO 12/15 16:13:05.331 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:18:55.940 [com.supasulley.main.Main] --- PROGRAM START at 1734297535934
+INFO 12/15 16:18:57.420 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 16:18:58.312 [com.supasulley.main.Main] --- main
+java.lang.NullPointerException: null
+	at democracy.DMain.getCommandByName(DMain.java:331)
+	at democracy.Server.buildPresidentialVote(Server.java:335)
+	at democracy.Server.tick(Server.java:210)
+	at democracy.EventHandler.tick(EventHandler.java:425)
+	at democracy.DMain.<init>(DMain.java:153)
+	at democracy.DMain.main(DMain.java:541)
+INFO 12/15 16:26:43.361 [com.supasulley.main.Main] --- PROGRAM START at 1734298003356
+INFO 12/15 16:26:44.878 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 16:26:45.882 [com.supasulley.main.Main] --- main
+java.lang.NullPointerException: null
+	at democracy.DMain.getCommandByName(DMain.java:340)
+	at democracy.Server.buildPresidentialVote(Server.java:323)
+	at democracy.Server.tick(Server.java:198)
+	at democracy.EventHandler.tick(EventHandler.java:425)
+	at democracy.DMain.<init>(DMain.java:153)
+	at democracy.DMain.main(DMain.java:542)
+INFO 12/15 16:27:55.664 [com.supasulley.main.Main] --- PROGRAM START at 1734298075658
+INFO 12/15 16:27:57.071 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:38:14.056 [com.supasulley.main.Main] --- PROGRAM START at 1734298694050
+INFO 12/15 16:38:16.389 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:41:23.661 [com.supasulley.main.Main] --- PROGRAM START at 1734298883656
+INFO 12/15 16:41:25.075 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:41:46.866 [com.supasulley.main.Main] --- PROGRAM START at 1734298906861
+INFO 12/15 16:41:48.275 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:42:19.914 [com.supasulley.main.Main] --- PROGRAM START at 1734298939904
+INFO 12/15 16:42:21.510 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:42:58.966 [com.supasulley.main.Main] --- PROGRAM START at 1734298978960
+INFO 12/15 16:43:00.420 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:43:11.468 [com.supasulley.main.Main] --- PROGRAM START at 1734298991462
+INFO 12/15 16:43:12.877 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:43:22.141 [com.supasulley.main.Main] --- PROGRAM START at 1734299002135
+INFO 12/15 16:43:23.519 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 16:43:35.950 [com.supasulley.main.Main] --- PROGRAM START at 1734299015943
+INFO 12/15 16:43:37.529 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 17:10:26.779 [com.supasulley.main.Main] --- PROGRAM START at 1734300626773
+INFO 12/15 17:10:28.315 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 17:29:43.118 [com.supasulley.main.Main] --- PROGRAM START at 1734301783113
+INFO 12/15 17:29:44.663 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 17:30:18.098 [com.supasulley.main.Main] --- PROGRAM START at 1734301818092
+INFO 12/15 17:30:19.572 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 17:40:27.114 [com.supasulley.main.Main] --- PROGRAM START at 1734302427108
+INFO 12/15 17:40:28.646 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 17:40:29.628 [com.supasulley.main.Main] --- main
+java.lang.NullPointerException: null
+	at com.supasulley.utils.ErrorHandler.queue(ErrorHandler.java:46)
+	at democracy.DMain.error(DMain.java:453)
+	at democracy.DMain.error(DMain.java:464)
+	at democracy.DMain.initialize(DMain.java:324)
+	at democracy.DMain.<init>(DMain.java:137)
+	at democracy.DMain.main(DMain.java:538)
+INFO 12/15 17:41:35.199 [com.supasulley.main.Main] --- PROGRAM START at 1734302495193
+INFO 12/15 17:41:36.664 [com.supasulley.main.Main] --- Updating slash commands
+ERROR 12/15 17:41:37.917 [com.supasulley.main.Main] --- main
+java.lang.NullPointerException: null
+	at democracy.EventHandler.tick(EventHandler.java:66)
+	at democracy.DMain.<init>(DMain.java:143)
+	at democracy.DMain.main(DMain.java:538)
+INFO 12/15 17:44:49.871 [com.supasulley.main.Main] --- PROGRAM START at 1734302689866
+INFO 12/15 17:44:51.300 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 17:46:39.642 [com.supasulley.main.Main] --- PROGRAM START at 1734302799636
+INFO 12/15 17:46:41.190 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:18:21.159 [com.supasulley.main.Main] --- PROGRAM START at 1734319101153
+INFO 12/15 22:18:22.798 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:19:08.394 [com.supasulley.main.Main] --- PROGRAM START at 1734319148387
+INFO 12/15 22:19:09.994 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:20:39.597 [com.supasulley.main.Main] --- PROGRAM START at 1734319239590
+INFO 12/15 22:20:41.081 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:21:32.718 [com.supasulley.main.Main] --- PROGRAM START at 1734319292713
+INFO 12/15 22:21:34.161 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:21:50.573 [com.supasulley.main.Main] --- PROGRAM START at 1734319310567
+INFO 12/15 22:21:51.970 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:23:17.386 [com.supasulley.main.Main] --- PROGRAM START at 1734319397380
+INFO 12/15 22:23:18.828 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:24:27.126 [com.supasulley.main.Main] --- PROGRAM START at 1734319467120
+INFO 12/15 22:24:28.658 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:25:04.856 [com.supasulley.main.Main] --- PROGRAM START at 1734319504849
+INFO 12/15 22:25:06.352 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:40:21.558 [com.supasulley.main.Main] --- PROGRAM START at 1734320421551
+INFO 12/15 22:40:23.029 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:46:24.752 [com.supasulley.main.Main] --- PROGRAM START at 1734320784747
+INFO 12/15 22:46:26.182 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:46:53.597 [com.supasulley.main.Main] --- PROGRAM START at 1734320813592
+INFO 12/15 22:46:55.040 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 22:59:56.648 [com.supasulley.main.Main] --- PROGRAM START at 1734321596641
+INFO 12/15 22:59:58.260 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:03:54.493 [com.supasulley.main.Main] --- PROGRAM START at 1734321834487
+INFO 12/15 23:03:55.997 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:06:55.066 [com.supasulley.main.Main] --- PROGRAM START at 1734322015060
+INFO 12/15 23:06:56.749 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:08:49.791 [com.supasulley.main.Main] --- PROGRAM START at 1734322129785
+INFO 12/15 23:08:51.222 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:15:59.767 [com.supasulley.main.Main] --- PROGRAM START at 1734322559762
+INFO 12/15 23:16:01.245 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:16:27.710 [com.supasulley.main.Main] --- PROGRAM START at 1734322587705
+INFO 12/15 23:16:29.268 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:17:49.836 [com.supasulley.main.Main] --- PROGRAM START at 1734322669830
+INFO 12/15 23:17:52.013 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:18:47.528 [com.supasulley.main.Main] --- PROGRAM START at 1734322727523
+INFO 12/15 23:18:49.031 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:21:05.740 [com.supasulley.main.Main] --- PROGRAM START at 1734322865733
+INFO 12/15 23:21:07.309 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:41:26.728 [com.supasulley.main.Main] --- PROGRAM START at 1734324086721
+INFO 12/15 23:41:28.272 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:41:56.723 [com.supasulley.main.Main] --- PROGRAM START at 1734324116702
+INFO 12/15 23:41:58.268 [com.supasulley.main.Main] --- Updating slash commands
+INFO 12/15 23:42:19.161 [com.supasulley.main.Main] --- PROGRAM START at 1734324139154
+INFO 12/15 23:42:20.634 [com.supasulley.main.Main] --- Updating slash commands
