@@ -1,13 +1,14 @@
 package democracy;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+
+import com.supasulley.main.JsonUtils;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
-import net.dv8tion.jda.api.entities.messages.MessagePoll.Answer;
 import net.dv8tion.jda.api.utils.messages.MessagePollData;
 
 /**
@@ -24,10 +25,31 @@ public abstract class Poll {
 	private int minParticipation;
 	private long votingCooldown;
 	
+	// Don't store
+	private transient TextChannel channel;
+	
 	public Poll(float ratio, int minParticipation, long votingCooldown, String question, TextChannel channel)
 	{
+		this.ratio = ratio;
+		this.minParticipation = minParticipation;
+		this.votingCooldown = votingCooldown;
 		this.question = question;
-		
+		this.channel = channel;
+	}
+	
+	/**
+	 * Checks if the poll is a duplicate of another poll.
+	 * 
+	 * @param poll poll to check
+	 * @return true if this poll is a duplicate, false otherwise
+	 */
+	public boolean isDuplicate(Poll poll)
+	{
+		return JsonUtils.serialize(poll).equals(JsonUtils.serialize(this));
+	}
+	
+	public void firePoll()
+	{
 		// Create message
 		channel.sendMessagePoll(generatePoll()).queue(message ->
 		{
@@ -36,9 +58,17 @@ public abstract class Poll {
 		});
 	}
 	
+	/**
+	 * @return universal voting time for polls
+	 */
+	public Duration getVoteTime()
+	{
+		return Duration.ofDays(1);
+	}
+	
 	private MessagePollData generatePoll()
 	{
-		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(1, TimeUnit.DAYS).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
+		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(getVoteTime()).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
 	}
 	
 	private boolean passesPoll(int numYes, int numNo)
@@ -57,24 +87,21 @@ public abstract class Poll {
 	 */
 	public void endPoll(JDA jda)
 	{
-		Message pollMessage = jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(messageID).complete();
-		MessagePoll poll = pollMessage.getPoll();
-		int numYes = 0;
-		int numNo = 0;
-		
-		for(Answer answer : poll.getAnswers())
+		Message pollMessage = jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(messageID).onErrorMap(t ->
 		{
-			if(answer.getText().equals("Yes"))
-			{
-				numYes++;
-			}
-			else
-			{
-				numNo++;
-			}
-		}
+			DMain.log.error("Failed to retrieve poll message", t);
+			return null;
+		}).complete();
 		
-		DMain.log("To decide: Yes = " + numYes + ", No = " + numNo);
+		// Abandon if poll message couldn't get found
+		if(pollMessage == null) return;
+		
+		MessagePoll poll = pollMessage.getPoll();
+		// Due to the ordering when creating the poll, yes is always the first, no is always the second
+		int numYes = poll.getAnswers().get(0).getVotes();
+		int numNo = poll.getAnswers().get(1).getVotes();
+		
+		DMain.log.info("To decide: Yes = " + numYes + ", No = " + numNo);
 		
 		// Delete voting message
 		pollMessage.delete().queue();
@@ -82,21 +109,21 @@ public abstract class Poll {
 		// Check for ratio
 		if(passesPoll(numYes, numNo))
 		{
-			DMain.log("***" + this.getClass().getName() + "*** poll (" + question + ") passed!");
+			DMain.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") passed!");
 //			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") passed!").complete();
 			
 			// Perform actions
 			try {
 				performAction(jda);
+				DMain.updateServerData();
 			} catch(Throwable t) {
-				DMain.error("Error running action during passed poll");
-				DMain.log(t);
+				DMain.log.error("Error running action during passed poll", t);
 			}
 		}
 		else
 		{
 			// Fancy polling does this for us
-			DMain.log("***" + this.getClass().getName() + "*** poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval.");
+			DMain.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval.");
 //			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.").complete();
 		}
 		

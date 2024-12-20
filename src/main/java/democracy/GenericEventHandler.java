@@ -93,7 +93,7 @@ public class GenericEventHandler extends CustomListener {
 							System.err.println("Could not delete temp file");
 					} catch(IOException e)
 					{
-						DMain.log(e);
+						DMain.log.error("Failed to do file shit", e);
 					}
 				}
 				else
@@ -105,12 +105,11 @@ public class GenericEventHandler extends CustomListener {
 				return;
 			}
 			
-			DMain.log("[SENDING IN CHANNEL " + channel.getName() + "]: \"" + message.substring(0, Math.min(message.length(), 40)).replace("\n", "") + "\"...");
+			DMain.log.info("[SENDING IN CHANNEL {}]: \"{}\"...", channel.getName(), message.substring(0, Math.min(message.length(), 40)).replace("\n", ""));
 			channel.sendMessage(message).queue();
 		} catch(Exception e)
 		{
-			System.err.println("Something went wrong sending message " + message + ". Discord issue? Check https://discordstatus.com/");
-			DMain.log(e);
+			DMain.log.error("Something went wrong sending message " + message + ". Discord issue? Check https://discordstatus.com/", e);
 		}
 	}
 	

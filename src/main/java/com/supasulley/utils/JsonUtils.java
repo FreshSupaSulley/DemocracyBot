@@ -1,4 +1,4 @@
-package com.supasulley.web;
+package com.supasulley.utils;
 
 import java.util.function.Function;
 
@@ -9,9 +9,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
+import democracy.Poll;
+import democracy.PollAdapter;
+
 public class JsonUtils {
 	
-	private static final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
+	private static final Gson gson = new GsonBuilder().registerTypeAdapter(Poll.class, new PollAdapter()).serializeNulls().setPrettyPrinting().create();
 	
 	/**
 	 * Converts text to a {@link JsonObject}.

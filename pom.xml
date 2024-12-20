@@ -17,10 +17,6 @@
 			<name>m2-dv8tion</name>
 			<url>https://m2.dv8tion.net/releases</url>
 		</repository>
-		<repository>
-			<id>jitpack.io</id>
-			<url>https://jitpack.io</url>
-		</repository>
 	</repositories>
 	<dependencies>
 		<!-- Logback -->
@@ -28,7 +24,6 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>1.4.7</version>
-			<scope>runtime</scope>
 		</dependency>
 		<!-- Gson -->
 		<dependency>
@@ -42,31 +37,22 @@
 			<artifactId>JDA</artifactId>
 			<version>5.2.1</version>
 		</dependency>
-		<!-- Apache text commons (for autocomplete. Remove if possible) -->
+		<!-- Apache text commons (for autocomplete)
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>
 			<version>1.9</version>
 		</dependency>
-		<!-- Apache HTTP Client -->
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 			<version>4.5.13</version>
-		</dependency>
+		</dependency> -->
 		<!-- Dropbox SDK for updating -->
 		<dependency>
 			<groupId>com.dropbox.core</groupId>
 			<artifactId>dropbox-core-sdk</artifactId>
 			<version>7.0.0</version>
-		</dependency>
-
-
-		<!-- SECOND JAR -->
-		<dependency>
-			<groupId>com.github.Demeng7215</groupId>
-			<artifactId>lavaplayer-403retry</artifactId>
-			<version>1.3.77-fix2</version>
 		</dependency>
 	</dependencies>
 </project>

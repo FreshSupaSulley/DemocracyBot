@@ -3,7 +3,6 @@ package democracy;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -12,12 +11,12 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.ExceptionEvent;
+import net.dv8tion.jda.api.events.GatewayPingEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -30,6 +29,10 @@ import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 public class EventHandler extends GenericEventHandler {
 	
+	// 1 minute per tick
+	private static final long TICK_TIME = 60000;
+	private long lastTick;
+	
 	public EventHandler(JDA jda)
 	{
 		super(jda);
@@ -40,59 +43,26 @@ public class EventHandler extends GenericEventHandler {
 			history.getRetrievedHistory().forEach(message ->
 			{
 				// Check for polls
-				checkMessageForPollResult(message);
+				DMain.server.checkMessageForPollResult(message);
 			});
-		}, DMain::error);
+		}, error -> DMain.log.error("Failed to collect messages on startup for poll checking", error));
 	}
 	
-	/**
-	 * Should be called with long intervals (i.e. 30 seconds min)
-	 */
-	public void tick()
+	@Override
+	public void onGatewayPing(GatewayPingEvent event)
 	{
-		// Tick polls
-		// I don't think we need to worry about deletes here
-//		Iterator<Poll> iterator = DMain.server.getPolls().iterator();
-//		
-//		while(iterator.hasNext())
-//		{
-//			Poll sample = iterator.next();
-//			
-//			// 1 day
-//			if(System.currentTimeMillis() - sample.getStartTime() >= 8.64e+7)
-//			{
-//				DMain.log("ENDING THE POLL!");
-//				sample.endPoll(jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(sample.getMessageID()).complete());
-//				iterator.remove();
-//			}
-//		}
-		
-		DMain.server.tick(jda);
-	}
-	
-	public ServerMember getMember(User user)
-	{
-		// Now that we have the server, search for member within server
-		for(ServerMember member : DMain.server.getMembers())
+		if(System.currentTimeMillis() - lastTick > TICK_TIME)
 		{
-			// If the user already exists, move to front of list
-			if(member.isUser(user.getIdLong()))
-			{
-				return member;
-			}
+			lastTick = System.currentTimeMillis();
+			DMain.server.tick(jda);
 		}
-		
-		// If we couldn't find user / server, the ServerMember is new
-		ServerMember initMember = new ServerMember(user.getIdLong());
-		DMain.server.addMember(initMember);
-		return initMember;
 	}
 	
 	private void slashCommand(SlashCommandInteractionEvent event)
 	{
 		if(!event.isFromGuild())
 		{
-			event.reply("DM commands are not supported. Please use " + DMain.BOT_NAME + " in your server.").setEphemeral(true).queue();
+			event.reply("DM commands are not supported. Use " + DMain.BOT_NAME + " in Discordias.").setEphemeral(true).queue();
 			return;
 		}
 		
@@ -100,9 +70,16 @@ public class EventHandler extends GenericEventHandler {
 		User user = event.getUser();
 		Guild guild = event.getGuild();
 		
-		ServerMember sender = getMember(user);
+		// Don't acknowledge if we're in test channel
+		if(!DMain.inIDE && event.getChannel().getIdLong() == DMain.TEST_CHANNEL)
+		{
+			DMain.log.info("Ignoring test channel command");
+			return;
+		}
 		
-		DMain.log("[SLASH COMMAND (" + guild.getId() + ", channel #" + event.getChannel().getId() + ") - '" + user.getName() + "']: \"" + event.getCommandString() + "\"");
+		ServerMember sender = DMain.server.getMember(user);
+		
+		DMain.log.info("[SLASH COMMAND (" + guild.getId() + ", channel #" + event.getChannel().getId() + ") - '" + user.getName() + "']: \"" + event.getCommandString() + "\"");
 		
 		switch(event.getFullCommandName())
 		{
@@ -128,7 +105,7 @@ public class EventHandler extends GenericEventHandler {
 				if(DMain.server.getPresidentialVote(jda) == null)
 				{
 					float daysRemaining = DMain.server.millisRemainingInTerm() / 8.64e+7f;
-					event.reply("The Presidential Election is active during the last 3 days of the President's term (last day is " + new SimpleDateFormat("MM/dd/yyyy").format(new Date(System.currentTimeMillis() + DMain.server.millisRemainingInTerm())) + "). The President has " + (int) (daysRemaining) + " day" + ((int) daysRemaining != 1 ? "s" : "") + " and " + (int) (daysRemaining % 1 * 24) + " hours left in office. You will be notified in <#" + DMain.VOTING_BOOTH + "> when the election begins.").queue();
+					event.reply("Polls for the **" + Server.ordinal(DMain.server.getPresidentialCount() + 1) + " Presidential Election** open " + getExactTime(System.currentTimeMillis() + DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST**. The President has " + (int) (daysRemaining) + " day" + ((int) daysRemaining != 1 ? "s" : "") + " and " + (int) (daysRemaining % 1 * 24) + " hours left in office. You will be notified in <#" + DMain.VOTING_BOOTH + "> when the election begins.").queue();
 				}
 				else if(DMain.server.getCandidates().size() == 10)
 				{
@@ -194,7 +171,7 @@ public class EventHandler extends GenericEventHandler {
 					}
 				}
 				
-				event.reply("You're not campaigning! Use </campaign:" + DMain.getCommandByName("campaign").getId() + "> to register").queue();
+				event.reply("You're not campaigning! Use " + DMain.getCommandReference("campaign") + " to register").queue();
 				return;
 			}
 			case "next-election":
@@ -214,20 +191,9 @@ public class EventHandler extends GenericEventHandler {
 			{
 				String content = event.getOption("amendment").getAsString();
 				
-				ProposePoll poll = new ProposePoll(jda.getTextChannelById(DMain.VOTING_BOOTH), content);
-				
-				if(!sender.canPropose(poll))
-				{
-					event.reply("You cannot propose amendments this frequently.").setEphemeral(true).queue();
-				}
-				else
-				{
-					event.reply("Poll added!").queue();
-					DMain.server.getPolls().add(poll);
-					break;
-				}
-				
-				return;
+				// Add the poll
+				DMain.server.beginPoll(event, new ProposePoll(jda.getTextChannelById(DMain.VOTING_BOOTH), content));
+				break;
 			}
 			case "repeal":
 			{
@@ -235,23 +201,28 @@ public class EventHandler extends GenericEventHandler {
 				
 				if(number < 1 || number > DMain.server.getAmendments())
 				{
-					event.reply("Enter a number between 1-" + DMain.server.getAmendments()).setEphemeral(true).queue();
-					return;
+					event.reply("Enter a number between 1 - " + DMain.server.getAmendments()).setEphemeral(true).queue();
+					break;
 				}
 				
-				RepealPoll poll = new RepealPoll(jda.getTextChannelById(DMain.VOTING_BOOTH), number);
+				// Add the poll
+				DMain.server.beginPoll(event, new RepealPoll(jda.getTextChannelById(DMain.VOTING_BOOTH), number));
+				break;
+			}
+			case "impeach":
+			{
+				// Don't allow impeachment if it will overlap with the presidential vote
+				ImpeachPoll poll = new ImpeachPoll(jda.getTextChannelById(DMain.VOTING_BOOTH));
 				
-				if(!sender.canPropose(poll))
+				if(DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME < poll.getVoteTime().toMillis())
 				{
-					event.reply("You cannot repeal amendments this frequently.").setEphemeral(true).queue();
-				}
-				else
-				{
-					event.reply("Poll added!").queue();
-					DMain.server.getPolls().add(poll);
+					event.reply("Impeachment disabled. The polls open **" + getExactTime(System.currentTimeMillis() + DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST.**").queue();
+					break;
 				}
 				
-				return;
+				// Add the poll
+				DMain.server.beginPoll(event, poll);
+				break;
 			}
 			case "secret":
 			{
@@ -282,7 +253,7 @@ public class EventHandler extends GenericEventHandler {
 			default:
 			{
 				System.err.println("Unhandled command " + event.getName());
-				event.reply(DMain.ERROR_MSG).queue();
+				event.reply("This command is under construction :hammer: :construction:").queue();
 				return;
 			}
 		}
@@ -297,13 +268,14 @@ public class EventHandler extends GenericEventHandler {
 		} catch(Throwable t) {
 			if(!event.isAcknowledged())
 				event.reply(DMain.ERROR_MSG).queue();
-			DMain.error("An error occured in command handling", t);
+			DMain.log.error("An error occured in command handling", t);
 		}
 	}
 	
+	@Override
 	public void onGuildMessageReceived(MessageReceivedEvent event)
 	{
-		checkMessageForPollResult(event.getMessage());
+		DMain.server.checkMessageForPollResult(event.getMessage());
 		
 		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong())
 			return;
@@ -364,10 +336,10 @@ public class EventHandler extends GenericEventHandler {
 				for(Entry<String, String> set : commands.entrySet())
 				{
 					String key = set.getKey();
-					String secret = set.getValue();
+					String link = set.getValue();
 					
 					// If that secret is a link (trying to be an embed)
-					if(secret.contains("http"))
+					if(link.contains("http"))
 					{
 						boolean found = false;
 						
@@ -376,7 +348,7 @@ public class EventHandler extends GenericEventHandler {
 						{
 							String url = embed.getUrl();
 							
-							if(url.equals(secret))
+							if(url.equals(link))
 							{
 								found = true;
 								break;
@@ -385,7 +357,7 @@ public class EventHandler extends GenericEventHandler {
 						
 						if(!found)
 						{
-							DMain.log("Removing " + key + " from secret commands. Embed didn't work - " + secret);
+							DMain.log.info("Removing {} from secret commands. Embed didn't work at {}", key, link);
 							DMain.server.getSecretCommands().remove(key);
 							
 							// If it was just one secret command, just delete the message
@@ -400,120 +372,36 @@ public class EventHandler extends GenericEventHandler {
 		});
 	}
 	
-	private void checkMessageForPollResult(Message message)
-	{
-		long textChannel = message.getChannel().getIdLong();
-		
-		// Check if voting booth && it's something important
-		if(textChannel == DMain.VOTING_BOOTH && message.getType() == MessageType.POLL_RESULT)
-		{
-			// If it's a poll result, it's assumed the following logic will work to grab the referenced poll
-			long pollID = message.getMessageReference().getMessageIdLong();
-			Iterator<Poll> iterator = DMain.server.getPolls().iterator();
-			
-			// If this message belongs to a poll, it's done
-			for(Poll sample = null; iterator.hasNext() && (sample = iterator.next()).getMessageID() == pollID;)
-			{
-				// The poll is done
-				DMain.log("Received poll end message");
-				sample.endPoll(jda);
-				iterator.remove();
-				
-				// Delete after a while
-				message.delete().queueAfter(1, TimeUnit.DAYS);
-			}
-		}
-	}
-	
 	@Override
 	public void onGuildMemberJoin(GuildMemberJoinEvent event)
 	{
-		// Add into immigration
-		event.getGuild().addRoleToMember(event.getMember(), DMain.IMMIGRANT).queue();
-		DMain.server.addImmigrant(event.getMember().getIdLong());
-		
-		DMain.log(event.getUser().getName() + " " + event.getUser().getIdLong() + " joined!");
+		DMain.log.info(event.getUser().getName() + " " + event.getUser().getIdLong() + " joined!");
 	}
 	
 	@Override
 	public void onGuildMemberRemove(GuildMemberRemoveEvent event)
 	{
-		User user = event.getUser();
-		Iterator<ServerMember> iterator = DMain.server.getMembers().iterator();
-		
-		while(iterator.hasNext())
-		{
-			ServerMember member = iterator.next();
-			
-			if(member.getID() == user.getIdLong())
-			{
-				DMain.sendToOperator(user.getName() + " left the server!");
-				
-				DMain.server.removeMember(member.getID());
-				removeMember(member.getID());
-				iterator.remove();
-				
-				return;
-			}
-		}
-		
-		DMain.log("Unlogged participant left the server? " + user.getName());
-	}
-	
-	/**
-	 * Remove this member from nomination
-	 */
-	public void removeMember(long id)
-	{
-		// If this was the president
-		if(DMain.server.hasPresident() && id == DMain.server.getPresidentID())
-		{
-			DMain.sendToOperator("The President left the server!");
-			
-			try {
-				DMain.server.impeachPresident(jda.getGuildById(DMain.SERVER_ID)).call();
-			} catch(Exception e) {
-				DMain.log(e);
-			}
-		}
-		
-		// Remove member from candidates
-		Iterator<Candidate> iterator = DMain.server.getCandidates().iterator();
-		
-		while(iterator.hasNext())
-		{
-			Candidate member = iterator.next();
-			
-			if(member.getID() == id)
-			{
-				DMain.log("Removing candidate from running");
-				iterator.remove();
-				
-				// Remove the reaction that belonged to it
-				DMain.server.getPresidentialVote(jda).getReaction(Emoji.fromUnicode(DMain.server.slotToReaction(member.getSlot()))).removeReaction().queue();
-				DMain.server.updatePresidentialVote(jda);
-				return;
-			}
-		}
+		DMain.server.removeMember(event.getJDA(), event.getUser().getIdLong());
+		DMain.log.info("{} ({}) left the server ", event.getMember().getEffectiveName(), event.getMember().getId());
 	}
 	
 	@Override
 	public void onSessionDisconnect(SessionDisconnectEvent event)
 	{
 		CloseCode code = event.getCloseCode();
-		DMain.log("DISCONNECTED! Close code: " + (code == null ? "null" : code.getCode() + ". Meaning: " + code.getMeaning()) + ". Closed by discord: " + event.isClosedByServer());
+		DMain.log.info("DISCONNECTED! Close code: " + (code == null ? "null" : code.getCode() + ". Meaning: " + code.getMeaning()) + ". Closed by discord: " + event.isClosedByServer());
 	}
 	
 	@Override
 	public void onSessionResume(SessionResumeEvent event)
 	{
-		DMain.log("Reconnected!");
+		DMain.log.info("Reconnected!");
 	}
 	
 	@Override
 	public void onException(ExceptionEvent event)
 	{
-		DMain.log("JDA Exception! Response code: " + event.getResponseNumber() + ". Logged: " + event.isLogged() + ". Cause: " + event.getCause());
+		DMain.log.error("JDA Exception! Response code: {}, logged: {}, cause: {}, #{}", event.getResponseNumber(), event.isLogged(), event.getCause(), event.getResponseNumber());
 	}
 	
 	private String getExactTime(long time)

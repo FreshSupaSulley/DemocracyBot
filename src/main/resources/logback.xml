@@ -1,91 +1,76 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="false">
+<configuration>
 	<property name="logPath" value="./botData" />
-	<property name="printFormat"
-		value="%p %d{MM/dd HH:mm:ss.SSS} [%c] --- %m%n" />
-	<property name="maxSize" value="50MB" />
+	<property name="printFormat" value="%p %d{MM/dd HH:mm:ss.SSS} [%c] --- %m%n" />
+	<property name="fileFormat" value="%d{MM-dd-yyyy}.%i" />
+	
+	<property name="maxFileSize" value="5MB" />
+	<property name="maxHistory" value="3" />
+	<property name="totalSizeCap" value="25MB" />
 
-	<appender name="console"
-		class="ch.qos.logback.core.ConsoleAppender">
-		<!-- Deny logs with levels below DEBUG -->
-		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-			<level>INFO</level>
-		</filter>
+	<!-- Console -->
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
 			<pattern>${printFormat}</pattern>
 		</encoder>
 	</appender>
-
-	<!-- DemocracyBot file -->
+	
+	<!-- CustomLogger that forwards errors to the owner -->
+	<appender name="errorAppender" class="com.supasulley.utils.ErrorAppender" />
+	
+	<!-- DemocracyBot -->
 	<appender name="democracy"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-
-		<!-- Deny logs with levels below INFO -->
-		<!-- TRACE, DEBUG, INFO, WARN, ERROR -->
-		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-			<level>INFO</level>
-		</filter>
-		<file>${logPath}/DBLogs.log</file>
-		<append>true</append>
+		<file>${logPath}/db.log</file>
 		<encoder>
 			<pattern>${printFormat}</pattern>
 		</encoder>
-
 		<rollingPolicy
 			class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-			<fileNamePattern>${logPath}/archived/DBLogs_%d{MM-dd-yyyy}.%i.log
-			</fileNamePattern>
-
-			<maxFileSize>${maxSize}</maxFileSize>
-			<maxHistory>3</maxHistory>
-			<totalSizeCap>250MB</totalSizeCap>
+			<fileNamePattern>${logPath}/archived/db_${fileFormat}.log</fileNamePattern>
+			<maxFileSize>${maxFileSize}</maxFileSize>
+			<maxHistory>${maxHistory}</maxHistory>
+			<totalSizeCap>${totalSizeCap}</totalSizeCap>
 		</rollingPolicy>
 	</appender>
 
-	<!-- Default logger outputs to console additivity == false -->
-	<!-- Additivity (true) == logging to more than 1 appender -->
-	<root level="all">
-		<appender-ref ref="console" />
-	</root>
-
-
-	<!-- NEW -->
-	<property name="logPath2" value="./logs" />
-	<property name="printFormat2"
-		value="%p %d{MM/dd HH:mm:ss.SSS} [%c] --- %m%n" />
-	<!-- Rolling File Appender -->
-	<appender name="logs"
+	<!-- weeve -->
+	<appender name="weeve"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<!-- Set the rolling policy for log files -->
-		<rollingPolicy
-			class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<!-- File name pattern with date -->
-			<fileNamePattern>${logPath2}/log.%d{yyyy-MM-dd}.log</fileNamePattern>
-			<!-- Retain only 5 days of logs -->
-			<maxHistory>5</maxHistory>
-			<!-- Delete older logs when the history exceeds 5 days -->
-			<fileNamePattern>${logPath2}/log.%d{yyyy-MM-dd}.log</fileNamePattern>
-		</rollingPolicy>
 		<!-- Log file destination -->
-		<file>${logPath2}/log-current.log</file>
+		<file>${logPath}/weeve.log</file>
 		<encoder>
-			<pattern>${printFormat2}</pattern>
+			<pattern>${printFormat}</pattern>
 		</encoder>
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<!-- File name pattern with date -->
+			<fileNamePattern>${logPath}/archived/weeve_${fileFormat}.log</fileNamePattern>
+			<maxFileSize>${maxFileSize}</maxFileSize>
+			<maxHistory>${maxHistory}</maxHistory>
+			<totalSizeCap>${totalSizeCap}</totalSizeCap>
+		</rollingPolicy>
 	</appender>
+	
+	<!-- TRACE, DEBUG, INFO, WARN, ERROR -->
+	<root level="info">
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="errorAppender" />
+	</root>
+	
+	<!-- DemocracyBot -->
+	<!-- Additivity is enabled by default. This will be sent through the root and thus STDOUT and errorAppender -->
+	<logger name="democracy.DMain" level="all">
+		<appender-ref ref="democracy" />
+	</logger>
+	
+	<!-- JDA logger. Only send JDA info to dbot -->
+	<logger name="net.dv8tion" level="info">
+		<appender-ref ref="democracy" />
+	</logger>
+
+	<!-- weeve -->
 	<logger name="com.supasulley.main.Main" level="all">
-		<appender-ref ref="logs" />
-	</logger>
-
-
-	<!-- JDA logger -->
-	<logger name="net.dv8tion" level="all"
-		additivity="${logback.debug}">
-		<appender-ref ref="democracy" />
-	</logger>
-
-	<!-- DemocracyBot logger -->
-	<logger name="democracy" level="all"
-		additivity="${logback.debug}">
-		<appender-ref ref="democracy" />
+		<appender-ref ref="weeve" />
 	</logger>
 </configuration>

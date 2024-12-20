@@ -126,12 +126,7 @@ public class PrivateHandler extends MessageHandler {
 				return "Could not find message ID with ID " + id;
 			case (9):
 			{
-				try {
-					DMain.server.addAmendment(jda, message).call();
-				} catch(Exception e) {
-					DMain.log(e);
-				}
-				
+				DMain.server.addAmendment(jda, message);
 				return "Passed " + message;
 			}
 			case (10):
@@ -166,9 +161,9 @@ public class PrivateHandler extends MessageHandler {
 						client.files().downloadBuilder("/DemocracyBot.jar").download(stream);
 						stream.close();
 						
-						DMain.log("Done!");
+						DMain.log.info("Done!");
 						DMain.sendToOperator("Done!");
-						DMain.reboot();
+						reboot();
 					} catch(BadRequestException e) {
 						return "Invalid access token \"" + message + "\"";
 					}
@@ -180,8 +175,7 @@ public class PrivateHandler extends MessageHandler {
 				}
 			}
 			case (13):
-				DMain.sendLogs();
-				return null;
+				return "refer to weeve";
 			case (14):
 				DMain.updateServerData();
 				DMain.sendServerData();
@@ -193,7 +187,7 @@ public class PrivateHandler extends MessageHandler {
 			case (16):
 			{
 				DMain.updateServerData();
-				DMain.reboot();
+				reboot();
 				return "Rebootin";
 			}
 			case (17):
@@ -274,6 +268,23 @@ public class PrivateHandler extends MessageHandler {
 		}
 		
 		return commandErrors[0];
+	}
+	
+	/**
+	 * Restarts the bot
+	 */
+	public static void reboot()
+	{
+		DMain.sendToOperator("Rebooting...");
+		
+		// Reboot
+		try {
+			Process p = Runtime.getRuntime().exec("sudo reboot");
+			p.waitFor();
+		} catch(InterruptedException | IOException e) {
+			System.err.println("An error occured rebooting bot");
+			e.printStackTrace();
+		}
 	}
 	
 	private String handleSayRequest(String message)

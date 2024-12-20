@@ -8,12 +8,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import com.supasulley.web.JsonUtils;
+import com.supasulley.utils.JsonUtils;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -22,9 +20,12 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageReaction;
+import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 public class Server {
@@ -37,9 +38,7 @@ public class Server {
 	// Everything has to be initialized in case it doesn't get deserialized and a new server obj is created
 	// Serialize
 	private int presidentialCount = 0;
-	private Map<Long, Long> immigrants = new HashMap<Long, Long>();; // <End time, UserID>
 	private List<String> amendmentIDs = new ArrayList<String>();
-	private Map<String, String> secretCommands = new HashMap<String, String>();
 	private List<Poll> polls = new ArrayList<Poll>();
 	private List<ServerMember> memberCache = new ArrayList<ServerMember>();
 	private long presidentID;
@@ -51,6 +50,9 @@ public class Server {
 	// Try to store these. Start of program should correct them if it can't be found
 	private long presidentialVoteMessageID;
 	private ArrayList<Candidate> candidates = new ArrayList<Candidate>();
+	
+	// Serialize last because its hella annoying
+	private Map<String, String> secretCommands = new HashMap<String, String>();
 	
 	// Don't serialize
 	private transient Message presidentialVote;
@@ -64,7 +66,7 @@ public class Server {
 		
 		// Otherwise retrieve it
 		return jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(presidentialVoteMessageID).onErrorMap(error -> {
-			DMain.error("Huh? Tried to fetch presidential vote but fail checks failed", error);
+			DMain.log.error("Huh? Tried to fetch presidential vote but fail checks failed", error);
 			return null;
 		}).onSuccess(message -> {
 			this.presidentialVote = message;
@@ -90,48 +92,100 @@ public class Server {
 		memberCache.add(member);
 	}
 	
-	public void addImmigrant(long memberID)
+	public ServerMember getMember(User user)
 	{
-		immigrants.put(memberID, (long) (System.currentTimeMillis() + 6.048e+8));
-	}
-	
-	public List<Poll> getPolls()
-	{
-		return polls;
-	}
-	
-	public boolean isImmigrant(long id)
-	{
-		for(long sample : immigrants.keySet())
+		// Now that we have the server, search for member within server
+		for(ServerMember member : memberCache)
 		{
-			if(id == sample)
+			// If the user already exists, move to front of list
+			if(member.getID() == user.getIdLong())
 			{
-				return true;
+				return member;
 			}
 		}
 		
-		return false;
+		// If we couldn't find user / server, the ServerMember is new
+		ServerMember initMember = new ServerMember(user.getIdLong());
+		DMain.server.addMember(initMember);
+		return initMember;
 	}
 	
-	public void removeMember(long memberID)
+	/**
+	 * Starts a poll if another doesn't already exist.
+	 * 
+	 * @param poll poll to start
+	 * @return user response, indicating if it the request was successful
+	 */
+	public void beginPoll(SlashCommandInteractionEvent event, Poll poll)
 	{
-		Iterator<Entry<Long, Long>> iterator = immigrants.entrySet().iterator();
-		
-		while(iterator.hasNext())
+		// Ensure a duplicate poll doesn't exist
+		for(Poll sample : polls)
 		{
-			Entry<Long, Long> member = iterator.next();
-			
-			if(member.getKey() == memberID)
+			if(poll.isDuplicate(sample))
 			{
-				iterator.remove();
+				event.reply("Another poll of this kind already exists!").setEphemeral(true).queue();
 				return;
 			}
 		}
+		
+		// Ensure no one is spamming the poll
+		ServerMember member = getMember(event.getUser());
+		
+		if(!member.canPropose(poll))
+		{
+			float millisLeft = (int) (member.getMillisRemaining(poll) / 3600000F * 100) / 100F;
+			event.reply("You cannot " + DMain.getCommandReference(event.getFullCommandName()) + " this frequently (" + (millisLeft < 0.1f ? "< 0.1" : millisLeft) + "hr cooldown)").setEphemeral(true).queue();
+			return;
+		}
+		
+		polls.add(poll);
+		poll.firePoll();
+		DMain.updateServerData();
+		event.reply("Poll added!").queue();
 	}
 	
-	public List<ServerMember> getMembers()
+	/**
+	 * Remove this member from nomination
+	 */
+	public void removeMember(JDA jda, long id)
 	{
-		return memberCache;
+		// I'm intentionally not immediately removing them from memberCache, because that would mean they could leave and rejoin and spam polls
+		for(ServerMember member : memberCache)
+		{
+			// This will be caught by the tick method and handled when the cache time expires
+			if(id == member.getID())
+			{
+				member.markForDeletion();
+				break;
+			}
+		}
+		
+		// If this was the president
+		if(hasPresident() && id == getPresidentID())
+		{
+			DMain.sendToOperator("The President left the server!");
+			impeachPresident(jda.getGuildById(DMain.SERVER_ID));
+		}
+		
+		// Remove member from candidates
+		// If there are any candidates, it implies a vote is active
+		Iterator<Candidate> iterator = DMain.server.getCandidates().iterator();
+		
+		while(iterator.hasNext())
+		{
+			Candidate member = iterator.next();
+			
+			if(member.getID() == id)
+			{
+				DMain.log.info("Removing candidate from running");
+				iterator.remove();
+				
+				// Remove the reaction that belonged to it
+				getPresidentialVote(jda).getReaction(Emoji.fromUnicode(DMain.server.slotToReaction(member.getSlot()))).removeReaction().queue();
+				updatePresidentialVote(jda);
+				return;
+			}
+		}
 	}
 	
 	public long getPresidentID()
@@ -173,13 +227,19 @@ public class Server {
 	
 	public void tick(JDA jda)
 	{
-		for(Entry<Long, Long> entry : immigrants.entrySet())
+		// Check member cache for deletions
+		boolean dataChanged = false;
+		
+		for(Iterator<ServerMember> iterator = memberCache.iterator(); iterator.hasNext() && (iterator.next()).shouldDelete();)
 		{
-			if(System.currentTimeMillis() - entry.getValue() > 0)
-			{
-				Guild guild = jda.getGuildById(DMain.SERVER_ID);
-				guild.removeRoleFromMember(guild.retrieveMemberById(entry.getKey()).complete(), DMain.IMMIGRANT).queue();
-			}
+			dataChanged = true;
+			iterator.remove();
+		}
+		
+		// If someone was deleted from cache
+		if(dataChanged)
+		{
+			DMain.updateServerData();
 		}
 		
 		// Ensure presidentialVote is updated in case it crashed
@@ -192,7 +252,7 @@ public class Server {
 			// If a poll needs to be created
 			if(presidentialVote == null)
 			{
-				DMain.log("Opening up Presidential vote");
+				DMain.log.info("Opening up Presidential vote");
 				
 				// Add President as a re-election
 				if(DMain.server.hasPresident() && !DMain.server.isLastTerm())
@@ -207,6 +267,8 @@ public class Server {
 				
 				if(!candidates.isEmpty())
 					presidentialVote.addReaction(Emoji.fromUnicode("U+31U+fe0fU+20e3")).queue();
+				
+				DMain.updateServerData();
 			}
 			// Tick vote if already created
 			else
@@ -246,12 +308,12 @@ public class Server {
 						Candidate nextPresident = candidates.get(0);
 						int maxVotes = votes[0];
 						
-						DMain.log("Counting presidential votes! Candidate 1 = " + nextPresident.getID() + " " + maxVotes);
+						DMain.log.info("Counting presidential votes! Candidate 1 = " + nextPresident.getID() + " " + maxVotes);
 						
 						for(int i = 1; i < candidates.size(); i++)
 						{
 							Candidate candidate = candidates.get(i);
-							DMain.log(candidate.getID() + " " + votes[i]);
+							DMain.log.info(candidate.getID() + " " + votes[i]);
 							
 							if(votes[i] > maxVotes)
 							{
@@ -263,7 +325,7 @@ public class Server {
 						candidates.clear();
 						
 						// President is elected
-						DMain.log(nextPresident.getID() + " won");
+						DMain.log.info(nextPresident.getID() + " won");
 						Guild guild = jda.getGuildById(DMain.SERVER_ID);
 						
 						// Remove President roll
@@ -280,12 +342,12 @@ public class Server {
 						// Transfer power
 						if(presidentID == nextPresident.getID())
 						{
-							DMain.log("Same President " + presidentID);
+							DMain.log.info("Same President " + presidentID);
 							lastTerm = true;
 						}
 						else
 						{
-							DMain.log("Elected new president " + presidentID);
+							DMain.log.info("Elected new president " + presidentID);
 						}
 						
 						presidentID = nextPresident.getID();
@@ -317,7 +379,7 @@ public class Server {
 		}
 	}
 	
-	private static String ordinal(int i)
+	public static String ordinal(int i)
 	{
 		String[] suffixes = new String[] {"th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"};
 		
@@ -346,7 +408,7 @@ public class Server {
 	private MessageEmbed buildPresidentialVote()
 	{
 		EmbedBuilder e = new EmbedBuilder();
-		e.setTitle(new SimpleDateFormat("MM/dd/yyyy").format(new Date()) + " Presidential Election");
+		e.setTitle(Server.ordinal(getPresidentialCount() + 1) + " Presidential Election");
 		e.setColor(Color.red);
 		
 		StringBuilder builder = new StringBuilder("@everyone it's time. By the power of the people and the Magna Farta, we will elect our next monthly President that represents the core of this nation's beliefs and thereby representing the people. Cast your vote below:\n");
@@ -357,7 +419,7 @@ public class Server {
 		});
 		
 		if(DMain.server.getCandidates().isEmpty())
-			builder.append("\n*There are no active presidential candidates. Run for office with </campaign:" + DMain.getCommandByName("campaign").getId() + ">.");
+			builder.append("\n*There are no active presidential candidates. Run for office with " + DMain.getCommandReference("campaign") + ".");
 		
 		e.setImage("https://cdn.discordapp.com/app-icons/910579031391498330/c65afb3995baa1c31212e43f1f643e7e.png");
 		e.setDescription(builder.toString());
@@ -368,60 +430,39 @@ public class Server {
 	/**
 	 * Defaults / nulls President values and removes the role from the President.
 	 */
-	public Callable<Void> impeachPresident(Guild guild)
+	public void impeachPresident(Guild guild)
 	{
-		return new Callable<Void>()
-		{
-			@Override
-			public Void call() throws Exception
-			{
-				DMain.log("Impeached President");
-				// Reset data
-				presidentID = 0;
-				termEndTime = System.currentTimeMillis();
-				
-				// Remove presidential role
-				guild.removeRoleFromMember(guild.retrieveMemberById(DMain.server.getPresidentID()).complete(), DMain.THE_PRESIDENT).complete();
-				return null;
-			}
-		};
+		DMain.log.info("Impeached President");
+		
+		// Reset data
+		presidentID = 0;
+		termEndTime = System.currentTimeMillis();
+		slogan = null;
+		lastTerm = false;
+		
+		// Remove presidential role
+		guild.removeRoleFromMember(guild.retrieveMemberById(DMain.server.getPresidentID()).complete(), DMain.THE_PRESIDENT).complete();
+		DMain.updateServerData();
 	}
 	
-	public Callable<Void> addAmendment(JDA jda, String content)
+	public void addAmendment(JDA jda, String content)
 	{
-		return new Callable<Void>()
-		{
-			@Override
-			public Void call() throws Exception
-			{
-				amendmentIDs.add(jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.sanitize(content)).complete().getId());
-				return null;
-			}
-		};
+		amendmentIDs.add(jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.sanitize(content)).complete().getId());
 	}
 	
-	public Callable<Void> repealAmendment(JDA jda, int number)
+	public void repealAmendment(JDA jda, int number)
 	{
-		return new Callable<Void>()
+		Message message = jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete();
+		String raw = message.getContentRaw();
+		
+		if(!raw.startsWith("~~") && !raw.endsWith("~~"))
 		{
-			@Override
-			public Void call() throws Exception
-			{
-				Message message = jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete();
-				String raw = message.getContentRaw();
-				
-				if(!raw.startsWith("~~") && !raw.endsWith("~~"))
-				{
-					message.editMessage("~~" + message.getContentRaw() + "~~").complete();
-				}
-				else
-				{
-					message.editMessage(raw.substring(2, raw.length() - 2)).complete();
-				}
-				
-				return null;
-			}
-		};
+			message.editMessage("~~" + message.getContentRaw() + "~~").complete();
+		}
+		else
+		{
+			message.editMessage(raw.substring(2, raw.length() - 2)).complete();
+		}
 	}
 	
 	public String getAmendment(JDA jda, int index)
@@ -452,34 +493,7 @@ public class Server {
 	@Override
 	public String toString()
 	{
-//		try {
-			return JsonUtils.serialize(this);
-//		} catch(Throwable t) {
-//			DMain.error("Failed to serialize server", t);
-//			throw t;
-//		}
-		
-//		StringBuilder builder = new StringBuilder(System.currentTimeMillis() + "\n\"" + slogan + "\" " + termEndTime + " " + getAmendments() + " " + lastTerm + "\n");
-//		
-//		// For each amendment
-//		for(String sample : amendmentIDs)
-//		{
-//			builder.append(sample + "\n");
-//		}
-//		
-//		// Append secret commands
-//		ObjectNode node = WebUtils.createObjectNode();
-//		secretCommands.forEach((key, value) -> node.put(key, value));
-//		builder.append(node.toString() + "\n");
-//		
-//		// For each ServerMember
-//		for(ServerMember member : members)
-//		{
-//			builder.append(member + "\n");
-//		}
-//		
-//		String result = builder.toString();
-//		return result.substring(0, result.length() - 1);
+		return JsonUtils.serialize(this);
 	}
 	
 	public String removeAmendment(JDA jda, int number)
@@ -500,6 +514,7 @@ public class Server {
 	public void updatePresidentialVote(JDA jda)
 	{
 		getPresidentialVote(jda).editMessageEmbeds(buildPresidentialVote()).complete();
+		DMain.updateServerData();
 	}
 	
 	/**
@@ -525,5 +540,31 @@ public class Server {
 		}
 		
 		return -1;
+	}
+	
+	public void checkMessageForPollResult(Message message)
+	{
+		long textChannel = message.getChannel().getIdLong();
+		
+		// Check if voting booth && it's something important
+		if(textChannel == DMain.VOTING_BOOTH && message.getType() == MessageType.POLL_RESULT)
+		{
+			// If it's a poll result, it's assumed the following logic will work to grab the referenced poll
+			long pollID = message.getMessageReference().getMessageIdLong();
+			Iterator<Poll> iterator = polls.iterator();
+			
+			// If this message belongs to a poll, it's done
+			// The original poll message shouldn't have been deleted if it's not in DMain.server
+			for(Poll sample = null; iterator.hasNext() && (sample = iterator.next()).getMessageID() == pollID;)
+			{
+				// The poll is done
+				DMain.log.info("Received poll end message");
+				sample.endPoll(message.getJDA());
+				iterator.remove();
+			}
+			
+			// Even if you can't find it, delete after a while
+			message.delete().queueAfter(1, TimeUnit.DAYS);
+		}
 	}
 }
