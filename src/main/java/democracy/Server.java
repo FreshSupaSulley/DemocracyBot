@@ -564,7 +564,7 @@ public class Server {
 			}
 			
 			// Even if you can't find it, delete after a while
-			message.delete().queueAfter(1, TimeUnit.DAYS);
+			message.delete().queueAfter(1, TimeUnit.HOURS);
 		}
 	}
 }
