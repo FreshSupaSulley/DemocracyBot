@@ -152,6 +152,7 @@ public class PrivateHandler extends MessageHandler {
 			{
 				try {
 					DMain.sendToOperator("Updating...");
+					DMain.updateServerData();
 					
 					// Need to click generate access token then paste that into !update your_token
 					DbxClientV2 client = new DbxClientV2(DbxRequestConfig.newBuilder("susbox").build(), message);

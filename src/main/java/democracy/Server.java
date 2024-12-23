@@ -3,6 +3,7 @@ package democracy;
 import java.awt.Color;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import com.supasulley.main.Main;
 import com.supasulley.utils.JsonUtils;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -305,26 +307,35 @@ public class Server {
 							}
 						}
 						
-						Candidate nextPresident = candidates.get(0);
-						int maxVotes = votes[0];
+						List<Candidate> tiedCandidates = new ArrayList<Candidate>();
+						int maxVotes = Arrays.stream(votes).max().orElse(votes[0]);
 						
-						DMain.log.info("Counting presidential votes! Candidate 1 = " + nextPresident.getID() + " " + maxVotes);
+						DMain.log.info("Counting presidential votes");
 						
-						for(int i = 1; i < candidates.size(); i++)
+						// For each candidate, add the top ones to the array
+						for(int i = 0; i < candidates.size(); i++)
 						{
 							Candidate candidate = candidates.get(i);
 							DMain.log.info(candidate.getID() + " " + votes[i]);
 							
-							if(votes[i] > maxVotes)
+							if(votes[i] == maxVotes)
 							{
-								nextPresident = candidate;
-								maxVotes = votes[i];
+								DMain.log.info("Adding {} to the tied candidates array", candidate.getID());
+								tiedCandidates.add(candidate);
 							}
 						}
 						
-						candidates.clear();
+						// Determine if there's a tie
+						Candidate nextPresident = candidates.get(0);
+						
+						if(tiedCandidates.size() != 1)
+						{
+							Main.log.info("We have a tie! {}", tiedCandidates);
+							nextPresident = tiedCandidates.get((int) (Math.random() * tiedCandidates.size()));
+						}
 						
 						// President is elected
+						candidates.clear();
 						DMain.log.info(nextPresident.getID() + " won");
 						Guild guild = jda.getGuildById(DMain.SERVER_ID);
 						
@@ -503,7 +514,7 @@ public class Server {
 			// Decrement to indices
 			number--;
 			// Delete OG message
-			jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete().delete().queue();
+			jda.getTextChannelById(DMain.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete().delete().complete();
 			// Remove from data
 			return "Deleted " + amendmentIDs.remove(number);
 		}
