@@ -5,7 +5,6 @@ import java.util.function.Function;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
@@ -17,14 +16,14 @@ public class JsonUtils {
 	private static final Gson gson = new GsonBuilder().registerTypeAdapter(Poll.class, new PollAdapter()).serializeNulls().setPrettyPrinting().create();
 	
 	/**
-	 * Converts text to a {@link JsonObject}.
+	 * Converts text to a {@link JsonElement}.
 	 * 
 	 * @param string string to parse
-	 * @return new {@link JsonObject}
+	 * @return new {@link JsonElement}
 	 */
-	public static JsonObject parse(String string) throws JsonSyntaxException
+	public static JsonElement parse(String string) throws JsonSyntaxException
 	{
-		return JsonParser.parseString(string).getAsJsonObject();
+		return JsonParser.parseString(string);
 	}
 	
 	/**

@@ -1,6 +1,7 @@
 package democracy;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -8,14 +9,10 @@ import java.util.Map;
  */
 public class ServerMember {
 	
-	// 1 week cache time
-	private static final long CACHE_TIME = 604800000L;
-	
 	private final long userID;
-	private long deletionTime;
 	
 	// Times of proposing each type of poll
-	private Map<String, Long> pollProposalTimes = new HashMap<String, Long>();
+	private Map<String, Long> pollCooldownExpiryTimes = new HashMap<String, Long>();
 	
 	public ServerMember(long userID)
 	{
@@ -23,16 +20,46 @@ public class ServerMember {
 	}
 	
 	/**
-	 * Ensure this person isn't endlessly requesting this poll.
+	 * Ticks this server member to help clear cache.
+	 * 
+	 * @return true if this member should be removed from cache, false otherwise.
+	 */
+	public boolean shouldDelete()
+	{
+		Iterator<Map.Entry<String, Long>> iterator = pollCooldownExpiryTimes.entrySet().iterator();
+		boolean updated = true;
+		
+		while(iterator.hasNext())
+		{
+			// If the expiry time hasn't been passed yet
+			if(iterator.next().getValue() > System.currentTimeMillis())
+			{
+				updated = false;
+				break;
+			}
+		}
+		
+		if(updated)
+		{
+			DMain.log.info("Clearing poll cooldown expiry times for {}", userID);
+			pollCooldownExpiryTimes.clear();
+		}
+		
+		return updated;
+	}
+	
+	/**
+	 * Ensure this person isn't endlessly requesting this poll. If the member can propose, the cooldown is reset.
 	 * 
 	 * @param poll poll to check
 	 * @return true if the member can propose the poll, false otherwise
 	 */
 	public boolean canPropose(Poll poll)
 	{
-		if(System.currentTimeMillis() - pollProposalTimes.getOrDefault(poll.getClass().getName(), 0L) > poll.getVotingCooldown())
+		// If the current time passed the expiry time
+		if(System.currentTimeMillis() >= pollCooldownExpiryTimes.getOrDefault(poll.getClass().getName(), 0L))
 		{
-			pollProposalTimes.put(poll.getClass().getName(), System.currentTimeMillis());
+			pollCooldownExpiryTimes.put(poll.getClass().getName(), System.currentTimeMillis() + poll.getVotingCooldown());
 			return true;
 		}
 		
@@ -47,7 +74,7 @@ public class ServerMember {
 	 */
 	public long getMillisRemaining(Poll poll)
 	{
-		return poll.getVotingCooldown() - (System.currentTimeMillis() - pollProposalTimes.getOrDefault(poll.getClass().getName(), System.currentTimeMillis()));
+		return pollCooldownExpiryTimes.getOrDefault(poll.getClass().getName(), System.currentTimeMillis()) - System.currentTimeMillis();
 	}
 	
 	/**
@@ -56,21 +83,5 @@ public class ServerMember {
 	public long getID()
 	{
 		return userID;
-	}
-	
-	/**
-	 * Marks this member for deletion after they've left the server. Recalling this method simply delays when their data is deleted.
-	 */
-	public void markForDeletion()
-	{
-		deletionTime = System.currentTimeMillis() + CACHE_TIME;
-	}
-	
-	/**
-	 * @return true if the cache time for this member has expired
-	 */
-	public boolean shouldDelete()
-	{
-		return deletionTime != 0 && System.currentTimeMillis() > deletionTime;
 	}
 }

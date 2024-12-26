@@ -1,18 +1,26 @@
 package democracy;
 
-import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.security.auth.login.LoginException;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +28,7 @@ import com.google.gson.JsonObject;
 import com.supasulley.utils.ErrorAppender;
 import com.supasulley.utils.JsonUtils;
 
+import kotlin.text.Charsets;
 import net.dv8tion.jda.api.JDA.Status;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -37,6 +46,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.internal.JDAImpl;
@@ -58,18 +68,11 @@ public class DMain {
 	
 	private static JDAImpl jda;
 	private static PrivateChannel privateChannel;
-	private static final int MAX_CONSECUTIVE_ERRORS = 10;
-	private static final int CONSECUTIVE_INTERVAL = 1000;
-	private static final int DECREASE_RATE = CONSECUTIVE_INTERVAL * 100;
-	private static long lastError = System.currentTimeMillis();
-	private static int consecutiveErrors;
 	
 	public static final Logger log = (Logger) LoggerFactory.getLogger(DMain.class);
 	
-	public static final File democracyDir = new File("botData");
-	public static final File serverFile;
-	
-	public static final File JAR_FILE = new File(System.getProperty("user.home") + "/Desktop/DemocracyBot.jar");
+	private static final File democracyDir = new File("botData");
+	private static final File serverFile = new File(DMain.democracyDir.getPath() + "/serverData.txt");
 	
 	// Member data absolute path on pi: /root/Desktop/botData/serverData.txt
 	public static final boolean inIDE;
@@ -92,7 +95,16 @@ public class DMain {
 	static
 	{
 		// Load tokens
-		String raw = loadAsString(new BufferedReader(new InputStreamReader(DMain.class.getClassLoader().getResourceAsStream("tokens.txt"))));
+		String raw = null;
+		
+		try {
+			raw = IOUtils.toString(DMain.class.getClassLoader().getResourceAsStream("tokens.txt"), Charsets.UTF_8);
+		} catch(IOException e) {
+			log.error("Failed to read tokens.txt", e);
+			e.printStackTrace();
+			System.exit(1);
+		}
+		
 		JsonObject result = JsonUtils.parse(raw).getAsJsonObject();
 		
 		// You don't need test tokens btw for a test bot
@@ -118,8 +130,6 @@ public class DMain {
 		// Create necessary files
 		log.info((democracyDir.mkdirs() ? "Created BotData directories!" : "Did not need to create botData directories") + " - " + democracyDir.getAbsolutePath());
 		
-		serverFile = new File(DMain.democracyDir.getPath() + "/serverData.txt");
-		
 		// Uncaught errors are sent to DemocracyBot logs. This catches weeve errors too
 		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler()
 		{
@@ -133,61 +143,6 @@ public class DMain {
 		log.info("STARTING DBOT");
 	}
 	
-	public DMain()
-	{
-		// Set up directories, read from files, etc.
-		initialize();
-	}
-	
-	/**
-	 * Updates the local server data file. Do this after any important changes to {@linkplain Server} variables.
-	 */
-	public static void updateServerData()
-	{
-		// For recovery mode
-		if(!DMain.serverFile.exists())
-		{
-			log.warn("Refusing to update server data, serverFile doesn't exist");
-			return;
-		}
-		
-		log.info("Updating serverData...");
-		
-		try {
-			// This can throw errors! We need this to fail before we open FileWriter
-			String newData = DMain.server.toString();
-			
-			FileWriter writer = new FileWriter(DMain.serverFile);
-			writer.write(newData);
-			writer.close();
-		} catch(Throwable t) {
-			DMain.log.error("Could not write to serverData file", t);
-			throw new IllegalStateException(t); // transform to runtime exception
-		}
-	}
-	
-	public static void sendServerData()
-	{
-		privateChannel.sendFiles(FileUpload.fromData(serverFile)).complete();
-	}
-	
-	public static void sendToOperator(String text)
-	{
-		privateChannel.sendMessage(text).queue(null, (throwable) ->
-		{
-			// If an error occurred, don't error log it again. It would create an endless loop
-			DMain.log.info("Failed to send {} to operator", text);
-		});
-	}
-	
-	public static void shutdown()
-	{
-		privateChannel.sendMessage("Shutting down!").complete();
-		sendServerData();
-		jda.shutdownNow();
-		System.exit(0);
-	}
-	
 	/**
 	 * Creates directories, files, and reads server data before program begins.
 	 * 
@@ -195,7 +150,7 @@ public class DMain {
 	 * @throws LoginException
 	 * @throws InterruptedException
 	 */
-	private CustomListener initialize()
+	public DMain()
 	{
 		if(debug)
 		{
@@ -244,7 +199,19 @@ public class DMain {
 		
 		// Open error channel to developer for debugging / daily logs
 		privateChannel = jda.retrieveUserById(OWNER_ID).complete().openPrivateChannel().complete();
-		ErrorAppender.setErrorCallback(message -> forwardError(message.getMessage()));
+		ErrorAppender.setErrorCallback((consecutiveErrors, message) ->
+		{
+			// Warn the owner that something is definitely wrong
+			if(consecutiveErrors == 10)
+			{
+				sendToOperator("Too many consecutive errors. Check logs.");
+			}
+			else if(consecutiveErrors < 10)
+			{
+				// Only DM the user if we're under the max
+				sendToOperator("Error (" + consecutiveErrors + " consecutive):\n`" + message.getMessage() + "`");
+			}
+		});
 		
 		// Public slash commands
 		CommandData[] publicCommands = new CommandData[] {
@@ -253,13 +220,16 @@ public class DMain {
 			Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
 			Commands.slash("slogan", "Change your slogan").addOption(OptionType.STRING, "slogan", "Your new slogan", true),
 			Commands.slash("next-election", "Returns next election time"),
-			Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH)),
+			Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
 			Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)),
 			Commands.slash("impeach", "Impeach the President"),
 //			publicCommands[6] = Commands.slash("party", "View political party commands").addSubcommands(new SubcommandData("create", "Create a political party").addOption(OptionType.STRING, "name", "Name of the party", true), new SubcommandData("join", "Join a political party").addOption(OptionType.ROLE, "party", "The party to join", true), new SubcommandData("leave", "Leave a political party").addOption(OptionType.ROLE, "party", "The party to leave", true));
 //			publicCommands[6] = Commands.slash("archive", "Propose addition to the Library of Congress").addOption(OptionType.STRING, "entry", "The library of congress entry to add", true);
 			Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
 			Commands.slash("unsecret", "Remove a word from secret commands").addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),
+			
+			// Presidential commands
+//			Commands.slash("president", "Presidental commands").addSub.addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),
 		};
 		
 		// Update public commands
@@ -289,78 +259,6 @@ public class DMain {
 		}
 		
 		jda.addEventListener(listener);
-		return listener;
-	}
-	
-	/**
-	 * Sends errors to operator if enabled.
-	 * 
-	 * @param error the error to send
-	 */
-	private void forwardError(String error)
-	{
-		// Get time between errors
-		long current = System.currentTimeMillis();
-		long distance = current - lastError;
-		
-		// If this error occurred too soon after the last
-		if(distance < CONSECUTIVE_INTERVAL)
-		{
-			// If the consecutive errors have reached the maximum allowed
-			if(++DMain.consecutiveErrors == MAX_CONSECUTIVE_ERRORS)
-			{
-				// Warn the owner that something is definitely wrong
-				sendToOperator("Too many consecutive errors. Check logs.");
-			}
-		}
-		// If we haven't had an error in a while
-		else
-		{
-			// 100 seconds needs to pass to decrease consecutive errors by 1
-			DMain.consecutiveErrors = Math.max(0, DMain.consecutiveErrors = (int) (distance / DECREASE_RATE));
-		}
-		
-		// Only DM the user if we're under the max
-		if(DMain.consecutiveErrors < MAX_CONSECUTIVE_ERRORS)
-		{
-			sendToOperator("Error (" + DMain.consecutiveErrors + "/" + MAX_CONSECUTIVE_ERRORS + " consecutive):\n" + error);
-			DMain.lastError = System.currentTimeMillis();
-		}
-	}
-	
-	/**
-	 * Finds the command by the full command name and returns the markdown needed to reference it in messages.
-	 * 
-	 * @param fullCommandName {@linkplain ICommandReference#getFullCommandName()} of command
-	 * @return markdown of the command, calculated by {@code "</" + result.getFullCommandName() + ":" + result.getId() + ">"}
-	 */
-	public static String getCommandReference(String fullCommandName)
-	{
-		ICommandReference result = null;
-		
-		for(Command command : DMain.commands)
-		{
-			for(Subcommand subcommand : command.getSubcommands())
-			{
-				if(subcommand.getFullCommandName().equals(fullCommandName))
-				{
-					result = subcommand;
-				}
-			}
-			
-			if(command.getName().equals(fullCommandName))
-			{
-				result = command;
-			}
-		}
-		
-		if(result == null)
-		{
-			DMain.log.error("Failed to find command by name {}", fullCommandName);
-			return "/" + fullCommandName;
-		}
-		
-		return "</" + result.getFullCommandName() + ":" + result.getId() + ">";
 	}
 	
 	/**
@@ -415,16 +313,58 @@ public class DMain {
 			throw new IllegalStateException("Server file doesn't exist, and reset file wasn't provided");
 		}
 		
-		// Use reset file if not there
-		String toRead = loadAsString(new BufferedReader(new InputStreamReader(usingResetFile ? resetFile : new FileInputStream(serverFile))));
-		
 		// If we're using the reset file
+		if(usingResetFile && !inIDE)
+		{
+			// Hold program until operator confirms it
+			CountDownLatch latch = new CountDownLatch(1);
+			
+			// Default behavior should be to NOT use reset data
+			AtomicBoolean confirmReset = new AtomicBoolean(false);
+			
+			GenericEventHandler tempListener = new GenericEventHandler(jda);
+			jda.addEventListener(tempListener);
+			
+			privateChannel.sendMessage("Reset file was provided. Is this correct?\n*Local data will be used if you don't respond.*").addActionRow(Button.primary("yes", "Yes"), Button.danger("no", "No")).queue(message ->
+			{
+				DMain.log.info("Waiting for operator to confirm resetting data");
+				
+				tempListener.addButtonAction(message, (event) ->
+				{
+					confirmReset.set(event.getButton().getId().equals("yes"));
+					latch.countDown();
+					DMain.log.info("Operator responded! Reset value: " + confirmReset.get());
+					
+					// Respond to button press event
+					event.getMessage().delete().queue();
+					event.reply("Reset data set to " + confirmReset.get()).setEphemeral(true).queue();
+				});
+			}, failure -> {
+				DMain.log.error("Failed to send confirmation to operator");
+				latch.countDown();
+			});
+			
+			// Wait until we get a response. Add a timeout in case nothing happens
+			try {
+				latch.await(2, TimeUnit.MINUTES);
+			} catch(InterruptedException e) {
+				DMain.log.error("Something went wrong with the countdown latch {}", e);
+			}
+			
+			// Update usingResetFile
+			usingResetFile = confirmReset.get();
+			jda.removeEventListener(tempListener);
+		}
+		
 		if(usingResetFile)
 		{
 			// Send the old file
 			log.info("Using reset file");
 			DMain.sendServerData();
 		}
+		
+		// Use reset file if not there
+		String toRead = usingResetFile ? IOUtils.toString(resetFile, Charsets.UTF_8) : readServerData();
 		
 		// Deserialize (test if data is null or empty)
 		DMain.server = JsonUtils.deserialize(Server.class, toRead);
@@ -445,28 +385,115 @@ public class DMain {
 		return new EventHandler(jda);
 	}
 	
-	private static String loadAsString(BufferedReader reader)
+	/**
+	 * Updates the local server data file. Do this after any important changes to {@linkplain Server} variables. Locks the file during writing.
+	 */
+	public static void updateServerData()
 	{
-		if(reader == null) return "";
-		
-		StringBuilder builder = new StringBuilder();
-		
-		try {
-			String initString = reader.readLine();
-			if(initString == null) return "";
-			builder.append(initString);
-			
-			for(String line = null; (line = reader.readLine()) != null;)
-			{
-				builder.append("\n");
-				builder.append(line);
-			}
-		} catch(IOException e) {
-			System.err.println("An error occured loading resource as string");
-			e.printStackTrace();
+		// For recovery mode
+		if(!DMain.serverFile.exists())
+		{
+			DMain.log.warn("Refusing to update server data, serverFile doesn't exist");
+			return;
 		}
 		
-		return builder.toString();
+		DMain.log.info("Updating serverData...");
+		
+		File tempFile = new File(DMain.serverFile.getParent(), "serverData.tmp");
+		
+		try(FileOutputStream stream = new FileOutputStream(DMain.serverFile); FileLock lock = stream.getChannel().lock(); BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile)))
+		{
+			// Write the updated data to the temporary file
+			String newData = DMain.server.toString();
+			writer.write(newData);
+			writer.flush();
+			
+			// Rename temp file to the original file, atomic operation
+			Files.move(tempFile.toPath(), serverFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			tempFile.delete();
+		} catch(Throwable t) {
+			DMain.log.error("Could not update server data", t);
+		}
+	}
+	
+	/**
+	 * Loads the server data file as a string.
+	 * 
+	 * @return server data, or null if failed
+	 */
+	public static String readServerData()
+	{
+		// For recovery mode
+		if(!DMain.serverFile.exists())
+		{
+			DMain.log.warn("Refusing to read server data, serverFile doesn't exist");
+			return null;
+		}
+		
+		try(FileInputStream stream = new FileInputStream(DMain.serverFile); FileLock lock = stream.getChannel().lock(0, Long.MAX_VALUE, true)) {
+			return Files.readString(DMain.serverFile.toPath(), StandardCharsets.UTF_8);
+		} catch(Throwable t) {
+			DMain.log.error("Failed to read server data", t);
+		}
+		
+		return null;
+	}
+	
+	public static void sendServerData()
+	{
+		privateChannel.sendFiles(FileUpload.fromData(serverFile)).complete();
+	}
+	
+	public static void sendToOperator(String text)
+	{
+		privateChannel.sendMessage(text).queue(null, (throwable) ->
+		{
+			// If an error occurred, don't error log it again. It would create an endless loop
+			DMain.log.info("Failed to send {} to operator", text);
+		});
+	}
+	
+	public static void shutdown()
+	{
+		privateChannel.sendMessage("Shutting down!").complete();
+		sendServerData();
+		jda.shutdownNow();
+		System.exit(0);
+	}
+	
+	/**
+	 * Finds the command by the full command name and returns the markdown needed to reference it in messages.
+	 * 
+	 * @param fullCommandName {@linkplain ICommandReference#getFullCommandName()} of command
+	 * @return markdown of the command, calculated by {@code "</" + result.getFullCommandName() + ":" + result.getId() + ">"}
+	 */
+	public static String getCommandReference(String fullCommandName)
+	{
+		ICommandReference result = null;
+		
+		for(Command command : DMain.commands)
+		{
+			for(Subcommand subcommand : command.getSubcommands())
+			{
+				if(subcommand.getFullCommandName().equals(fullCommandName))
+				{
+					result = subcommand;
+				}
+			}
+			
+			if(command.getName().equals(fullCommandName))
+			{
+				result = command;
+			}
+		}
+		
+		if(result == null)
+		{
+			DMain.log.error("Failed to find command by name {}", fullCommandName);
+			return "/" + fullCommandName;
+		}
+		
+		return "</" + result.getFullCommandName() + ":" + result.getId() + ">";
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException

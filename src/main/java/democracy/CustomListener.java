@@ -27,6 +27,4 @@ public abstract class CustomListener extends ListenerAdapter {
 	
 	public abstract void onGuildMessageReceived(MessageReceivedEvent event);
 	public abstract void onPrivateMessageReceived(MessageReceivedEvent event);
-	
-	public abstract void tick();
 }

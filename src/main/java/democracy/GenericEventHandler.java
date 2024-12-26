@@ -3,33 +3,71 @@ package democracy;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.utils.FileUpload;
 
 public class GenericEventHandler extends CustomListener {
 	
+	private Map<Long, Consumer<ButtonInteractionEvent>> buttonActionMap;
 	private PrivateHandler privateHandler;
-	protected JDA jda;
 	
 	public GenericEventHandler(JDA jda)
 	{
-		privateHandler = new PrivateHandler(this.jda = jda);
-//		jda.getGuildById(DMain.SERVER_ID).getTextChannelById("1102051068969504768").getHistoryFromBeginning(100).queue(history -> {
-//			history.getRetrievedHistory().forEach(message -> {
-//				// Check for polls
-//				checkMessageForPoll(message);
-//			});
-//		}, DMain::error);
+		privateHandler = new PrivateHandler(jda);
+		buttonActionMap = new HashMap<Long, Consumer<ButtonInteractionEvent>>();
+	}
+	
+	/**
+	 * Return a simple response when subclasses do not implement this.
+	 */
+	@Override
+	public void onSlashCommandInteraction(SlashCommandInteractionEvent event)
+	{
+		event.reply(DMain.BOT_NAME + " is booting :robot:").queue();
+	}
+	
+	/**
+	 * Adds an action to be fired when a button is pressed on a message.
+	 * 
+	 * @param message  message object. Can be accessed when {@link MessageChannel#sendMessage(CharSequence)} succeeds
+	 * @param consumer action to be performed if successful
+	 */
+	public final void addButtonAction(Message message, Consumer<ButtonInteractionEvent> consumer)
+	{
+		buttonActionMap.put(message.getIdLong(), consumer);
+	}
+	
+	@Override
+	public final void onButtonInteraction(ButtonInteractionEvent event)
+	{
+		long id = event.getMessageIdLong();
+		
+		// If there's a button mapping associated with this id
+		if(buttonActionMap.containsKey(id))
+		{
+			buttonActionMap.remove(id).accept(event);
+		}
+		else
+		{
+			DMain.log.error("No button mapping associated for message {}", id);
+			event.reply("This event has expired").setEphemeral(true).queue();
+		}
 	}
 	
 	/**
 	 * Private messages do not record anything other than logs
 	 */
+	@Override
 	public void onPrivateMessageReceived(MessageReceivedEvent event)
 	{
 		if(event.getAuthor().getIdLong() != DMain.OWNER_ID)
@@ -61,7 +99,8 @@ public class GenericEventHandler extends CustomListener {
 	 * @param channel
 	 * @param message
 	 */
-	public static void sendMessage(MessageChannel channel, String message)
+	@Deprecated
+	private static void sendMessage(MessageChannel channel, String message)
 	{
 		try
 		{
@@ -115,10 +154,6 @@ public class GenericEventHandler extends CustomListener {
 	
 	// Unused in recovery mode
 	public void onGuildMessageReceived(MessageReceivedEvent event)
-	{
-	}
-	
-	public void tick()
 	{
 	}
 }

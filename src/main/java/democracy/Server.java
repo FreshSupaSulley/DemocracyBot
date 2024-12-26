@@ -133,6 +133,7 @@ public class Server {
 		// Ensure no one is spamming the poll
 		ServerMember member = getMember(event.getUser());
 		
+		// This HAS to be the last thing checked, as it will add a cooldown to the command
 		if(!member.canPropose(poll))
 		{
 			float millisLeft = (int) (member.getMillisRemaining(poll) / 3600000F * 100) / 100F;
@@ -140,10 +141,15 @@ public class Server {
 			return;
 		}
 		
-		polls.add(poll);
-		poll.firePoll();
-		DMain.updateServerData();
-		event.reply("Poll added!").queue();
+		// Only update the server data if successful
+		poll.firePoll(success -> {
+			polls.add(poll);
+			DMain.updateServerData();
+			event.reply("Poll added!").queue();
+		}, failure -> {
+			DMain.log.error("Failed to add poll", failure);
+			event.reply("Something went wrong adding the poll").queue();
+		});
 	}
 	
 	/**
@@ -152,16 +158,6 @@ public class Server {
 	public void removeMember(JDA jda, long id)
 	{
 		// I'm intentionally not immediately removing them from memberCache, because that would mean they could leave and rejoin and spam polls
-		for(ServerMember member : memberCache)
-		{
-			// This will be caught by the tick method and handled when the cache time expires
-			if(id == member.getID())
-			{
-				member.markForDeletion();
-				break;
-			}
-		}
-		
 		// If this was the president
 		if(hasPresident() && id == getPresidentID())
 		{
@@ -234,6 +230,7 @@ public class Server {
 		
 		for(Iterator<ServerMember> iterator = memberCache.iterator(); iterator.hasNext() && (iterator.next()).shouldDelete();)
 		{
+			DMain.log.info("Marking member for deletion");
 			dataChanged = true;
 			iterator.remove();
 		}
@@ -325,10 +322,10 @@ public class Server {
 							}
 						}
 						
-						// Determine if there's a tie
-						Candidate nextPresident = candidates.get(0);
+						// Determine if there's a tie. By logic, there must be at least 1
+						Candidate nextPresident = tiedCandidates.get(0);
 						
-						if(tiedCandidates.size() != 1)
+						if(tiedCandidates.size() > 1)
 						{
 							Main.log.info("We have a tie! {}", tiedCandidates);
 							nextPresident = tiedCandidates.get((int) (Math.random() * tiedCandidates.size()));
@@ -458,7 +455,13 @@ public class Server {
 	
 	public void addAmendment(JDA jda, String content)
 	{
-		amendmentIDs.add(jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.sanitize(content)).complete().getId());
+		jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.sanitize(content)).queue(success -> {
+			DMain.log.info("Added amendment {}", content);
+			amendmentIDs.add(success.getId());
+			DMain.updateServerData();
+		}, failure -> {
+			DMain.log.error("Failed to add amendment {}", content, failure);
+		});
 	}
 	
 	public void repealAmendment(JDA jda, int number)
@@ -484,11 +487,14 @@ public class Server {
 	public void addSecret(String word, String response)
 	{
 		secretCommands.put(word.toLowerCase(), response);
+		DMain.updateServerData();
 	}
 	
 	public boolean removeSecret(String word)
 	{
-		return secretCommands.remove(word) != null;
+		boolean result = secretCommands.remove(word) != null;
+		DMain.updateServerData();
+		return result;
 	}
 	
 	public Map<String, String> getSecretCommands()
@@ -519,6 +525,7 @@ public class Server {
 			return "Deleted " + amendmentIDs.remove(number);
 		}
 		
+		DMain.updateServerData();
 		return "Did not find amendment with ID " + number;
 	}
 	
@@ -556,6 +563,7 @@ public class Server {
 	public void checkMessageForPollResult(Message message)
 	{
 		long textChannel = message.getChannel().getIdLong();
+		boolean pollDeleted = false;
 		
 		// Check if voting booth && it's something important
 		if(textChannel == DMain.VOTING_BOOTH && message.getType() == MessageType.POLL_RESULT)
@@ -566,16 +574,39 @@ public class Server {
 			
 			// If this message belongs to a poll, it's done
 			// The original poll message shouldn't have been deleted if it's not in DMain.server
-			for(Poll sample = null; iterator.hasNext() && (sample = iterator.next()).getMessageID() == pollID;)
+			while(iterator.hasNext())
 			{
-				// The poll is done
-				DMain.log.info("Received poll end message");
-				sample.endPoll(message.getJDA());
-				iterator.remove();
+				Poll sample = iterator.next();
+				
+				// If this is the poll we're looking for
+				if(sample.getMessageID() == pollID)
+				{
+					// The poll is done
+					DMain.log.info("Received poll end message");
+					sample.endPoll(message.getJDA());
+					iterator.remove();
+					pollDeleted = true;
+				}
+				else
+				{
+					// Check for any polls lingering around for some reason. Double the voting time to be safe
+					if(sample.getStartTime() + sample.getVoteTime().toMillis() * 2 > System.currentTimeMillis())
+					{
+						DMain.log.error("Weird. {} stuck around much longer than it should've. Perhaps it doesn't exist?");
+						iterator.remove();
+						pollDeleted = true;
+					}
+				}
 			}
 			
 			// Even if you can't find it, delete after a while
 			message.delete().queueAfter(1, TimeUnit.HOURS);
+		}
+		
+		// Update server data only if something changed
+		if(pollDeleted)
+		{
+			DMain.updateServerData();
 		}
 	}
 }

@@ -1,5 +1,6 @@
 package democracy;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -23,6 +24,8 @@ import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 public class PrivateHandler extends MessageHandler {
+	
+	public static final File JAR_FILE = new File(System.getProperty("user.home") + "/Desktop/DemocracyBot.jar");
 	
 	public static final String ENDPOINT = "https://api.start.gg/gql/alpha", OWNER_ID = "735931";
 	private JDA jda;
@@ -158,7 +161,7 @@ public class PrivateHandler extends MessageHandler {
 					DbxClientV2 client = new DbxClientV2(DbxRequestConfig.newBuilder("susbox").build(), message);
 			        
 					try {
-						FileOutputStream stream = new FileOutputStream(DMain.JAR_FILE);
+						FileOutputStream stream = new FileOutputStream(JAR_FILE);
 						client.files().downloadBuilder("/DemocracyBot.jar").download(stream);
 						stream.close();
 						

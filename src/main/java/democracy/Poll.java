@@ -1,6 +1,7 @@
 package democracy;
 
 import java.time.Duration;
+import java.util.function.Consumer;
 
 import com.supasulley.main.JsonUtils;
 
@@ -15,6 +16,8 @@ import net.dv8tion.jda.api.utils.messages.MessagePollData;
  * Uses officially supported Discord polling functions. All of these kinds of polls last an hour.
  */
 public abstract class Poll {
+	
+	public static final int POLL_QUESTION_PREFIX = 50;
 	
 	private static final String YES_EMOJI = "U+2705", NO_EMOJI = "U+1f6ab";
 	
@@ -43,19 +46,25 @@ public abstract class Poll {
 	 * @param poll poll to check
 	 * @return true if this poll is a duplicate, false otherwise
 	 */
-	public boolean isDuplicate(Poll poll)
+	public final boolean isDuplicate(Poll poll)
 	{
 		return JsonUtils.serialize(poll).equals(JsonUtils.serialize(this));
 	}
 	
-	public void firePoll()
+	public void firePoll(Consumer<Message> onSuccess, Consumer<Throwable> onFailure)
 	{
 		// Create message
 		channel.sendMessagePoll(generatePoll()).queue(message ->
 		{
 			startTime = System.currentTimeMillis();
 			messageID = message.getIdLong();
-		});
+			onSuccess.accept(message);
+		}, onFailure);
+	}
+	
+	private MessagePollData generatePoll()
+	{
+		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(getVoteTime()).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
 	}
 	
 	/**
@@ -64,11 +73,6 @@ public abstract class Poll {
 	public Duration getVoteTime()
 	{
 		return Duration.ofDays(1);
-	}
-	
-	private MessagePollData generatePoll()
-	{
-		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(getVoteTime()).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
 	}
 	
 	private boolean passesPoll(int numYes, int numNo)
