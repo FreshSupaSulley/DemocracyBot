@@ -18,4 +18,10 @@ public class RepealPoll extends Poll {
 	{
 		DMain.server.repealAmendment(jda, amendment);
 	}
+
+	@Override
+	protected String getFancyName()
+	{
+		return "Repeal";
+	}
 }

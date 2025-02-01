@@ -1,6 +1,7 @@
 package democracy;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import com.supasulley.main.JsonUtils;
@@ -39,6 +40,11 @@ public abstract class Poll {
 		this.question = question;
 		this.channel = channel;
 	}
+	
+	/**
+	 * @return fancy formatted name of the poll (as opposed to using the class name)
+	 */
+	protected abstract String getFancyName();
 	
 	/**
 	 * Checks if the poll is a duplicate of another poll.
@@ -109,12 +115,13 @@ public abstract class Poll {
 		
 		// Delete voting message
 		pollMessage.delete().queue();
+		Message afterMessage = null;
 		
 		// Check for ratio
 		if(passesPoll(numYes, numNo))
 		{
 			DMain.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") passed!");
-//			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") passed!").complete();
+			afterMessage = channel.sendMessage(getFancyName() + " poll (" + question + ") passed!").complete();
 			
 			// Perform actions
 			try {
@@ -127,11 +134,12 @@ public abstract class Poll {
 		else
 		{
 			// Fancy polling does this for us
-			DMain.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval.");
-//			afterMessage = channel.sendMessage("Poll ***" + type.name() + (pollFocusMember != null ? " @" + pollFocusMember.getName() : "") + "*** (" + question + ") failed to pass. Needs " + type.minParticipation + " voters and " + (int) (type.ratio * 100) + "% approval.").complete();
+			String failedMsg = getFancyName() + " poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval.";
+			afterMessage = channel.sendMessage(failedMsg).complete();
+			DMain.log.info(failedMsg);
 		}
 		
-//		afterMessage.delete().queueAfter(1, TimeUnit.HOURS);
+		afterMessage.delete().queueAfter(12, TimeUnit.HOURS);
 	}
 	
 	public long getMessageID()

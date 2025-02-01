@@ -16,4 +16,10 @@ public class ImpeachPoll extends Poll {
 	{
 		DMain.server.impeachPresident(jda.getGuildById(DMain.SERVER_ID));
 	}
+	
+	@Override
+	protected String getFancyName()
+	{
+		return "Impeach";
+	}
 }

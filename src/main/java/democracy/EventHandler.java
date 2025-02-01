@@ -58,7 +58,6 @@ public class EventHandler extends GenericEventHandler {
 	@Override
 	public void onGatewayPing(GatewayPingEvent event)
 	{
-		DMain.log.error("hi");
 		if(System.currentTimeMillis() - lastTick > TICK_TIME)
 		{
 			// Check if server data changed
@@ -357,6 +356,8 @@ public class EventHandler extends GenericEventHandler {
 			// Wait before getting the new message
 			event.getChannel().retrieveMessageById(queued.getId()).queueAfter(3, TimeUnit.SECONDS, success ->
 			{
+				boolean modified = false;
+				
 				// For each secret
 				for(Entry<String, String> set : commands.entrySet())
 				{
@@ -382,6 +383,7 @@ public class EventHandler extends GenericEventHandler {
 						
 						if(!found)
 						{
+							modified = true;
 							DMain.log.info("Removing {} from secret commands. Embed didn't work at {}", key, link);
 							DMain.server.getSecretCommands().remove(key);
 							
@@ -392,6 +394,11 @@ public class EventHandler extends GenericEventHandler {
 							}
 						}
 					}
+				}
+				
+				if(modified)
+				{
+					DMain.updateServerData();
 				}
 			});
 		});

@@ -89,11 +89,6 @@ public class Server {
 		return false;
 	}
 	
-	public void addMember(ServerMember member)
-	{
-		memberCache.add(member);
-	}
-	
 	public ServerMember getMember(User user)
 	{
 		// Now that we have the server, search for member within server
@@ -108,7 +103,8 @@ public class Server {
 		
 		// If we couldn't find user / server, the ServerMember is new
 		ServerMember initMember = new ServerMember(user.getIdLong());
-		DMain.server.addMember(initMember);
+		memberCache.add(initMember);
+		DMain.updateServerData();
 		return initMember;
 	}
 	

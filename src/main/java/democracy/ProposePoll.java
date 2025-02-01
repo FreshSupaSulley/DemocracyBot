@@ -18,4 +18,10 @@ public class ProposePoll extends Poll {
 	{
 		DMain.server.addAmendment(jda, proposal);
 	}
+	
+	@Override
+	protected String getFancyName()
+	{
+		return "Propose";
+	}
 }
