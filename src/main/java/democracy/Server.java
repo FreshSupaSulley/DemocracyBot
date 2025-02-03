@@ -43,7 +43,7 @@ public class Server {
 	private List<String> amendmentIDs = new ArrayList<String>();
 	private List<Poll> polls = new ArrayList<Poll>();
 	private List<ServerMember> memberCache = new ArrayList<ServerMember>();
-	private long presidentID;
+	private long presidentID, lastCAQMessage;
 	private String slogan;
 	private long termEndTime;
 	private boolean lastTerm;
@@ -372,8 +372,8 @@ public class Server {
 						e.setColor(safeParty.getColor());
 						e.setDescription("<@" + nextPresidentMember.getId() + ">" + " of <@&" + safeParty.getIdLong() + ">\n\n*\"" + nextPresident.getSlogan() + "\"*");
 						e.setImage(nextPresidentMember.getEffectiveAvatarUrl());
-						e.setFooter("Served " + new SimpleDateFormat("MM/dd/yyyy").format(new Date(DMain.server.getTermEndTime() - Server.TERM_LENGTH)) + " - " + new SimpleDateFormat("MM/dd/yyyy").format(new Date(DMain.server.getTermEndTime())), jda.getSelfUser().getEffectiveAvatarUrl());
-						jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue();
+						e.setFooter("Served " + getUSEnglishDateFormat(DMain.server.getTermEndTime() - Server.TERM_LENGTH) + " - " + getUSEnglishDateFormat(DMain.server.getTermEndTime()), jda.getSelfUser().getEffectiveAvatarUrl());
+						jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue(success -> this.lastCAQMessage = success.getIdLong());
 						
 						// Update data
 						DMain.updateServerData();
@@ -381,6 +381,11 @@ public class Server {
 				}
 			}
 		}
+	}
+	
+	public static String getUSEnglishDateFormat(long time)
+	{
+		return new SimpleDateFormat("MM/dd/yyyy").format(new Date(time));
 	}
 	
 	public static String ordinal(int i)
@@ -438,11 +443,23 @@ public class Server {
 	{
 		DMain.log.info("Impeached President");
 		
+		// Change records for historical accuracy
+		if(lastCAQMessage != 0)
+		{
+			guild.getJDA().getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).retrieveMessageById(lastCAQMessage).queue(message ->
+			{
+				MessageEmbed embed = message.getEmbeds().get(0);
+				String footer = embed.getFooter().getText();
+				message.editMessageEmbeds(EmbedBuilder.fromData(embed.toData()).setFooter(footer.replace("-", "- ~~") + "~~" + ", impeached " + getUSEnglishDateFormat(System.currentTimeMillis())).build()).queue();
+			});
+		}
+		
 		// Reset data
 		presidentID = 0;
 		termEndTime = System.currentTimeMillis();
 		slogan = null;
 		lastTerm = false;
+		lastCAQMessage = 0;
 		
 		// Remove presidential role
 		guild.removeRoleFromMember(guild.retrieveMemberById(DMain.server.getPresidentID()).complete(), DMain.THE_PRESIDENT).complete();
@@ -501,12 +518,6 @@ public class Server {
 	public List<Candidate> getCandidates()
 	{
 		return candidates;
-	}
-	
-	@Override
-	public String toString()
-	{
-		return JsonUtils.serialize(this);
 	}
 	
 	public String removeAmendment(JDA jda, int number)
@@ -604,5 +615,11 @@ public class Server {
 		{
 			DMain.updateServerData();
 		}
+	}
+	
+	@Override
+	public String toString()
+	{
+		return JsonUtils.serialize(this);
 	}
 }
