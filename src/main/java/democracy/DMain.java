@@ -209,7 +209,7 @@ public class DMain {
 			else if(consecutiveErrors < 10)
 			{
 				// Only DM the user if we're under the max
-				sendToOperator("Error (" + consecutiveErrors + " consecutive):\n`" + message.getMessage() + "`");
+				sendToOperator("Error (" + consecutiveErrors + " consecutive):\n`" + message.getFormattedMessage() + "`");
 			}
 		});
 		
@@ -334,6 +334,9 @@ public class DMain {
 					confirmReset.set(event.getButton().getId().equals("yes"));
 					latch.countDown();
 					DMain.log.info("Operator responded! Reset value: " + confirmReset.get());
+					// Send current data to logs just in case
+					DMain.log.info("Current data before reset:");
+					DMain.log.info(DMain.server.toString());
 					
 					// Respond to button press event
 					event.getMessage().delete().queue();

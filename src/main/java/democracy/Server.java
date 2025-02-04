@@ -579,13 +579,12 @@ public class Server {
 			long pollID = message.getMessageReference().getMessageIdLong();
 			Iterator<Poll> iterator = polls.iterator();
 			
-			// If this message belongs to a poll, it's done
-			// The original poll message shouldn't have been deleted if it's not in DMain.server
+			// For each poll in server data
 			while(iterator.hasNext())
 			{
 				Poll sample = iterator.next();
 				
-				// If this is the poll we're looking for
+				// If this active poll matches the message
 				if(sample.getMessageID() == pollID)
 				{
 					// The poll is done
@@ -596,10 +595,10 @@ public class Server {
 				}
 				else
 				{
-					// Check for any polls lingering around for some reason. Double the voting time to be safe
-					if(sample.getStartTime() + sample.getVoteTime().toMillis() * 2 > System.currentTimeMillis())
+					// Check for any active polls lingering around in server data by checking if their voting time expired a long time ago
+					if(sample.getStartTime() + sample.getVoteTime().toMillis() * 2 < System.currentTimeMillis())
 					{
-						DMain.log.error("Weird. {} stuck around much longer than it should've. Perhaps it doesn't exist?");
+						DMain.log.error("Weird. {} poll stuck around much longer than it should've. Perhaps it doesn't exist?", sample.getFancyName());
 						iterator.remove();
 						pollDeleted = true;
 					}
