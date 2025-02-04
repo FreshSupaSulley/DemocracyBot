@@ -334,9 +334,6 @@ public class DMain {
 					confirmReset.set(event.getButton().getId().equals("yes"));
 					latch.countDown();
 					DMain.log.info("Operator responded! Reset value: " + confirmReset.get());
-					// Send current data to logs just in case
-					DMain.log.info("Current data before reset:");
-					DMain.log.info(DMain.server.toString());
 					
 					// Respond to button press event
 					event.getMessage().delete().queue();
@@ -359,15 +356,16 @@ public class DMain {
 			jda.removeEventListener(tempListener);
 		}
 		
-		if(usingResetFile)
-		{
-			// Send the old file
-			log.info("Using reset file");
-			DMain.sendServerData();
-		}
-		
 		// Use reset file if not there
 		String toRead = usingResetFile ? IOUtils.toString(resetFile, Charsets.UTF_8) : readServerData();
+		
+		if(usingResetFile)
+		{
+			// Send current data to logs and operator just in case
+			DMain.log.info("Using reset file. Current data before reset:");
+			DMain.log.info(toRead);
+			DMain.sendServerData();
+		}
 		
 		// Deserialize (test if data is null or empty)
 		DMain.server = JsonUtils.deserialize(Server.class, toRead);
