@@ -97,7 +97,10 @@ public abstract class Poll {
 	 */
 	public void endPoll(JDA jda)
 	{
-		Message pollMessage = jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(messageID).onErrorMap(t ->
+		// Refresh channel
+		channel = jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH);
+		
+		Message pollMessage = channel.retrieveMessageById(messageID).onErrorMap(t ->
 		{
 			DMain.log.error("Failed to retrieve poll message", t);
 			return null;
