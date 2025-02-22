@@ -54,7 +54,7 @@ public class Server {
 	private ArrayList<Candidate> candidates = new ArrayList<Candidate>();
 	
 	// Serialize last because its hella annoying
-	private Map<String, String> secretCommands = new HashMap<String, String>();
+	private Map<String, String> secretCommands = new HashMap<String, String>(), unsecretedCommands = new HashMap<String, String>();
 	
 	// Don't serialize
 	private transient Message presidentialVote;
@@ -499,15 +499,44 @@ public class Server {
 	
 	public void addSecret(String word, String response)
 	{
+		unsecretedCommands.remove(word);
 		secretCommands.put(word.toLowerCase(), response);
 		DMain.updateServerData();
 	}
 	
-	public boolean removeSecret(String word)
+	/**
+	 * Unsecrets a secret command.
+	 * 
+	 * @param word secret command
+	 * @return true if the secret command was removed, false if the mapping doesn't exist
+	 */
+	public boolean unsecret(String word)
 	{
-		boolean result = secretCommands.remove(word) != null;
+		String mapping = secretCommands.remove(word);
+		// Exit early if not found
+		if(mapping == null) return false;
+		
+		// Transfer secret command to unsecreted commands
+		unsecretedCommands.put(word, mapping);
 		DMain.updateServerData();
-		return result;
+		return true;
+	}
+	
+	/**
+	 * Resecrets a secret command.
+	 * 
+	 * @param word secret command
+	 * @return true if the secret command was readded from unsecreted commands, false if it never existed in unsecreted commands
+	 */
+	public boolean resecretSecret(String word)
+	{
+		String mapping = unsecretedCommands.remove(word);
+		if(mapping == null) return false;
+		
+		// This won't override anything because adding secret commands removes it from unsecreted
+		secretCommands.put(word, mapping);
+		DMain.updateServerData();
+		return true;
 	}
 	
 	public Map<String, String> getSecretCommands()
@@ -567,13 +596,20 @@ public class Server {
 		return -1;
 	}
 	
+	/**
+	 * Checks message only if it's Voting Booth for a poll result message.
+	 * 
+	 * @param message message to check
+	 */
 	public void checkMessageForPollResult(Message message)
 	{
-		long textChannel = message.getChannel().getIdLong();
+		if(message.getChannel().getIdLong() != DMain.VOTING_BOOTH) return;
+		
+		// ALL messages beyond this point will be deleted after an hour
 		boolean pollDeleted = false;
 		
 		// Check if voting booth && it's something important
-		if(textChannel == DMain.VOTING_BOOTH && message.getType() == MessageType.POLL_RESULT)
+		if(message.getType() == MessageType.POLL_RESULT)
 		{
 			// If it's a poll result, it's assumed the following logic will work to grab the referenced poll
 			long pollID = message.getMessageReference().getMessageIdLong();
@@ -604,8 +640,12 @@ public class Server {
 					}
 				}
 			}
-			
-			// Even if you can't find it, delete after a while
+		}
+		
+		// If this message isn't the presidential election
+		if(message.getIdLong() != presidentialVoteMessageID)
+		{
+			// Delete after a while
 			message.delete().queueAfter(1, TimeUnit.HOURS);
 		}
 		

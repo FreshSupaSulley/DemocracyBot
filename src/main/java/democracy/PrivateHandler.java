@@ -1,16 +1,17 @@
 package democracy;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.dropbox.core.BadRequestException;
-import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.v2.DbxClientV2;
+import com.supasulley.main.Main;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
@@ -22,6 +23,7 @@ import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 public class PrivateHandler extends MessageHandler {
 	
@@ -45,7 +47,7 @@ public class PrivateHandler extends MessageHandler {
 											"amendment*Force pass an amendment*text",
 											"unamendment*Force remove an amendment*text",
 											"ip*Retrieves local IP address",
-											"update*Updates the bot from the JAR in the dropbox",
+											"update*Updates the bot from the latest release in the GitHub repo",
 											"logs*Retrieve logs in a file and clears them",
 											"data*Returns server data",
 											"shutdown*Forces shutdown of " + DMain.BOT_NAME,
@@ -144,32 +146,31 @@ public class PrivateHandler extends MessageHandler {
 				return DMain.server.removeAmendment(jda, amendment);
 			}
 			case (11):
-				Socket socket = new Socket();
-				try {
+			{
+				try (Socket socket = new Socket()) {
 					socket.connect(new InetSocketAddress("google.com", 80));
 					return socket.getLocalAddress().getHostAddress();
 				} catch(IOException e) {
 					return "Could not access IP address: " + e.toString();
 				}
+			}
 			case(12):
 			{
 				try {
-					DMain.sendToOperator("Updating...");
-					DMain.updateServerData();
+					String url = !message.isBlank() ? message : "https://github.com/FreshSupaSulley/DemocracyBot/releases/latest/download/DemocracyBot.jar";
+					DMain.sendToOperator("Updating from \"" + MarkdownSanitizer.sanitize(url) + "\"");
 					
-					// Need to click generate access token then paste that into !update your_token
-					DbxClientV2 client = new DbxClientV2(DbxRequestConfig.newBuilder("susbox").build(), message);
-			        
-					try {
-						FileOutputStream stream = new FileOutputStream(JAR_FILE);
-						client.files().downloadBuilder("/DemocracyBot.jar").download(stream);
-						stream.close();
+					try(InputStream in = new URL(url).openStream())
+					{
+						DMain.log.info("Downloading to " + JAR_FILE.getAbsolutePath());
+						Files.copy(in, JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						
-						DMain.log.info("Done!");
+						// Done downloading, reboot
 						DMain.sendToOperator("Done!");
 						reboot();
-					} catch(BadRequestException e) {
-						return "Invalid access token \"" + message + "\"";
+					} catch(Exception e)
+					{
+						Main.log.error("Failed to update jar", e);
 					}
 					
 		            return null;
@@ -279,6 +280,7 @@ public class PrivateHandler extends MessageHandler {
 	 */
 	public static void reboot()
 	{
+		DMain.updateServerData();
 		DMain.sendToOperator("Rebooting...");
 		
 		// Reboot

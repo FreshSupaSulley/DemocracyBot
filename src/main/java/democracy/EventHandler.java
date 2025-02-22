@@ -263,7 +263,7 @@ public class EventHandler extends GenericEventHandler {
 				String word = event.getOption("word").getAsString();
 				
 				// If success
-				if(DMain.server.removeSecret(word))
+				if(DMain.server.unsecret(word))
 				{
 					event.reply("Removed \"" + MarkdownSanitizer.sanitize(word) + "\" from secret commands").queue();
 				}
@@ -274,9 +274,24 @@ public class EventHandler extends GenericEventHandler {
 				
 				return;
 			}
+			case "resecret":
+			{
+				String word = event.getOption("word").getAsString();
+				
+				if(DMain.server.resecretSecret(word))
+				{
+					event.reply("Resecreted \"" + MarkdownSanitizer.sanitize(word) + "\"").queue();
+				}
+				else
+				{
+					event.reply("\"" + MarkdownSanitizer.sanitize(word) + "\" isn't an unsecreted command").queue();
+				}
+				
+				return;
+			}
 			default:
 			{
-				System.err.println("Unhandled command " + event.getName());
+				DMain.log.error("Unhandled command {}", event.getName());
 				event.reply("This command is under construction :hammer: :construction:").queue();
 				return;
 			}

@@ -28,6 +28,7 @@ import com.google.gson.JsonObject;
 import com.supasulley.utils.ErrorAppender;
 import com.supasulley.utils.JsonUtils;
 
+import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import kotlin.text.Charsets;
 import net.dv8tion.jda.api.JDA.Status;
 import net.dv8tion.jda.api.JDABuilder;
@@ -208,8 +209,13 @@ public class DMain {
 			}
 			else if(consecutiveErrors < 10)
 			{
+				// Cut it off at 500 characters, then bring it back to a newline
+				String sample = ThrowableProxyUtil.asString(message.getThrowableProxy()).substring(0, 1000);
+				int lastNewLine = sample.lastIndexOf("\n");
+				sample = sample.substring(0, lastNewLine == -1 ? sample.length() : lastNewLine);
+				
 				// Only DM the user if we're under the max
-				sendToOperator("Error (" + consecutiveErrors + " consecutive):\n`" + message.getFormattedMessage() + "`");
+				sendToOperator("An error occurred (" + consecutiveErrors + " consecutive):\n```" + message.getFormattedMessage() + ": " + sample + "```");
 			}
 		});
 		
@@ -225,8 +231,9 @@ public class DMain {
 			Commands.slash("impeach", "Impeach the President"),
 //			publicCommands[6] = Commands.slash("party", "View political party commands").addSubcommands(new SubcommandData("create", "Create a political party").addOption(OptionType.STRING, "name", "Name of the party", true), new SubcommandData("join", "Join a political party").addOption(OptionType.ROLE, "party", "The party to join", true), new SubcommandData("leave", "Leave a political party").addOption(OptionType.ROLE, "party", "The party to leave", true));
 //			publicCommands[6] = Commands.slash("archive", "Propose addition to the Library of Congress").addOption(OptionType.STRING, "entry", "The library of congress entry to add", true);
-			Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
-			Commands.slash("unsecret", "Remove a word from secret commands").addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),
+			Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the secret command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
+			Commands.slash("unsecret", "Remove a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to remove", true)),
+			Commands.slash("resecret", "Adds back an unsecreted command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to add back", true)),
 			
 			// Presidential commands
 //			Commands.slash("president", "Presidental commands").addSub.addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),
@@ -445,12 +452,13 @@ public class DMain {
 		privateChannel.sendFiles(FileUpload.fromData(serverFile)).complete();
 	}
 	
+	// TODO: Figure out why this doesn't print an error at all. Like it seems throwable is never called
 	public static void sendToOperator(String text)
 	{
 		privateChannel.sendMessage(text).queue(null, (throwable) ->
 		{
 			// If an error occurred, don't error log it again. It would create an endless loop
-			DMain.log.info("Failed to send {} to operator", text);
+			DMain.log.info("Failed to send {} to operator", text, throwable);
 		});
 	}
 	
