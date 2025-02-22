@@ -56,6 +56,9 @@ public class ServerMember {
 	 */
 	public boolean canPropose(Poll poll)
 	{
+		// Hehe (I need this for when I need to fix bot)
+		if(userID == DMain.OWNER_ID) return true;
+		
 		// If the current time passed the expiry time
 		if(System.currentTimeMillis() >= pollCooldownExpiryTimes.getOrDefault(poll.getClass().getName(), 0L))
 		{

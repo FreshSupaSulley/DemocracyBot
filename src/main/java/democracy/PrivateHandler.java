@@ -175,7 +175,7 @@ public class PrivateHandler extends MessageHandler {
 					
 		            return null;
 				} catch(Exception e) {
-					e.printStackTrace();
+					DMain.log.error("Failed to update", e);
 					return "An error occured updating " + DMain.BOT_NAME;
 				}
 			}

@@ -430,8 +430,8 @@ public class DMain {
 			// Rename temp file to the original file, atomic operation
 			Files.move(tempFile.toPath(), serverFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			tempFile.delete();
-		} catch(Throwable t) {
-			DMain.log.error("Could not update server data", t);
+		} catch(Exception e) {
+			DMain.log.error("Could not update server data", e);
 		}
 	}
 	
@@ -467,7 +467,7 @@ public class DMain {
 	// Maybe it was the lack of the 0 - Message.MAX_CONTENT_LENGTH?
 	public static void sendToOperator(String text)
 	{
-		privateChannel.sendMessage(text.substring(0, Message.MAX_CONTENT_LENGTH)).queue(null, (throwable) ->
+		privateChannel.sendMessage(text.substring(0, Math.min(text.length(), Message.MAX_CONTENT_LENGTH))).queue(null, (throwable) ->
 		{
 			// If an error occurred, don't error log it again. It would create an endless loop
 			DMain.log.info("Failed to send {} to operator", text, throwable);
