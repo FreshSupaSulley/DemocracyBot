@@ -70,8 +70,8 @@ public class EventHandler extends GenericEventHandler {
 					DMain.log.info("Stored server data:\n{}\nServer object data:\n{}", data, current);
 					throw new IllegalStateException("Stored server data and server object data do not match");
 				}
-			} catch(Throwable t) {
-				DMain.log.error("JSON data does not match! You failed to update the server data somewhere", t);
+			} catch(Exception e) {
+				DMain.log.error("JSON data does not match! You failed to update the server data somewhere", e);
 				DMain.updateServerData();
 			}
 			
@@ -109,7 +109,8 @@ public class EventHandler extends GenericEventHandler {
 		{
 			case "campaign":
 			{
-				String slogan = MarkdownSanitizer.sanitize(event.getOption("slogan").getAsString());
+				// Don't allow new lines
+				String slogan = MarkdownSanitizer.sanitize(event.getOption("slogan").getAsString()).replace('\n', ' ').replace('\t', ' ');
 				
 				if(DMain.server.isPresident(sender))
 				{

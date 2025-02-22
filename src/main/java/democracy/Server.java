@@ -25,8 +25,10 @@ import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
+import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
@@ -41,11 +43,14 @@ public class Server {
 	// Serialize
 	private int presidentialCount = 0;
 	private List<String> amendmentIDs = new ArrayList<String>();
+	private Map<String, String> caqEntries = new HashMap<String, String>();
 	private List<Poll> polls = new ArrayList<Poll>();
 	private List<ServerMember> memberCache = new ArrayList<ServerMember>();
-	private long presidentID, lastCAQMessage;
+	private long presidentID;
 	private String slogan;
 	private long termEndTime;
+	
+	@SuppressWarnings("unused")
 	private boolean lastTerm;
 	
 	// Presidential vote
@@ -370,17 +375,48 @@ public class Server {
 						EmbedBuilder e = new EmbedBuilder();
 						e.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, " + nextPresidentMember.getUser().getGlobalName());
 						e.setColor(safeParty.getColor());
-						e.setDescription("<@" + nextPresidentMember.getId() + ">" + " of <@&" + safeParty.getIdLong() + ">\n\n*\"" + nextPresident.getSlogan() + "\"*");
+						e.setDescription("<@" + nextPresidentMember.getId() + ">" + " of **" + MarkdownSanitizer.sanitize(safeParty.getName()) + "**\n\n*\"" + slogan + "\"*");
 						e.setImage(nextPresidentMember.getEffectiveAvatarUrl());
 						e.setFooter("Served " + getUSEnglishDateFormat(DMain.server.getTermEndTime() - Server.TERM_LENGTH) + " - " + getUSEnglishDateFormat(DMain.server.getTermEndTime()), jda.getSelfUser().getEffectiveAvatarUrl());
-						jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue(success -> this.lastCAQMessage = success.getIdLong());
+						jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue(success -> caqEntries.put(success.getId(), nextPresidentMember.getId()));
 						
 						// Update data
 						DMain.updateServerData();
+						
+						// Update all CAQs for potential out of date URLs
+						updateCAQ(jda);
 					}
 				}
 			}
 		}
+	}
+	
+	public void updateCAQ(JDA jda)
+	{
+		if(DMain.inIDE)
+		{
+			System.err.println("Not updating CAQ in IDE");
+			return;
+		}
+		
+		Guild guild = jda.getGuildById(DMain.SERVER_ID);
+		
+		// Edge condition idc about is this can cause memory leaks. I'll worry about this in the year 10000
+		guild.getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).getIterableHistory().forEach(message ->
+		{
+			MessageEmbed embed = message.getEmbeds().get(0);
+			EmbedBuilder builder = new EmbedBuilder(embed);
+			
+			// Check if user and role still exist
+			// onErrorMap catches things AFTER the event is fired. retrieveUserById can still throw early for bad format
+			// But this works if the ID is valid and Discord can't find the user associated with it. User then becomes null!
+			User user = jda.retrieveUserById(caqEntries.get(message.getId())).onErrorMap(throwable -> null).complete();
+			
+			// Update image in case user changes pfp, or user is magically deleted
+			builder.setImage(user != null ? user.getEffectiveAvatarUrl() : "https://cdn.discordapp.com/embed/avatars/0.png");
+			
+			message.editMessageEmbeds(builder.build()).complete();
+		});
 	}
 	
 	public static String getUSEnglishDateFormat(long time)
@@ -443,23 +479,20 @@ public class Server {
 	{
 		DMain.log.info("Impeached President");
 		
-		// Change records for historical accuracy
-		if(lastCAQMessage != 0)
+		// Change records for historical accuracy. Latest message in CAQ is the current president
+		TextChannel channel = guild.getJDA().getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS);
+		channel.retrieveMessageById(channel.getLatestMessageId()).queue(message ->
 		{
-			guild.getJDA().getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).retrieveMessageById(lastCAQMessage).queue(message ->
-			{
-				MessageEmbed embed = message.getEmbeds().get(0);
-				String footer = embed.getFooter().getText();
-				message.editMessageEmbeds(EmbedBuilder.fromData(embed.toData()).setFooter(footer.replace("-", "- ~~") + "~~" + ", impeached " + getUSEnglishDateFormat(System.currentTimeMillis())).build()).queue();
-			});
-		}
+			MessageEmbed embed = message.getEmbeds().get(0);
+			String footer = embed.getFooter().getText();
+			message.editMessageEmbeds(EmbedBuilder.fromData(embed.toData()).setFooter(footer.replace("-", "- ~~") + "~~" + ", impeached " + getUSEnglishDateFormat(System.currentTimeMillis())).build()).queue();
+		});
 		
 		// Reset data
 		presidentID = 0;
 		termEndTime = System.currentTimeMillis();
 		slogan = null;
 		lastTerm = false;
-		lastCAQMessage = 0;
 		
 		// Remove presidential role
 		guild.removeRoleFromMember(guild.retrieveMemberById(DMain.server.getPresidentID()).complete(), DMain.THE_PRESIDENT).complete();
@@ -642,9 +675,10 @@ public class Server {
 			}
 		}
 		
-		// If this message isn't the presidential election
-		if(message.getIdLong() != presidentialVoteMessageID)
+		// If this message isn't the presidential election AND it's not a voting poll, but if it is, don't delete it if not expired
+		if(!DMain.inIDE && message.getIdLong() != presidentialVoteMessageID && Optional.ofNullable(message.getPoll()).map(MessagePoll::isExpired).orElse(true))
 		{
+			DMain.log.info("Deleting message with ID {}", message.getId());
 			// Delete after a while
 			message.delete().queueAfter(1, TimeUnit.HOURS);
 		}

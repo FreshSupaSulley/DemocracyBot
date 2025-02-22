@@ -36,6 +36,7 @@ import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Activity.ActivityType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
@@ -265,6 +266,16 @@ public class DMain {
 			listener = new GenericEventHandler(jda);
 		}
 		
+		
+		// Hot fix CAQ template
+//		Guild guild = jda.getGuildById(DMain.SERVER_ID);
+//		Message hi = guild.getTextChannelById(1303051774969512059L).retrieveMessageById(1332187594968272918L).complete();
+//		MessageEmbed embed = hi.getEmbeds().get(0);
+//		EmbedBuilder builder2 = new EmbedBuilder(embed);
+//		builder2.setDescription("<@" + 269872388064280581L + ">" + " of **" + MarkdownSanitizer.sanitize("circle of the wanker 7") + "**\n\n*\"" + "I promise to the people of this wonderful server that I will do everything in my power to make it worse. Much worse." + "\"*");
+//		hi.editMessageEmbeds(builder2.build()).complete();
+//		System.exit(1);
+		
 		jda.addEventListener(listener);
 	}
 	
@@ -453,9 +464,10 @@ public class DMain {
 	}
 	
 	// TODO: Figure out why this doesn't print an error at all. Like it seems throwable is never called
+	// Maybe it was the lack of the 0 - Message.MAX_CONTENT_LENGTH?
 	public static void sendToOperator(String text)
 	{
-		privateChannel.sendMessage(text).queue(null, (throwable) ->
+		privateChannel.sendMessage(text.substring(0, Message.MAX_CONTENT_LENGTH)).queue(null, (throwable) ->
 		{
 			// If an error occurred, don't error log it again. It would create an endless loop
 			DMain.log.info("Failed to send {} to operator", text, throwable);
