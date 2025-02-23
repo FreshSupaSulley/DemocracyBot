@@ -373,15 +373,18 @@ public class Server {
 						// Add to commanders and queefs
 						Role safeParty = Optional.ofNullable(guild.getRoleById(nextPresident.getRoleID())).orElse(DMain.THE_PRESIDENT);
 						EmbedBuilder e = new EmbedBuilder();
-						e.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, " + nextPresidentMember.getUser().getGlobalName());
+						e.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, " + nextPresidentMember.getUser().getEffectiveName());
 						e.setColor(safeParty.getColor());
 						e.setDescription("<@" + nextPresidentMember.getId() + ">" + " of **" + MarkdownSanitizer.sanitize(safeParty.getName()) + "**\n\n*\"" + slogan + "\"*");
 						e.setImage(nextPresidentMember.getEffectiveAvatarUrl());
 						e.setFooter("Served " + getUSEnglishDateFormat(DMain.server.getTermEndTime() - Server.TERM_LENGTH) + " - " + getUSEnglishDateFormat(DMain.server.getTermEndTime()), jda.getSelfUser().getEffectiveAvatarUrl());
-						jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue(success -> caqEntries.put(success.getId(), nextPresidentMember.getId()));
-						
-						// Update data
-						DMain.updateServerData();
+						jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue(success ->
+						{
+							caqEntries.put(success.getId(), nextPresidentMember.getId());
+							
+							// Update data
+							DMain.updateServerData();
+						});
 						
 						// Update all CAQs for potential out of date URLs
 						updateCAQ(jda);

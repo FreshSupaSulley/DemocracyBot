@@ -62,6 +62,8 @@ public class DMain {
 	private static final String WEEVE_BOT_TOKEN;
 	private static final String WEEVE_OWNER_ID;
 	
+	public static final String GITHUB_ACCESS_TOKEN;
+	
 	private static List<Command> commands;
 	
 	public static String BOT_NAME;
@@ -113,6 +115,7 @@ public class DMain {
 		DEMOCRACY_BOT_TOKEN = result.get("democracy").getAsString();
 		WEEVE_BOT_TOKEN = result.get("weeve").getAsString();
 		WEEVE_OWNER_ID = result.get("weeve_owner_id").getAsString();
+		GITHUB_ACCESS_TOKEN = result.get("github_access_token").getAsString();
 		
 		// If we're in a jar file, set debug to false
 		String resource = DMain.class.getResource("DMain.class").toString();
@@ -517,7 +520,7 @@ public class DMain {
 		return "</" + result.getFullCommandName() + ":" + result.getId() + ">";
 	}
 	
-	public static void main(String[] args) throws FileNotFoundException
+	public static void main(String[] args) throws FileNotFoundException, IOException
 	{
 		if(!inIDE)
 		{

@@ -3,15 +3,22 @@ package democracy;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.supasulley.main.Main;
+import com.supasulley.utils.JsonUtils;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
@@ -23,7 +30,6 @@ import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 public class PrivateHandler extends MessageHandler {
 	
@@ -157,19 +163,42 @@ public class PrivateHandler extends MessageHandler {
 			case(12):
 			{
 				try {
-					String url = !message.isBlank() ? message : "https://github.com/FreshSupaSulley/DemocracyBot/releases/latest/download/DemocracyBot.jar";
-					DMain.sendToOperator("Updating from \"" + MarkdownSanitizer.sanitize(url) + "\"");
+					String assetURL = null;
 					
-					try(InputStream in = new URL(url).openStream())
+					// Get DemocracyBot.jar asset URL
+					try(InputStream stream = callGitHubAPI("https://api.github.com/repos/FreshSupaSulley/DemocracyBot/releases/latest").getInputStream())
+					{
+						// For each asset
+						JsonArray array = JsonUtils.parse(IOUtils.toString(stream, StandardCharsets.UTF_8)).getAsJsonObject().get("assets").getAsJsonArray();
+						JsonObject object = array.asList().stream().map(element -> element.getAsJsonObject()).filter(element -> element.get("name").getAsString().equals("DemocracyBot.jar")).findFirst().orElse(null);
+						
+						if(object != null)
+						{
+							assetURL = object.getAsJsonObject().get("url").getAsString();
+						}
+					}
+					
+					if(assetURL == null)
+					{
+						return "Failed to find latest DBot release";
+					}
+					
+					DMain.sendToOperator("Updating from \"" + assetURL + "\"");
+					
+					HttpURLConnection connection = callGitHubAPI(assetURL);
+					connection.setRequestProperty("Accept", "application/octet-stream");
+					
+					try(InputStream stream = connection.getInputStream())
 					{
 						DMain.log.info("Downloading to " + JAR_FILE.getAbsolutePath());
-						Files.copy(in, JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
+						Files.copy(stream, JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						
 						// Done downloading, reboot
 						DMain.sendToOperator("Done!");
 						reboot();
 					} catch(Exception e)
 					{
+						// This should send to operator
 						Main.log.error("Failed to update jar", e);
 					}
 					
@@ -233,6 +262,15 @@ public class PrivateHandler extends MessageHandler {
 			default:
 				return null;
 		}
+	}
+	
+	private HttpURLConnection callGitHubAPI(String path) throws IOException
+	{
+		URL url = new URL(path);
+		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+		connection.setRequestMethod("GET");
+		connection.setRequestProperty("Authorization", "Bearer " + DMain.GITHUB_ACCESS_TOKEN);
+		return connection;
 	}
 	
 	private String handleActivityRequest(String message)

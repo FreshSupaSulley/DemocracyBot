@@ -48,11 +48,5 @@
 			<artifactId>httpclient</artifactId>
 			<version>4.5.13</version>
 		</dependency> -->
-		<!-- Dropbox SDK for updating -->
-		<dependency>
-			<groupId>com.dropbox.core</groupId>
-			<artifactId>dropbox-core-sdk</artifactId>
-			<version>7.0.0</version>
-		</dependency>
 	</dependencies>
 </project>
