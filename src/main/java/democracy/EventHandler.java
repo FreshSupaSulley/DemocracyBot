@@ -16,6 +16,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.ExceptionEvent;
@@ -317,7 +318,7 @@ public class EventHandler extends GenericEventHandler {
 	{
 		DMain.server.checkMessageForPollResult(event.getMessage());
 		
-		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong())
+		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong() || !event.isFromType(ChannelType.TEXT))
 			return;
 		
 		// Get user
