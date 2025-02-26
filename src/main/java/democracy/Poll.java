@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.utils.messages.MessagePollData;
  */
 public abstract class Poll {
 	
+	/** Defines the maximum allowed characters a poll can have before content is added. Not enforced */
 	public static final int POLL_QUESTION_PREFIX = 50;
 	
 	private static final String YES_EMOJI = "U+2705", NO_EMOJI = "U+1f6ab";
@@ -70,6 +71,11 @@ public abstract class Poll {
 	
 	private MessagePollData generatePoll()
 	{
+		if(question.length() > MessagePoll.MAX_QUESTION_TEXT_LENGTH)
+		{
+			DMain.log.error(this.getClass() + " has too long of a question");
+		}
+		
 		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(getVoteTime()).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
 	}
 	
@@ -142,7 +148,12 @@ public abstract class Poll {
 			DMain.log.info(failedMsg);
 		}
 		
-		afterMessage.delete().queueAfter(12, TimeUnit.HOURS);
+		// Matches Server's checkMessageForPollResult function
+		// Idk how to check if its an Unknown Message
+		afterMessage.delete().queueAfter(1, TimeUnit.HOURS, success -> {}, failure ->
+		{
+			DMain.log.error("Failed to delete poll after message", failure);
+		});
 	}
 	
 	public long getMessageID()

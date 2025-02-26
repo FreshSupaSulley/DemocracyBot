@@ -238,7 +238,7 @@ public class EventHandler extends GenericEventHandler {
 			case "impeach":
 			{
 				// Don't allow impeachment if it will overlap with the presidential vote
-				ImpeachPoll poll = new ImpeachPoll(jda.getTextChannelById(DMain.VOTING_BOOTH));
+				ImpeachPoll poll = new ImpeachPoll(jda.getTextChannelById(DMain.VOTING_BOOTH), event.getOption("reason").getAsString());
 				
 				if(DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME < poll.getVoteTime().toMillis())
 				{
@@ -318,6 +318,7 @@ public class EventHandler extends GenericEventHandler {
 	{
 		DMain.server.checkMessageForPollResult(event.getMessage());
 		
+		// BEYOND THIS POINT IS ONLY SECRET COMMANDS
 		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong() || !event.isFromType(ChannelType.TEXT))
 			return;
 		
