@@ -131,7 +131,7 @@ public class EventHandler extends GenericEventHandler {
 				if(DMain.server.getPresidentialVote(jda) == null)
 				{
 					float daysRemaining = DMain.server.millisRemainingInTerm() / 8.64e+7f;
-					event.reply("Polls for the **" + Server.ordinal(DMain.server.getPresidentialCount() + 1) + " Presidential Election** open " + getExactTime(System.currentTimeMillis() + DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST**. The President has " + (int) (daysRemaining) + " day" + ((int) daysRemaining != 1 ? "s" : "") + " and " + (int) (daysRemaining % 1 * 24) + " hours left in office. You will be notified in <#" + DMain.VOTING_BOOTH + "> when the election begins.").queue();
+					event.reply("Polls for the **" + Server.ordinal(DMain.server.getPresidentialCount() + 1) + " Presidential Election** open **" + getExactTime(System.currentTimeMillis() + DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST**. The President has " + (int) (daysRemaining) + " day" + ((int) daysRemaining != 1 ? "s" : "") + " and " + (int) (daysRemaining % 1 * 24) + " hours left in office. You will be notified in <#" + DMain.VOTING_BOOTH + "> when the election begins.").queue();
 				}
 				else if(DMain.server.getCandidates().size() == 10)
 				{
