@@ -432,7 +432,7 @@ public class EventHandler extends GenericEventHandler {
 	public void onGuildMemberRemove(GuildMemberRemoveEvent event)
 	{
 		DMain.server.removeMember(event.getJDA(), event.getUser().getIdLong());
-		DMain.log.info("{} ({}) left the server ", event.getMember().getEffectiveName(), event.getMember().getId());
+		DMain.log.info("{} ({}) left the server ", event.getUser().getEffectiveName(), event.getUser().getId());
 	}
 	
 	@Override
