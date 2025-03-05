@@ -8,7 +8,7 @@ public class ImpeachPoll extends Poll {
 	public ImpeachPoll(TextChannel channel, String reason)
 	{
 		// 1 week cooldown
-		super(0.75f, 5, 604800000L, "Impeach " + channel.getJDA().getGuildById(DMain.SERVER_ID).retrieveMemberById(DMain.server.getPresidentID()).complete().getUser().getGlobalName() + "? " + reason, channel);
+		super(0.75f, 5, 604800000L, "Impeach " + channel.getJDA().getGuildById(DMain.SERVER_ID).retrieveMemberById(DMain.server.getPresidentID()).complete().getUser().getName() + "? " + reason, channel);
 	}
 	
 	@Override
