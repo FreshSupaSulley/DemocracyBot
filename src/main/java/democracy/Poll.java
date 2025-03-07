@@ -1,7 +1,6 @@
 package democracy;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import com.supasulley.main.JsonUtils;
@@ -124,13 +123,13 @@ public abstract class Poll {
 		
 		// Delete voting message
 		pollMessage.delete().queue();
-		Message afterMessage = null;
+//		Message afterMessage = null;
 		
 		// Check for ratio
 		if(passesPoll(numYes, numNo))
 		{
 			DMain.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") passed!");
-			afterMessage = channel.sendMessage(getFancyName() + " poll (" + question + ") passed!").complete();
+			channel.sendMessage(getFancyName() + " poll (" + question + ") passed!").complete();
 			
 			// Perform actions
 			try {
@@ -144,16 +143,17 @@ public abstract class Poll {
 		{
 			// Fancy polling does this for us
 			String failedMsg = getFancyName() + " poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval.";
-			afterMessage = channel.sendMessage(failedMsg).complete();
+			channel.sendMessage(failedMsg).complete();
 			DMain.log.info(failedMsg);
 		}
 		
 		// Matches Server's checkMessageForPollResult function
 		// Idk how to check if its an Unknown Message
-		afterMessage.delete().queueAfter(1, TimeUnit.HOURS, success -> {}, failure ->
-		{
-			DMain.log.error("Failed to delete poll after message", failure);
-		});
+		// This is picked up by checkPolLResult function
+//		afterMessage.delete().queueAfter(1, TimeUnit.HOURS, success -> {}, failure ->
+//		{
+//			DMain.log.error("Failed to delete poll after message", failure);
+//		});
 	}
 	
 	public long getMessageID()
