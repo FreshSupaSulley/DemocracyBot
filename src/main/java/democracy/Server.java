@@ -176,6 +176,7 @@ public class Server {
 			
 			if(member.getID() == id)
 			{
+				DMain.sendToOperator("A candidate left the running, maybe check its still good?");
 				DMain.log.info("Removing candidate from running");
 				iterator.remove();
 				
@@ -496,10 +497,10 @@ public class Server {
 		termEndTime = System.currentTimeMillis();
 		slogan = null;
 		lastTerm = false;
+		DMain.updateServerData();
 		
 		// Remove presidential role
-		guild.removeRoleFromMember(guild.retrieveMemberById(DMain.server.getPresidentID()).complete(), DMain.THE_PRESIDENT).complete();
-		DMain.updateServerData();
+		guild.retrieveMemberById(DMain.server.getPresidentID()).submit().thenApply(member -> guild.removeRoleFromMember(member, DMain.THE_PRESIDENT));
 	}
 	
 	public void addAmendment(JDA jda, String content)
