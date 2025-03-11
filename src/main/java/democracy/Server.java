@@ -488,7 +488,7 @@ public class Server {
 		{
 			MessageEmbed embed = message.getEmbeds().get(0);
 			String footer = embed.getFooter().getText();
-			message.editMessageEmbeds(EmbedBuilder.fromData(embed.toData()).setFooter(footer.replace("-", "- ~~") + "~~" + ", impeached " + getUSEnglishDateFormat(System.currentTimeMillis())).build()).queue();
+			message.editMessageEmbeds(EmbedBuilder.fromData(embed.toData()).setFooter(footer.substring(footer.indexOf("-") + 2) + " impeached " + getUSEnglishDateFormat(System.currentTimeMillis())).build()).queue();
 		});
 		
 		// Reset data
