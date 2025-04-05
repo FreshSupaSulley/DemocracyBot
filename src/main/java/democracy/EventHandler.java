@@ -37,6 +37,9 @@ public class EventHandler extends GenericEventHandler {
 	private static final long TICK_TIME = 60000;
 	private long lastTick;
 	
+	private static final long DOWNTIME_WARNING_THRESHOLD = 900 * 1000;
+	private long lastDisconnect;
+	
 	public EventHandler(JDA jda)
 	{
 		super(jda);
@@ -440,12 +443,18 @@ public class EventHandler extends GenericEventHandler {
 	{
 		CloseCode code = event.getCloseCode();
 		DMain.log.info("DISCONNECTED! Close code: " + (code == null ? "null" : code.getCode() + ". Meaning: " + code.getMeaning()) + ". Closed by discord: " + event.isClosedByServer());
+		lastDisconnect = System.currentTimeMillis();
 	}
 	
 	@Override
 	public void onSessionResume(SessionResumeEvent event)
 	{
 		DMain.log.info("Reconnected!");
+		
+		if(System.currentTimeMillis() - lastDisconnect >= DOWNTIME_WARNING_THRESHOLD)
+		{
+			DMain.sendToOperator(DMain.BOT_NAME + " just reconnected. Down for " + (System.currentTimeMillis() - lastDisconnect) / 1000 + "s, and last tick was " + (System.currentTimeMillis() - lastTick) / 1000 + "s!");
+		}
 	}
 	
 	@Override

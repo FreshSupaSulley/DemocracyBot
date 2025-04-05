@@ -38,6 +38,8 @@ public class Server {
 	public static final long TERM_LENGTH = 2592000000L;
 	/** Presidential vote time is 3 days */
 	public static final long PRESIDENTIAL_VOTE_TIME = 259200000;
+	/** Update CAQ once per day */
+	private static final long CAQ_UPDATE_TIME = 3600000;
 	
 	// Everything has to be initialized in case it doesn't get deserialized and a new server obj is created
 	// Serialize
@@ -63,6 +65,7 @@ public class Server {
 	
 	// Don't serialize
 	private transient Message presidentialVote;
+	private transient long lastCAQ = System.currentTimeMillis();
 	
 	public Message getPresidentialVote(JDA jda)
 	{
@@ -227,6 +230,14 @@ public class Server {
 	
 	public void tick(JDA jda)
 	{
+		// If we should update CAQ
+		if(System.currentTimeMillis() - lastCAQ >= CAQ_UPDATE_TIME)
+		{
+			lastCAQ = System.currentTimeMillis();
+			DMain.log.info("Updating CAQ");
+			updateCAQ(jda);
+		}
+		
 		// Check member cache for deletions
 		boolean dataChanged = false;
 		
@@ -395,7 +406,7 @@ public class Server {
 		}
 	}
 	
-	public void updateCAQ(JDA jda)
+	private void updateCAQ(JDA jda)
 	{
 		if(DMain.inIDE)
 		{
