@@ -319,7 +319,6 @@ public class PrivateHandler extends MessageHandler {
 	public static void reboot()
 	{
 		DMain.updateServerData();
-		DMain.sendToOperator("Rebooting...");
 		
 		// Reboot
 		try {

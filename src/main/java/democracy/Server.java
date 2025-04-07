@@ -39,7 +39,7 @@ public class Server {
 	/** Presidential vote time is 3 days */
 	public static final long PRESIDENTIAL_VOTE_TIME = 259200000;
 	/** Update CAQ once per day */
-	private static final long CAQ_UPDATE_TIME = 3600000;
+	private static final long CAQ_UPDATE_TIME = 86400000;
 	
 	// Everything has to be initialized in case it doesn't get deserialized and a new server obj is created
 	// Serialize

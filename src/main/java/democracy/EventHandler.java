@@ -11,6 +11,7 @@ import com.google.gson.JsonElement;
 import com.supasulley.utils.JsonUtils;
 
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDA.Status;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -26,7 +27,6 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.SessionDisconnectEvent;
-import net.dv8tion.jda.api.events.session.SessionResumeEvent;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.CloseCode;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
@@ -37,8 +37,10 @@ public class EventHandler extends GenericEventHandler {
 	private static final long TICK_TIME = 60000;
 	private long lastTick;
 	
-	private static final long DOWNTIME_WARNING_THRESHOLD = 900 * 1000;
-	private long lastDisconnect;
+	/** Allowed time to be disconnected before bot restarts */
+	private static final long DOWNTIME_RESTART_THRESHOLD = 21600000;
+	
+	private long lastDisconnect = System.currentTimeMillis();
 	
 	public EventHandler(JDA jda)
 	{
@@ -80,7 +82,23 @@ public class EventHandler extends GenericEventHandler {
 			}
 			
 			lastTick = System.currentTimeMillis();
-			DMain.server.tick(event.getJDA());
+			
+			// If not connected
+			if(event.getJDA().getStatus() != Status.CONNECTED)
+			{
+				long downtime = System.currentTimeMillis() - lastDisconnect;
+				
+				if(downtime >= DOWNTIME_RESTART_THRESHOLD)
+				{
+					DMain.log.error("Down for {}ms (over the allowed downtime threshold). Rebooting...", downtime);
+					PrivateHandler.reboot();
+				}
+			}
+			// Only tick server if we're online
+			else
+			{
+				DMain.server.tick(event.getJDA());
+			}
 		}
 	}
 	
@@ -444,17 +462,6 @@ public class EventHandler extends GenericEventHandler {
 		CloseCode code = event.getCloseCode();
 		DMain.log.info("DISCONNECTED! Close code: " + (code == null ? "null" : code.getCode() + ". Meaning: " + code.getMeaning()) + ". Closed by discord: " + event.isClosedByServer());
 		lastDisconnect = System.currentTimeMillis();
-	}
-	
-	@Override
-	public void onSessionResume(SessionResumeEvent event)
-	{
-		DMain.log.info("Reconnected!");
-		
-		if(System.currentTimeMillis() - lastDisconnect >= DOWNTIME_WARNING_THRESHOLD)
-		{
-			DMain.sendToOperator(DMain.BOT_NAME + " just reconnected. Down for " + (System.currentTimeMillis() - lastDisconnect) / 1000 + "s, and last tick was " + (System.currentTimeMillis() - lastTick) / 1000 + "s!");
-		}
 	}
 	
 	@Override
