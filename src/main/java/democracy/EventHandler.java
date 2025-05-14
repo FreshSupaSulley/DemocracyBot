@@ -284,7 +284,7 @@ public class EventHandler extends GenericEventHandler {
 			}
 			case "all-secrets":
 			{
-				event.reply(DMain.server.getSecretCommands().keySet().stream().collect(Collectors.joining(", ")));
+				event.reply(DMain.server.getSecretCommands().keySet().stream().collect(Collectors.joining(", "))).queue();
 				return;
 			}
 			case "unsecret":
