@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.google.gson.JsonElement;
 import com.supasulley.utils.JsonUtils;
@@ -279,6 +280,11 @@ public class EventHandler extends GenericEventHandler {
 				DMain.server.addSecret(word, response);
 				
 				event.reply("\"" + word + "\" is now a secret command (will send " + response + ")").queue();
+				return;
+			}
+			case "all-secrets":
+			{
+				event.reply(DMain.server.getSecretCommands().keySet().stream().collect(Collectors.joining(", ")));
 				return;
 			}
 			case "unsecret":

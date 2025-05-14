@@ -61,7 +61,8 @@ public class Server {
 	private ArrayList<Candidate> candidates = new ArrayList<Candidate>();
 	
 	// Serialize last because its hella annoying
-	private Map<String, String> secretCommands = new HashMap<String, String>(), unsecretedCommands = new HashMap<String, String>();
+	private Map<String, String> secretCommands = new HashMap<String, String>(),
+										unsecretedCommands = new HashMap<String, String>();
 	
 	// Don't serialize
 	private transient Message presidentialVote;
@@ -69,16 +70,20 @@ public class Server {
 	
 	public Message getPresidentialVote(JDA jda)
 	{
-		if(presidentialVoteMessageID == 0) return null;
+		if(presidentialVoteMessageID == 0)
+			return null;
 		
 		// If in cache
-		if(presidentialVote != null) return presidentialVote;
+		if(presidentialVote != null)
+			return presidentialVote;
 		
 		// Otherwise retrieve it
-		return jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(presidentialVoteMessageID).onErrorMap(error -> {
+		return jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH).retrieveMessageById(presidentialVoteMessageID).onErrorMap(error ->
+		{
 			DMain.log.error("Huh? Tried to fetch presidential vote but fail checks failed", error);
 			return null;
-		}).onSuccess(message -> {
+		}).onSuccess(message ->
+		{
 			this.presidentialVote = message;
 		}).complete();
 	}
@@ -146,11 +151,13 @@ public class Server {
 		}
 		
 		// Only update the server data if successful
-		poll.firePoll(success -> {
+		poll.firePoll(success ->
+		{
 			polls.add(poll);
 			DMain.updateServerData();
 			event.reply("Poll added!").queue();
-		}, failure -> {
+		}, failure ->
+		{
 			DMain.log.error("Failed to add poll", failure);
 			event.reply("Something went wrong adding the poll").queue();
 		});
@@ -474,7 +481,8 @@ public class Server {
 		StringBuilder builder = new StringBuilder("@everyone it's time. By the power of the people and the Magna Farta, we will elect our next monthly President that represents the core of this nation's beliefs and thereby representing the people. Cast your vote below:\n");
 		
 		// Sort candidates by their slot
-		DMain.server.candidates.stream().sorted((o1, o2) -> Integer.compare(o1.getSlot(), o2.getSlot())).forEach((candidate) -> {
+		DMain.server.candidates.stream().sorted((o1, o2) -> Integer.compare(o1.getSlot(), o2.getSlot())).forEach((candidate) ->
+		{
 			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + candidate.getRoleID() + ">) - *\"" + MarkdownSanitizer.sanitize(candidate.getSlogan()) + "\"*");
 		});
 		
@@ -516,11 +524,13 @@ public class Server {
 	
 	public void addAmendment(JDA jda, String content)
 	{
-		jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.sanitize(content)).queue(success -> {
+		jda.getTextChannelById(DMain.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.sanitize(content)).queue(success ->
+		{
 			DMain.log.info("Added amendment {}", content);
 			amendmentIDs.add(success.getId());
 			DMain.updateServerData();
-		}, failure -> {
+		}, failure ->
+		{
 			DMain.log.error("Failed to add amendment {}", content, failure);
 		});
 	}
@@ -562,7 +572,8 @@ public class Server {
 	{
 		String mapping = secretCommands.remove(word);
 		// Exit early if not found
-		if(mapping == null) return false;
+		if(mapping == null)
+			return false;
 		
 		// Transfer secret command to unsecreted commands
 		unsecretedCommands.put(word, mapping);
@@ -579,7 +590,8 @@ public class Server {
 	public boolean resecretSecret(String word)
 	{
 		String mapping = unsecretedCommands.remove(word);
-		if(mapping == null) return false;
+		if(mapping == null)
+			return false;
 		
 		// This won't override anything because adding secret commands removes it from unsecreted
 		secretCommands.put(word, mapping);
@@ -638,7 +650,8 @@ public class Server {
 			}
 			
 			// If none of the candidates has this slot
-			if(!found) return slot;
+			if(!found)
+				return slot;
 		}
 		
 		return -1;
@@ -651,7 +664,8 @@ public class Server {
 	 */
 	public void checkMessageForPollResult(Message message)
 	{
-		if(message.getChannel().getIdLong() != DMain.VOTING_BOOTH) return;
+		if(message.getChannel().getIdLong() != DMain.VOTING_BOOTH)
+			return;
 		
 		// ALL messages beyond this point will be deleted after an hour
 		boolean pollDeleted = false;
@@ -695,7 +709,10 @@ public class Server {
 		{
 			DMain.log.info("Deleting message with ID {}", message.getId());
 			// Delete after a while
-			message.delete().queueAfter(1, TimeUnit.HOURS);
+			message.delete().queueAfter(1, TimeUnit.HOURS, null, (e) ->
+			{
+				DMain.log.error("Tried to delete a message that no longer exists: {}", message.getContentRaw(), e);
+			});
 		}
 		
 		// Update server data only if something changed

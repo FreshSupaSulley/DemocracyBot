@@ -2,3 +2,5 @@
 /target
 /bin
 /botData
+.classpath
+.settings
