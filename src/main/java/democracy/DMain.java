@@ -377,7 +377,7 @@ public class DMain {
 		// Use reset file if not there
 		String toRead = usingResetFile ? IOUtils.toString(resetFile, Charsets.UTF_8) : readServerData();
 		
-		if(usingResetFile)
+		if(usingResetFile && !inIDE)
 		{
 			// Send current data to logs and operator just in case
 			DMain.log.info("Using reset file. Current data before reset:");
@@ -538,6 +538,10 @@ public class DMain {
 			// No need to set another default uncaught exception handler, handled in static of DMain
 			runnable.setName("weeve");
 			runnable.start();
+		}
+		else
+		{
+			DMain.log.info("In IDE, not running weeve");
 		}
 		
 		new DMain();
