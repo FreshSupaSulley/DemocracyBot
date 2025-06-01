@@ -17,7 +17,6 @@ import org.apache.commons.io.IOUtils;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.supasulley.main.Main;
 import com.supasulley.utils.JsonUtils;
 
 import net.dv8tion.jda.api.JDA;
@@ -199,7 +198,7 @@ public class PrivateHandler extends MessageHandler {
 					} catch(Exception e)
 					{
 						// This should send to operator
-						Main.log.error("Failed to update jar", e);
+						DMain.log.error("Failed to update jar", e);
 					}
 					
 		            return null;

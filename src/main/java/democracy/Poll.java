@@ -3,7 +3,7 @@ package democracy;
 import java.time.Duration;
 import java.util.function.Consumer;
 
-import com.supasulley.main.JsonUtils;
+import com.supasulley.utils.JsonUtils;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;

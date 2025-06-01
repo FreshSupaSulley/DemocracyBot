@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import com.supasulley.main.Main;
 import com.supasulley.utils.JsonUtils;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -347,7 +346,7 @@ public class Server {
 						
 						if(tiedCandidates.size() > 1)
 						{
-							Main.log.info("We have a tie! {}", tiedCandidates);
+							DMain.log.info("We have a tie! {}", tiedCandidates);
 							nextPresident = tiedCandidates.get((int) (Math.random() * tiedCandidates.size()));
 						}
 						

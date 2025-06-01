@@ -528,7 +528,7 @@ public class DMain {
 				{
 					try {
 						// Set logback to use internal one
-						com.supasulley.main.Main.main(new String[] {"--token=" + WEEVE_BOT_TOKEN, "--owner_id=" + WEEVE_OWNER_ID, "--notify_errors"});
+						io.github.freshsupasulley.main.Main.main(new String[] {"--token=" + WEEVE_BOT_TOKEN, "--owner_id=" + WEEVE_OWNER_ID, "--notify_errors"});
 					} catch(Throwable t) {
 						DMain.log.error("Failed to start weeve", t);
 					}
