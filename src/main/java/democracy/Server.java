@@ -234,6 +234,12 @@ public class Server {
 		return slogan;
 	}
 	
+	public void setPresidentialSlogan(String slogan)
+	{
+		this.slogan = slogan;
+		DMain.updateServerData();
+	}
+	
 	public void tick(JDA jda)
 	{
 		// If we should update CAQ
@@ -381,7 +387,9 @@ public class Server {
 						slogan = nextPresident.getSlogan();
 						termEndTime = System.currentTimeMillis() + TERM_LENGTH;
 						
-						guild.getTextChannelById(DMain.VOTING_BOOTH).sendMessage("Welcome <@" + nextPresident.getID() + "> to The White House!").complete().delete().queueAfter(1, TimeUnit.HOURS);
+						// This gets scooped up and deleted by checkMessageForPollResult below
+						guild.getTextChannelById(DMain.VOTING_BOOTH).sendMessage("Welcome <@" + nextPresident.getID() + "> to The White House!").queue();//.complete().delete().queueAfter(1, TimeUnit.HOURS);
+						
 						Member nextPresidentMember = guild.retrieveMemberById(nextPresident.getID()).complete();
 						guild.addRoleToMember(nextPresidentMember, DMain.THE_PRESIDENT).complete();
 						
@@ -391,9 +399,9 @@ public class Server {
 						// Add to commanders and queefs
 						Role safeParty = Optional.ofNullable(guild.getRoleById(nextPresident.getRoleID())).orElse(DMain.THE_PRESIDENT);
 						EmbedBuilder e = new EmbedBuilder();
-						e.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, " + nextPresidentMember.getUser().getEffectiveName());
+						e.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.escape(nextPresidentMember.getUser().getEffectiveName()) + "**");
 						e.setColor(safeParty.getColor());
-						e.setDescription("<@" + nextPresidentMember.getId() + ">" + " of **" + MarkdownSanitizer.sanitize(safeParty.getName()) + "**\n\n*\"" + slogan + "\"*");
+						e.setDescription("<@" + nextPresidentMember.getId() + ">" + " of **" + MarkdownSanitizer.escape(safeParty.getName()) + "**\n\n*\"" + slogan + "\"*");
 						e.setImage(nextPresidentMember.getEffectiveAvatarUrl());
 						e.setFooter("Served " + getUSEnglishDateFormat(DMain.server.getTermEndTime() - Server.TERM_LENGTH) + " - " + getUSEnglishDateFormat(DMain.server.getTermEndTime()), jda.getSelfUser().getEffectiveAvatarUrl());
 						jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue(success ->
@@ -432,6 +440,11 @@ public class Server {
 			// onErrorMap catches things AFTER the event is fired. retrieveUserById can still throw early for bad format
 			// But this works if the ID is valid and Discord can't find the user associated with it. User then becomes null!
 			User user = jda.retrieveUserById(caqEntries.get(message.getId())).onErrorMap(throwable -> null).complete();
+			
+//			if(user != null)
+//			{
+//				builder.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.sanitize(user.getEffectiveName()) + "**");
+//			}
 			
 			// Update image in case user changes pfp, or user is magically deleted
 			builder.setImage(user != null ? user.getEffectiveAvatarUrl() : "https://cdn.discordapp.com/embed/avatars/0.png");
@@ -482,7 +495,8 @@ public class Server {
 		// Sort candidates by their slot
 		DMain.server.candidates.stream().sorted((o1, o2) -> Integer.compare(o1.getSlot(), o2.getSlot())).forEach((candidate) ->
 		{
-			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + candidate.getRoleID() + ">) - *\"" + MarkdownSanitizer.sanitize(candidate.getSlogan()) + "\"*");
+			// no need to sanitize, it's handled in the EventHandler
+			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + candidate.getRoleID() + ">) - *\"" + candidate.getSlogan() + "\"*");
 		});
 		
 		if(DMain.server.getCandidates().isEmpty())

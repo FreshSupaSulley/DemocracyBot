@@ -9,7 +9,7 @@ public class ProposePoll extends Poll {
 	
 	public ProposePoll(TextChannel channel, String proposal)
 	{
-		super(0.5f, 5, 43200000, "New amendment: \"" + proposal + "\"", channel);
+		super(0.5f, 5, 43200000, "New amendment: " + proposal, channel);
 		this.proposal = proposal;
 	}
 	

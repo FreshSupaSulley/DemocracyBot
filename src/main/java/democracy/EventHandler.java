@@ -133,6 +133,7 @@ public class EventHandler extends GenericEventHandler {
 			case "campaign":
 			{
 				// Don't allow new lines
+				// Do not use escape here because \n would look ugly as hell
 				String slogan = MarkdownSanitizer.sanitize(event.getOption("slogan").getAsString()).replace('\n', ' ').replace('\t', ' ');
 				
 				if(DMain.server.isPresident(sender))
@@ -202,6 +203,13 @@ public class EventHandler extends GenericEventHandler {
 			{
 				String content = MarkdownSanitizer.sanitize(event.getOption("slogan").getAsString());
 				
+				if(DMain.server.isPresident(sender))
+				{
+					DMain.server.setPresidentialSlogan(content);
+					event.reply("Updated your slogan, Mr. President" + DMain.server.getPresidentialVote(jda) == null ? ". You will see it during the next election" : "").queue();
+					return;
+				}
+				
 				if(DMain.server.getPresidentialVote(jda) == null)
 				{
 					event.reply("There is no active presidential election").queue();
@@ -239,6 +247,8 @@ public class EventHandler extends GenericEventHandler {
 			{
 				String content = event.getOption("amendment").getAsString();
 				
+				content = MarkdownSanitizer.sanitize(content);
+				
 				// Add the poll
 				DMain.server.beginPoll(event, new ProposePoll(jda.getTextChannelById(DMain.VOTING_BOOTH), content));
 				break;
@@ -264,7 +274,15 @@ public class EventHandler extends GenericEventHandler {
 				
 				if(DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME < poll.getVoteTime().toMillis())
 				{
-					event.reply("Impeachment disabled. The polls open **" + getExactTime(System.currentTimeMillis() + DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST.**").queue();
+					if(DMain.server.getPresidentialVote(jda) == null)
+					{
+						event.reply("Impeachment disabled. The polls open **" + getExactTime(System.currentTimeMillis() + DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST.**").queue();
+					}
+					else
+					{
+						event.reply("Impeachment disabled. An election is active").queue();
+					}
+					
 					break;
 				}
 				
