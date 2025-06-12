@@ -225,7 +225,8 @@ public class DMain {
 		
 		// Public slash commands
 		CommandData[] publicCommands = new CommandData[] {
-//											publicCommands[0] = Commands.slash("violation", "Report a violation of the rules").addOption(OptionType.USER, "violator", "The one who violated the rules", true).addOptions(new OptionData(OptionType.INTEGER, "minutes", "prison time of violator").setRequiredRange(1, 3));
+//			Commands.slash("timeout", "Timeout a member (president only)").addOption(OptionType.USER, "user", "User to timeout").addOptions(new OptionData(OptionType.INTEGER, "days", "Number of days", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH), new OptionData(OptionType.INTEGER, "hours", "Number of hours", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24), new OptionData(OptionType.INTEGER, "minutes", "Number of minutes", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24 * 60)),
+//			Commands.slash("kick", "Kick a member (president only)").addOption(OptionType.USER, "user", "User to kick"),
 			Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
 			Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
 			Commands.slash("next-election", "Returns next election time"),

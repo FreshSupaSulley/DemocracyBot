@@ -129,7 +129,7 @@ public abstract class Poll {
 		if(passesPoll(numYes, numNo))
 		{
 			DMain.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") passed!");
-			channel.sendMessage(getFancyName() + " poll (" + question + ") passed!").complete();
+			channel.sendMessage(getFancyName() + " poll (" + question + ") passed, with a Yes / No ratio of **" + numYes + "** / **" + numNo + "**!").complete();
 			
 			// Perform actions
 			try {
@@ -142,7 +142,7 @@ public abstract class Poll {
 		else
 		{
 			// Fancy polling does this for us
-			String failedMsg = getFancyName() + " poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval.";
+			String failedMsg = getFancyName() + " poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval (Yes / No ratio: **" + numYes + "** / **" + numNo + "**)";
 			channel.sendMessage(failedMsg).complete();
 			DMain.log.info(failedMsg);
 		}

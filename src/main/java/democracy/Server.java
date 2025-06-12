@@ -69,7 +69,7 @@ public class Server {
 	
 	public Message getPresidentialVote(JDA jda)
 	{
-		if(presidentialVoteMessageID == 0)
+		if(!isElectionActive())
 			return null;
 		
 		// If in cache
@@ -85,6 +85,11 @@ public class Server {
 		{
 			this.presidentialVote = message;
 		}).complete();
+	}
+	
+	public boolean isElectionActive()
+	{
+		return presidentialVoteMessageID != 0;
 	}
 	
 	public int getPresidentialCount()

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import com.google.gson.JsonElement;
@@ -14,6 +15,7 @@ import com.supasulley.utils.JsonUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDA.Status;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
@@ -28,6 +30,8 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.SessionDisconnectEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.CloseCode;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
@@ -68,7 +72,8 @@ public class EventHandler extends GenericEventHandler {
 		if(System.currentTimeMillis() - lastTick > TICK_TIME)
 		{
 			// Check if server data changed
-			try {
+			try
+			{
 				JsonElement data = JsonUtils.parse(DMain.readServerData());
 				JsonElement current = JsonUtils.parse(DMain.server.toString());
 				
@@ -77,7 +82,8 @@ public class EventHandler extends GenericEventHandler {
 					DMain.log.info("Stored server data:\n{}\nServer object data:\n{}", data, current);
 					throw new IllegalStateException("Stored server data and server object data do not match");
 				}
-			} catch(Exception e) {
+			} catch(Exception e)
+			{
 				DMain.log.error("JSON data does not match! You failed to update the server data somewhere", e);
 				DMain.updateServerData();
 			}
@@ -130,6 +136,59 @@ public class EventHandler extends GenericEventHandler {
 		
 		switch(event.getFullCommandName())
 		{
+			// bad idea. just make an "anti-baby-raging" role
+//			case "timeout":
+//			{
+//				if(!DMain.server.isPresident(sender))
+//				{
+//					event.reply("Only the President can use this command").queue();
+//					return;
+//				}
+//				
+//				if(DMain.server.isElectionActive())
+//				{
+//					event.reply("Baby raging prohibited");
+//					return;
+//				}
+//				
+//				Map<String, Integer> multipliers = Map.of("minutes", 1, "hours", 60, "days", 1440);
+//				
+//				long totalMinutes = multipliers.entrySet().stream().mapToLong(entry ->
+//				{
+//					OptionMapping opt = event.getOption(entry.getKey());
+//					return (opt != null ? opt.getAsInt() : 0) * entry.getValue();
+//				}).sum();
+//				
+//				if(totalMinutes > Member.MAX_TIME_OUT_LENGTH * 1440L)
+//				{
+//					event.reply("Can't timeout a member for more than " + Member.MAX_TIME_OUT_LENGTH + " days").queue();
+//				}
+//				else
+//				{
+//					event.getOption("user", option -> option.getAsMember()).timeoutFor(totalMinutes, TimeUnit.MINUTES).queue();
+//					event.reply("Timed out <@" + user.getId() + "> for " + totalMinutes + " minute(s)").queue();
+//				}
+//				
+//				break;
+//			}
+//			case "kick":
+//			{
+//				if(!DMain.server.isPresident(sender))
+//				{
+//					event.reply("Only the President can use this command").queue();
+//					return;
+//				}
+//				
+//				if(DMain.server.isElectionActive())
+//				{
+//					event.reply("Baby raging prohibited");
+//					return;
+//				}
+//				
+//				event.getOption("user", option -> option.getAsMember());
+//				
+//				break;
+//			}
 			case "campaign":
 			{
 				// Don't allow new lines
@@ -151,7 +210,7 @@ public class EventHandler extends GenericEventHandler {
 				}
 				
 				// You can only campaign when the presidential vote poll is live
-				if(DMain.server.getPresidentialVote(jda) == null)
+				if(!DMain.server.isElectionActive())
 				{
 					float daysRemaining = DMain.server.millisRemainingInTerm() / 8.64e+7f;
 					event.reply("Polls for the **" + Server.ordinal(DMain.server.getPresidentialCount() + 1) + " Presidential Election** open **" + getExactTime(System.currentTimeMillis() + DMain.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST**. The President has " + (int) (daysRemaining) + " day" + ((int) daysRemaining != 1 ? "s" : "") + " and " + (int) (daysRemaining % 1 * 24) + " hours left in office. You will be notified in <#" + DMain.VOTING_BOOTH + "> when the election begins.").queue();
@@ -349,9 +408,11 @@ public class EventHandler extends GenericEventHandler {
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event)
 	{
 		// Handle any errors
-		try {
+		try
+		{
 			slashCommand(event);
-		} catch(Throwable t) {
+		} catch(Throwable t)
+		{
 			if(!event.isAcknowledged())
 				event.reply(DMain.ERROR_MSG).queue();
 			DMain.log.error("An error occured in command handling", t);
