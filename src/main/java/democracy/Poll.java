@@ -52,7 +52,7 @@ public abstract class Poll {
 	 * @param poll poll to check
 	 * @return true if this poll is a duplicate, false otherwise
 	 */
-	public final boolean isDuplicate(Poll poll)
+	public boolean isDuplicate(Poll poll)
 	{
 		return JsonUtils.serialize(poll).equals(JsonUtils.serialize(this));
 	}

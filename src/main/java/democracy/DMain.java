@@ -233,10 +233,10 @@ public class DMain {
 			Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
 			Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)),
 			Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
-			Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the secret command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
-			Commands.slash("all-secrets", "Lists all secrets (prepare for bad words)"),
-			Commands.slash("unsecret", "Remove a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to remove", true)),
-			Commands.slash("resecret", "Adds back an unsecreted command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to add back", true)),
+//			Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the secret command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
+//			Commands.slash("all-secrets", "Lists all secrets (prepare for bad words)"),
+//			Commands.slash("unsecret", "Remove a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to remove", true)),
+//			Commands.slash("resecret", "Adds back an unsecreted command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to add back", true)),
 			
 			// Presidential commands
 //			Commands.slash("president", "Presidental commands").addSub.addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),

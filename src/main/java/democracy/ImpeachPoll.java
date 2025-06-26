@@ -11,6 +11,13 @@ public class ImpeachPoll extends Poll {
 		super(0.75f, 5, 604800000L, "Impeach " + channel.getJDA().getGuildById(DMain.SERVER_ID).retrieveMemberById(DMain.server.getPresidentID()).complete().getUser().getName() + "? " + reason, channel);
 	}
 	
+	// Don't allow 2 impeach polls
+	@Override
+	public boolean isDuplicate(Poll poll)
+	{
+		return poll instanceof ImpeachPoll;
+	}
+	
 	@Override
 	protected void performAction(JDA jda)
 	{
