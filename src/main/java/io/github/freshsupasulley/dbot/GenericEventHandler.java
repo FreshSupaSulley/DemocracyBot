@@ -81,8 +81,10 @@ public class GenericEventHandler extends CustomListener {
 		// We have the priviledged intent for this
 		try
 		{
+			String actionID = event.getMessage().getContentRaw();
+			
 			// Get the artifact associated with the run ID
-			JsonArray array = JsonParser.parseString(PrivateHandler.callGitHub("GET", "/actions/runs/" + event.getMessage().getContentRaw() + "/artifacts", null)).getAsJsonObject().get("artifacts").getAsJsonArray();
+			JsonArray array = JsonParser.parseString(PrivateHandler.callGitHub("GET", "/actions/runs/" + actionID + "/artifacts", null)).getAsJsonObject().get("artifacts").getAsJsonArray();
 			if(array.size() != 1) throw new IllegalStateException("Artifact size != 1!");
 			
 			String id = array.get(0).getAsJsonObject().get("id").getAsString();
@@ -93,8 +95,13 @@ public class GenericEventHandler extends CustomListener {
 				Main.log.info("Downloading to " + PrivateHandler.JAR_FILE.getAbsolutePath());
 				Files.copy(stream, PrivateHandler.JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				
-				// Done downloading, reboot
-				Main.sendToOperator("Done!");
+				// Done downloading!
+				
+				// Do some clean up
+				event.getMessage().delete().complete(); // delete the webhook message
+				PrivateHandler.callGitHub("DELETE", "/actions/runs/" + actionID + "/artifacts", null); // delete the run to reduce clogging
+				
+				Main.sendToOperator("Done updating! Rebooting...");
 				PrivateHandler.reboot();
 			}
 		} catch(Exception e)
