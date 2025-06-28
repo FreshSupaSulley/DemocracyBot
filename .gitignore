@@ -7,8 +7,8 @@ build
 # Evil tokens
 gradle.properties
 
-# Reset data goes here. You can include it ig but eh
-src/main/resources
+# This is used for resetting bot data, no need to push any data at all
+src/main/resources/serverData.txt
 
 # Weeve
 /libs
