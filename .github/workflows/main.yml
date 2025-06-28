@@ -13,7 +13,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Create gradle.properties
+        # Weeve activities
+      - name: Build weeve
+        run: |
+          git clone https://github.com/FreshSupaSulley/weeve.git
+          ./weeve/gradlew build
+          mkdir -p libs
+          cp weeve/build/libs/weeve.jar libs/weeve.jar
+
+      - name: Create gradle.properties for tokens
         run: |
           # Weeve (yall can know my discord acc thats cool)
           echo "token=${{ secrets.WEEVE }}" >> gradle.properties
@@ -36,9 +44,16 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
+        # I hope no one can see this
+      - name: Upload JAR as private artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DemocracyBot
+          path: build/libs/*.jar
+    
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        with:
-          files: build/libs/*.jar
+        # with:
+        #   files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # this one is built-in
