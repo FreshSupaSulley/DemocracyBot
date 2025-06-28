@@ -32,8 +32,10 @@ application {
     mainClass = 'io.github.freshsupasulley.dbot.Main'
 }
 
-run {
-    args = project.properties.collect { key, value -> "--${key}=${value}" }
+processResources {
+    filesMatching("tokens.properties") {
+        expand(project.properties)
+    }
 }
 
 tasks.named('test') {

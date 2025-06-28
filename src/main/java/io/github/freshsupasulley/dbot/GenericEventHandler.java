@@ -64,6 +64,15 @@ public class GenericEventHandler extends CustomListener {
 		}
 	}
 	
+	// Used to update the bot
+	@Override
+	public final void onGuildMessageReceived(MessageReceivedEvent event)
+	{
+		if(event.getChannel().getIdLong() != Main.GITHUB) return;
+		
+		Main.sendToOperator(event.getRawData().toPrettyString());
+	}
+	
 	/**
 	 * Private messages do not record anything other than logs
 	 */
@@ -150,10 +159,5 @@ public class GenericEventHandler extends CustomListener {
 		{
 			Main.log.error("Something went wrong sending message " + message + ". Discord issue? Check https://discordstatus.com/", e);
 		}
-	}
-	
-	// Unused in recovery mode
-	public void onGuildMessageReceived(MessageReceivedEvent event)
-	{
 	}
 }

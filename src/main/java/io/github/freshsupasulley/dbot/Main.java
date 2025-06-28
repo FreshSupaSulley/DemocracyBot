@@ -14,12 +14,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.security.auth.login.LoginException;
 
@@ -79,7 +77,8 @@ public class Main {
 	
 	// Server Data
 	public static long SERVER_ID = 1102048289202917441L;
-	public static long THE_CONSTIPATION = 1102051128067248169L, AMENDMENTS = 1102051223277928509L,
+	public static long GITHUB = 1388536849978626108L, THE_CONSTIPATION = 1102051128067248169L,
+										AMENDMENTS = 1102051223277928509L,
 										COMMANDERS_AND_QUEEFS = 1303051774969512059L,
 										VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L,
 										TEST_CHANNEL = 1105627214587904010L;
@@ -521,6 +520,14 @@ public class Main {
 	// Pulls tokens from gradle.properties (see build.gradle)
 	public static void main(String[] args) throws FileNotFoundException, IOException
 	{
+		// Filled from gradle.properties -> tokens.properties
+		Properties properties = new Properties();
+		
+		try(InputStream stream = Main.class.getClassLoader().getResourceAsStream("tokens.properties"))
+		{
+			properties.load(stream);
+		}
+		
 		if(!inIDE)
 		{
 			Thread runnable = new Thread()
@@ -531,8 +538,9 @@ public class Main {
 				{
 					try
 					{
-						// Set logback to use internal one
-						io.github.freshsupasulley.main.Main.main(args); // tokens passed from gradle.properties
+						// Dump all props into weeve
+						String[] newArgs = properties.entrySet().stream().map(e -> "--" + e.getKey() + "=" + e.getValue()).toArray(String[]::new);
+						io.github.freshsupasulley.main.Main.main(newArgs);
 					} catch(Throwable t)
 					{
 						Main.log.error("Failed to start weeve", t);
@@ -549,9 +557,8 @@ public class Main {
 			Main.log.info("In IDE, not running weeve");
 		}
 		
-		Map<String, String> map = Stream.of(args).filter(arg -> arg.startsWith("--")).map(arg -> arg.substring(2).split("=", 2)).collect(Collectors.toMap(pair -> pair[0], pair -> pair[1]));
-		DEMOCRACY_BOT_TOKEN = map.get("democracy");
-		GITHUB_ACCESS_TOKEN = map.get("github_access_token");
+		DEMOCRACY_BOT_TOKEN = properties.getProperty("democracy");
+		GITHUB_ACCESS_TOKEN = properties.getProperty("github_access_token");
 		new Main();
 	}
 }
