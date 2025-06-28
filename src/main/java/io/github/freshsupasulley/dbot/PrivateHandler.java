@@ -237,7 +237,10 @@ public class PrivateHandler extends MessageHandler {
 		URL url = new URL(path.startsWith("http") ? path : "https://api.github.com/repos/FreshSupaSulley/DemocracyBot" + path);
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod(method);
+		connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28"); // might as well stick to a fixed API version
 		connection.setRequestProperty("Authorization", "Bearer " + Main.GITHUB_ACCESS_TOKEN);
+		
+		System.out.println(Main.GITHUB_ACCESS_TOKEN);
 		
 		if(body != null)
 		{

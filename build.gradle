@@ -36,6 +36,9 @@ processResources {
     filesMatching("tokens.properties") {
         expand(project.properties)
     }
+    
+    // This ensures it always runs so when you change project.properties it will update
+    outputs.upToDateWhen { false }
 }
 
 tasks.named('test') {

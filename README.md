@@ -5,9 +5,5 @@ Built in Java using [JDA](https://github.com/DV8FromTheWorld/JDA) as a Maven pro
 
 ![Our nation's glorious flag](https://github.com/FreshSupaSulley/DemocracyBot/assets/45902499/3278dc05-3fbc-414f-8717-b233af1c312b)
 
-# CI/CD Idea
-On commit:
-1. Build the runnable jar with GitHub Actions
-2. Update the release file
-3. Send a webhook to Discord
-4. DemocracyBot sees it and restarts, ideally not by restarting the Pi (you could run `pkill -f "$JAR_NAME"` first to kill the jar).
+# Updating
+DemocracyBot utilizes GitHub Actions to update. To initiate an update, "the military" (me) needs to call `!update` in dbot DMs.
