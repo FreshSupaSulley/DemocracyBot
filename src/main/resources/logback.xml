@@ -16,7 +16,7 @@
 	</appender>
 	
 	<!-- CustomLogger that forwards errors to the owner -->
-	<appender name="errorAppender" class="com.supasulley.utils.ErrorAppender" />
+	<appender name="errorAppender" class="io.github.freshsupasulley.dbot.utils.ErrorAppender" />
 	
 	<!-- DemocracyBot -->
 	<appender name="democracy"
@@ -70,7 +70,7 @@
 	</logger>
 
 	<!-- weeve -->
-	<logger name="com.supasulley.main.Main" level="all">
+	<logger name="io.github.freshsupasulley.dbot.Main" level="all">
 		<appender-ref ref="weeve" />
 	</logger>
 </configuration>
