@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import java.lang.reflect.Type;
 
@@ -20,7 +20,7 @@ public class PollAdapter implements JsonDeserializer<Poll>, JsonSerializer<Poll>
 		try {
 			return context.deserialize(data, Class.forName(data.get("type").getAsString()));
 		} catch(ClassNotFoundException e) {
-			DMain.log.error("Failed to deserialize poll {}", json, e);
+			Main.log.error("Failed to deserialize poll {}", json, e);
 			return null;
 		}
 	}

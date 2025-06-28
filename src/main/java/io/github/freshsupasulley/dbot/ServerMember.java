@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,7 +41,7 @@ public class ServerMember {
 		
 		if(updated)
 		{
-			DMain.log.info("Clearing poll cooldown expiry times for {}", userID);
+			Main.log.info("Clearing poll cooldown expiry times for {}", userID);
 			pollCooldownExpiryTimes.clear();
 		}
 		
@@ -56,8 +56,8 @@ public class ServerMember {
 	 */
 	public boolean canPropose(Poll poll)
 	{
-		// Hehe (I need this for when I need to fix bot)
-		if(userID == DMain.OWNER_ID) return true;
+		// Hehe (I need this for when I need to fix bot (trust (im a dictator)))
+		if(userID == Main.OWNER_ID) return true;
 		
 		// If the current time passed the expiry time
 		if(System.currentTimeMillis() >= pollCooldownExpiryTimes.getOrDefault(poll.getClass().getName(), 0L))

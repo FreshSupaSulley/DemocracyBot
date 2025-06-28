@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -33,7 +33,7 @@ public class GenericEventHandler extends CustomListener {
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event)
 	{
-		event.reply(DMain.BOT_NAME + " is booting :robot:").queue();
+		event.reply(Main.BOT_NAME + " is booting :robot:").queue();
 	}
 	
 	/**
@@ -59,7 +59,7 @@ public class GenericEventHandler extends CustomListener {
 		}
 		else
 		{
-			DMain.log.error("No button mapping associated for message {}", id);
+			Main.log.error("No button mapping associated for message {}", id);
 			event.reply("This event has expired").setEphemeral(true).queue();
 		}
 	}
@@ -70,7 +70,7 @@ public class GenericEventHandler extends CustomListener {
 	@Override
 	public void onPrivateMessageReceived(MessageReceivedEvent event)
 	{
-		if(event.getAuthor().getIdLong() != DMain.OWNER_ID)
+		if(event.getAuthor().getIdLong() != Main.OWNER_ID)
 			return;
 		
 		String message = event.getMessage().getContentDisplay();
@@ -86,11 +86,11 @@ public class GenericEventHandler extends CustomListener {
 		
 		if(check != null)
 		{
-			sendMessage(event.getChannel(), "`" + DMain.DEFAULT_PREFIX + check + "`");
+			sendMessage(event.getChannel(), "`" + Main.DEFAULT_PREFIX + check + "`");
 			return;
 		}
 		
-		sendMessage(event.getChannel(), privateHandler.privateMessageReceived(commandIndex, true, message.substring(DMain.DEFAULT_PREFIX.length() + command.length() + (message.contains(" ") ? 1 : 0)), (PrivateChannel) event.getChannel()));
+		sendMessage(event.getChannel(), privateHandler.privateMessageReceived(commandIndex, true, message.substring(Main.DEFAULT_PREFIX.length() + command.length() + (message.contains(" ") ? 1 : 0)), (PrivateChannel) event.getChannel()));
 	}
 	
 	/**
@@ -113,7 +113,7 @@ public class GenericEventHandler extends CustomListener {
 				{
 					PrivateChannel privateChannel = (PrivateChannel) channel;
 					
-					if(privateChannel.getUser().getIdLong() != DMain.OWNER_ID)
+					if(privateChannel.getUser().getIdLong() != Main.OWNER_ID)
 					{
 						System.err.println("[ERROR] Sending large message to a user that's not you!");
 					}
@@ -132,23 +132,23 @@ public class GenericEventHandler extends CustomListener {
 							System.err.println("Could not delete temp file");
 					} catch(IOException e)
 					{
-						DMain.log.error("Failed to do file shit", e);
+						Main.log.error("Failed to do file shit", e);
 					}
 				}
 				else
 				{
 					System.err.println("[ERROR] Over " + Message.MAX_CONTENT_LENGTH + " characters being sent to " + channel.getClass() + "! Shortening...");
-					message = "[**INTERNAL ERROR**] " + DMain.BOT_NAME + " tried to send an extremely large message. Developers have been notified.";
+					message = "[**INTERNAL ERROR**] " + Main.BOT_NAME + " tried to send an extremely large message. Developers have been notified.";
 				}
 				
 				return;
 			}
 			
-			DMain.log.info("[SENDING IN CHANNEL {}]: \"{}\"...", channel.getName(), message.substring(0, Math.min(message.length(), 40)).replace("\n", ""));
+			Main.log.info("[SENDING IN CHANNEL {}]: \"{}\"...", channel.getName(), message.substring(0, Math.min(message.length(), 40)).replace("\n", ""));
 			channel.sendMessage(message).queue();
 		} catch(Exception e)
 		{
-			DMain.log.error("Something went wrong sending message " + message + ". Discord issue? Check https://discordstatus.com/", e);
+			Main.log.error("Something went wrong sending message " + message + ". Discord issue? Check https://discordstatus.com/", e);
 		}
 	}
 	

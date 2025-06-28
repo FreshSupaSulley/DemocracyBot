@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,22 +14,21 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.security.auth.login.LoginException;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonObject;
-import com.supasulley.utils.ErrorAppender;
-import com.supasulley.utils.JsonUtils;
-
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
-import kotlin.text.Charsets;
+import io.github.freshsupasulley.dbot.utils.ErrorAppender;
+import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.JDA.Status;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -53,16 +52,13 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.internal.JDAImpl;
 
-public class DMain {
+public class Main {
 	
-	public static final String DEFAULT_PREFIX = "!", ERROR_MSG = "<@" + DMain.OWNER_ID + "> hey dumbass your bot broke";
+	public static final String DEFAULT_PREFIX = "!", ERROR_MSG = "<@" + Main.OWNER_ID + "> hey dumbass your bot broke";
 	
 	// Ignore the tokens.txt file in .gitignore
-	private static final String DEMOCRACY_BOT_TOKEN;
-	private static final String WEEVE_BOT_TOKEN;
-	private static final String WEEVE_OWNER_ID;
-	
-	public static final String GITHUB_ACCESS_TOKEN;
+	private static String DEMOCRACY_BOT_TOKEN;
+	public static String GITHUB_ACCESS_TOKEN;
 	
 	private static List<Command> commands;
 	
@@ -73,21 +69,25 @@ public class DMain {
 	private static JDAImpl jda;
 	private static PrivateChannel privateChannel;
 	
-	public static final Logger log = (Logger) LoggerFactory.getLogger(DMain.class);
+	public static final Logger log = (Logger) LoggerFactory.getLogger(Main.class);
 	
 	private static final File democracyDir = new File("botData");
-	private static final File serverFile = new File(DMain.democracyDir.getPath() + "/serverData.txt");
+	private static final File serverData = new File(Main.democracyDir.getPath() + "/serverData.txt");
 	
 	// Member data absolute path on pi: /root/Desktop/botData/serverData.txt
 	public static final boolean inIDE;
 	
 	// Server Data
 	public static long SERVER_ID = 1102048289202917441L;
-	public static long THE_CONSTIPATION = 1102051128067248169L, AMENDMENTS = 1102051223277928509L, COMMANDERS_AND_QUEEFS = 1303051774969512059L, VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L, TEST_CHANNEL = 1105627214587904010L;
+	public static long THE_CONSTIPATION = 1102051128067248169L, AMENDMENTS = 1102051223277928509L,
+										COMMANDERS_AND_QUEEFS = 1303051774969512059L,
+										VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L,
+										TEST_CHANNEL = 1105627214587904010L;
 	public static long THE_WHITE_HOUSE_CATEGORY = 1102050716819918948L, MAGNA_FARTA_CATEGORY = 1102050764756635668L;
 	
 	// Roles
-	public static long THE_MILITARY_ID = 1102048289202917442L, THE_PRESIDENT_ID = 1102055622981206086L, VOTER_ID = 1102055806159028347L;
+	public static long THE_MILITARY_ID = 1102048289202917442L, THE_PRESIDENT_ID = 1102055622981206086L,
+										VOTER_ID = 1102055806159028347L;
 	public static Role THE_MILITARY, THE_PRESIDENT, IMMIGRANT, VOTER;
 	
 	// Debug booleans
@@ -98,29 +98,12 @@ public class DMain {
 	
 	static
 	{
-		// Load tokens
-		String raw = null;
-		
-		try {
-			raw = IOUtils.toString(DMain.class.getClassLoader().getResourceAsStream("tokens.txt"), Charsets.UTF_8);
-		} catch(IOException e) {
-			log.error("Failed to read tokens.txt", e);
-			e.printStackTrace();
-			System.exit(1);
-		}
-		
-		JsonObject result = JsonUtils.parse(raw).getAsJsonObject();
-		
-		// You don't need test tokens btw for a test bot
-		DEMOCRACY_BOT_TOKEN = result.get("democracy").getAsString();
-		WEEVE_BOT_TOKEN = result.get("weeve").getAsString();
-		WEEVE_OWNER_ID = result.get("weeve_owner_id").getAsString();
-		GITHUB_ACCESS_TOKEN = result.get("github_access_token").getAsString();
-		
 		// If we're in a jar file, set debug to false
-		String resource = DMain.class.getResource("DMain.class").toString();
-		if(resource.startsWith("jar:") || resource.startsWith("rsrc:")) inIDE = false;
-		else inIDE = true;
+		String resource = Main.class.getResource("Main.class").toString();
+		if(resource.startsWith("jar:") || resource.startsWith("rsrc:"))
+			inIDE = false;
+		else
+			inIDE = true;
 		
 		if(inIDE)
 		{
@@ -138,6 +121,7 @@ public class DMain {
 		// Uncaught errors are sent to DemocracyBot logs. This catches weeve errors too
 		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler()
 		{
+			
 			@Override
 			public void uncaughtException(Thread t, Throwable e)
 			{
@@ -155,7 +139,7 @@ public class DMain {
 	 * @throws LoginException
 	 * @throws InterruptedException
 	 */
-	public DMain()
+	public Main()
 	{
 		if(debug)
 		{
@@ -174,23 +158,29 @@ public class DMain {
 		
 		for(; jda == null; attempts++)
 		{
-			try {
+			try
+			{
 				jda = (JDAImpl) builder.build().awaitReady();
-			} catch(ErrorResponseException t) {
-				if(t.getErrorCode() != -1) {
+			} catch(ErrorResponseException t)
+			{
+				if(t.getErrorCode() != -1)
+				{
 					t.printStackTrace();
 					break;
 				}
 				
 				// Wait until we try again
-				try {
+				try
+				{
 					System.out.println("Failed to connect to JDA. Retrying in 30s...");
 					Thread.sleep(30000);
-				} catch(InterruptedException e) {
+				} catch(InterruptedException e)
+				{
 					e.printStackTrace();
 				}
-			} catch(Throwable t) {
-				DMain.log.error("Something went wrong booting JDA", t);
+			} catch(Throwable t)
+			{
+				Main.log.error("Something went wrong booting JDA", t);
 				break;
 			}
 		}
@@ -198,7 +188,7 @@ public class DMain {
 		// If still not connected
 		if(jda == null || jda.getStatus() != Status.CONNECTED)
 		{
-			DMain.log.error("Could not connect to JDA");
+			Main.log.error("Could not connect to JDA");
 			System.exit(1);
 		}
 		
@@ -225,32 +215,32 @@ public class DMain {
 		
 		// Public slash commands
 		CommandData[] publicCommands = new CommandData[] {
-//			Commands.slash("timeout", "Timeout a member (president only)").addOption(OptionType.USER, "user", "User to timeout").addOptions(new OptionData(OptionType.INTEGER, "days", "Number of days", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH), new OptionData(OptionType.INTEGER, "hours", "Number of hours", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24), new OptionData(OptionType.INTEGER, "minutes", "Number of minutes", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24 * 60)),
-//			Commands.slash("kick", "Kick a member (president only)").addOption(OptionType.USER, "user", "User to kick"),
-			Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
-			Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
-			Commands.slash("next-election", "Returns next election time"),
-			Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
-			Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)),
-			Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
-//			Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the secret command", true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
-//			Commands.slash("all-secrets", "Lists all secrets (prepare for bad words)"),
-//			Commands.slash("unsecret", "Remove a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to remove", true)),
-//			Commands.slash("resecret", "Adds back an unsecreted command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to add back", true)),
-			
-			// Presidential commands
-//			Commands.slash("president", "Presidental commands").addSub.addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),
+											// Commands.slash("timeout", "Timeout a member (president only)").addOption(OptionType.USER, "user", "User to timeout").addOptions(new
+											// OptionData(OptionType.INTEGER, "days", "Number of days", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH), new OptionData(OptionType.INTEGER,
+											// "hours", "Number of hours", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24), new OptionData(OptionType.INTEGER, "minutes", "Number of
+											// minutes", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24 * 60)),
+											// Commands.slash("kick", "Kick a member (president only)").addOption(OptionType.USER, "user", "User to kick"),
+											Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), Commands.slash("next-election", "Returns next election time"), Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
+											Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)), Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
+											// Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the secret command",
+											// true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
+											// Commands.slash("all-secrets", "Lists all secrets (prepare for bad words)"),
+											// Commands.slash("unsecret", "Remove a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to remove", true)),
+											// Commands.slash("resecret", "Adds back an unsecreted command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to add back", true)),
+											
+											// Presidential commands
+											// Commands.slash("president", "Presidental commands").addSub.addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),
 		};
-		
+											
 		// Update public commands
 		if(!inIDE)
 		{
 			log.info("Updating slash commands");
-			DMain.commands = jda.updateCommands().addCommands(publicCommands).complete();
+			Main.commands = jda.updateCommands().addCommands(publicCommands).complete();
 		}
 		else
 		{
-			DMain.commands = jda.retrieveCommands().complete();
+			Main.commands = jda.retrieveCommands().complete();
 		}
 		
 		BOT_NAME = jda.getSelfUser().getName();
@@ -261,21 +251,25 @@ public class DMain {
 		// Create InputListener
 		CustomListener listener;
 		
-		try {
+		try
+		{
 			listener = loadServerData(attempts);
-		} catch(Throwable t) {
-			DMain.log.error("Something went wrong booting server. Bot is in recovery mode", t);
+		} catch(Throwable t)
+		{
+			Main.log.error("Something went wrong booting server. Bot is in recovery mode", t);
+			sendToOperator("Can't boot: " + t.getLocalizedMessage());
 			listener = new GenericEventHandler(jda);
 		}
 		
 		// Hot fix CAQ template
-//		Guild guild = jda.getGuildById(DMain.SERVER_ID);
-//		Message hi = guild.getTextChannelById(1303051774969512059L).retrieveMessageById(1332187594968272918L).complete();
-//		MessageEmbed embed = hi.getEmbeds().get(0);
-//		EmbedBuilder builder2 = new EmbedBuilder(embed);
-//		builder2.setDescription("<@" + 269872388064280581L + ">" + " of **" + MarkdownSanitizer.sanitize("circle of the wanker 7") + "**\n\n*\"" + "I promise to the people of this wonderful server that I will do everything in my power to make it worse. Much worse." + "\"*");
-//		hi.editMessageEmbeds(builder2.build()).complete();
-//		System.exit(1);
+		// Guild guild = jda.getGuildById(DMain.SERVER_ID);
+		// Message hi = guild.getTextChannelById(1303051774969512059L).retrieveMessageById(1332187594968272918L).complete();
+		// MessageEmbed embed = hi.getEmbeds().get(0);
+		// EmbedBuilder builder2 = new EmbedBuilder(embed);
+		// builder2.setDescription("<@" + 269872388064280581L + ">" + " of **" + MarkdownSanitizer.sanitize("circle of the wanker 7") + "**\n\n*\"" + "I promise to the
+		// people of this wonderful server that I will do everything in my power to make it worse. Much worse." + "\"*");
+		// hi.editMessageEmbeds(builder2.build()).complete();
+		// System.exit(1);
 		
 		jda.addEventListener(listener);
 	}
@@ -289,7 +283,7 @@ public class DMain {
 	 */
 	private CustomListener loadServerData(int attempts) throws IOException
 	{
-		Guild guild = jda.getGuildById(DMain.SERVER_ID);
+		Guild guild = jda.getGuildById(Main.SERVER_ID);
 		
 		if(viewStats)
 		{
@@ -322,14 +316,14 @@ public class DMain {
 		log.info("President: " + (president != null ? president.getEffectiveName() : "does not exist"));
 		
 		// Reset file
-		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("serverData.txt");
+		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("serverData.txt");;
 		boolean usingResetFile = resetFile != null;
 		
 		// Check for reset data as an internal resource
 		// Both files MUST exist
-		if(!usingResetFile && !serverFile.exists())
+		if(!usingResetFile && !serverData.exists())
 		{
-			throw new IllegalStateException("Server file doesn't exist, and reset file wasn't provided");
+			throw new IllegalStateException("Server file doesn't exist, and reset file wasn't provided. Make sure to provide a `serverData.txt` in src/main/resources when testing!");
 		}
 		
 		// If we're using the reset file
@@ -346,28 +340,31 @@ public class DMain {
 			
 			privateChannel.sendMessage("Reset file was provided. Is this correct?\n*Local data will be used if you don't respond.*").addActionRow(Button.primary("yes", "Yes"), Button.danger("no", "No")).queue(message ->
 			{
-				DMain.log.info("Waiting for operator to confirm resetting data");
+				Main.log.info("Waiting for operator to confirm resetting data");
 				
 				tempListener.addButtonAction(message, (event) ->
 				{
 					confirmReset.set(event.getButton().getId().equals("yes"));
 					latch.countDown();
-					DMain.log.info("Operator responded! Reset value: " + confirmReset.get());
+					Main.log.info("Operator responded! Reset value: " + confirmReset.get());
 					
 					// Respond to button press event
 					event.getMessage().delete().queue();
 					event.reply("Reset data set to " + confirmReset.get()).setEphemeral(true).queue();
 				});
-			}, failure -> {
-				DMain.log.error("Failed to send confirmation to operator");
+			}, failure ->
+			{
+				Main.log.error("Failed to send confirmation to operator");
 				latch.countDown();
 			});
 			
 			// Wait until we get a response. Add a timeout in case nothing happens
-			try {
+			try
+			{
 				latch.await(2, TimeUnit.MINUTES);
-			} catch(InterruptedException e) {
-				DMain.log.error("Something went wrong with the countdown latch {}", e);
+			} catch(InterruptedException e)
+			{
+				Main.log.error("Something went wrong with the countdown latch {}", e);
 			}
 			
 			// Update usingResetFile
@@ -376,32 +373,32 @@ public class DMain {
 		}
 		
 		// Use reset file if not there
-		String toRead = usingResetFile ? IOUtils.toString(resetFile, Charsets.UTF_8) : readServerData();
+		String toRead = usingResetFile ? new String(resetFile.readAllBytes(), StandardCharsets.UTF_8) : readServerData();
 		
 		if(usingResetFile && !inIDE)
 		{
 			// Send current data to logs and operator just in case
-			DMain.log.info("Using reset file. Current data before reset:");
-			DMain.log.info(toRead);
-			DMain.sendServerData();
+			Main.log.info("Using reset file. Current data before reset:");
+			Main.log.info(toRead);
+			Main.sendServerData();
 		}
 		
 		// Deserialize (test if data is null or empty)
-		DMain.server = JsonUtils.deserialize(Server.class, toRead);
+		Main.server = JsonUtils.deserialize(Server.class, toRead);
 		
 		// Can be null if the read file is blank
-		if(DMain.server == null)
+		if(Main.server == null)
 		{
 			throw new IllegalStateException("Server file seems to be blank as server == null");
 		}
-//		if(president == null)
-//		{
-//			DMain.sendToOperator("No President could be found");
-//			DMain.server.updatePresident(0);
-//		}
+		// if(president == null)
+		// {
+		// DMain.sendToOperator("No President could be found");
+		// DMain.server.updatePresident(0);
+		// }
 		
 		updateServerData();
-		privateChannel.sendMessage(DMain.BOT_NAME + " is online (reset file == **" + (usingResetFile) + "**, attempts == **" + attempts + "**) running Java version " + System.getProperty("java.version")).complete();
+		privateChannel.sendMessage(Main.BOT_NAME + " is online (reset file == **" + (usingResetFile) + "**, attempts == **" + attempts + "**) running Java version " + System.getProperty("java.version")).complete();
 		return new EventHandler(jda);
 	}
 	
@@ -411,28 +408,29 @@ public class DMain {
 	public static void updateServerData()
 	{
 		// For recovery mode
-		if(!DMain.serverFile.exists())
+		if(!Main.serverData.exists())
 		{
-			DMain.log.warn("Refusing to update server data, serverFile doesn't exist");
+			Main.log.warn("Refusing to update server data, serverFile doesn't exist");
 			return;
 		}
 		
-		DMain.log.info("Updating serverData...");
+		Main.log.info("Updating serverData...");
 		
-		File tempFile = new File(DMain.serverFile.getParent(), "serverData.tmp");
+		File tempFile = new File(Main.serverData.getParent(), "serverData.tmp");
 		
-		try(FileOutputStream stream = new FileOutputStream(DMain.serverFile); FileLock lock = stream.getChannel().lock(); BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile)))
+		try(FileOutputStream stream = new FileOutputStream(Main.serverData); FileLock lock = stream.getChannel().lock(); BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile)))
 		{
 			// Write the updated data to the temporary file
-			String newData = DMain.server.toString();
+			String newData = Main.server.toString();
 			writer.write(newData);
 			writer.flush();
 			
 			// Rename temp file to the original file, atomic operation
-			Files.move(tempFile.toPath(), serverFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			Files.move(tempFile.toPath(), serverData.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			tempFile.delete();
-		} catch(Exception e) {
-			DMain.log.error("Could not update server data", e);
+		} catch(Exception e)
+		{
+			Main.log.error("Could not update server data", e);
 		}
 	}
 	
@@ -444,16 +442,18 @@ public class DMain {
 	public static String readServerData()
 	{
 		// For recovery mode
-		if(!DMain.serverFile.exists())
+		if(!Main.serverData.exists())
 		{
-			DMain.log.warn("Refusing to read server data, serverFile doesn't exist");
+			Main.log.warn("Refusing to read server data, serverFile doesn't exist");
 			return null;
 		}
 		
-		try(FileInputStream stream = new FileInputStream(DMain.serverFile); FileLock lock = stream.getChannel().lock(0, Long.MAX_VALUE, true)) {
-			return Files.readString(DMain.serverFile.toPath(), StandardCharsets.UTF_8);
-		} catch(Throwable t) {
-			DMain.log.error("Failed to read server data", t);
+		try(FileInputStream stream = new FileInputStream(Main.serverData); FileLock lock = stream.getChannel().lock(0, Long.MAX_VALUE, true))
+		{
+			return Files.readString(Main.serverData.toPath(), StandardCharsets.UTF_8);
+		} catch(Throwable t)
+		{
+			Main.log.error("Failed to read server data", t);
 		}
 		
 		return null;
@@ -461,7 +461,7 @@ public class DMain {
 	
 	public static void sendServerData()
 	{
-		privateChannel.sendFiles(FileUpload.fromData(serverFile)).complete();
+		privateChannel.sendFiles(FileUpload.fromData(serverData)).complete();
 	}
 	
 	// TODO: Figure out why this doesn't print an error at all. Like it seems throwable is never called
@@ -471,7 +471,7 @@ public class DMain {
 		privateChannel.sendMessage(text.substring(0, Math.min(text.length(), Message.MAX_CONTENT_LENGTH))).queue(null, (throwable) ->
 		{
 			// If an error occurred, don't error log it again. It would create an endless loop
-			DMain.log.info("Failed to send {} to operator", text, throwable);
+			Main.log.info("Failed to send {} to operator", text, throwable);
 		});
 	}
 	
@@ -493,7 +493,7 @@ public class DMain {
 	{
 		ICommandReference result = null;
 		
-		for(Command command : DMain.commands)
+		for(Command command : Main.commands)
 		{
 			for(Subcommand subcommand : command.getSubcommands())
 			{
@@ -511,27 +511,31 @@ public class DMain {
 		
 		if(result == null)
 		{
-			DMain.log.error("Failed to find command by name {}", fullCommandName);
+			Main.log.error("Failed to find command by name {}", fullCommandName);
 			return "/" + fullCommandName;
 		}
 		
 		return "</" + result.getFullCommandName() + ":" + result.getId() + ">";
 	}
 	
+	// Pulls tokens from gradle.properties (see build.gradle)
 	public static void main(String[] args) throws FileNotFoundException, IOException
 	{
 		if(!inIDE)
 		{
 			Thread runnable = new Thread()
 			{
+				
 				@Override
 				public void run()
 				{
-					try {
+					try
+					{
 						// Set logback to use internal one
-						io.github.freshsupasulley.main.Main.main(new String[] {"--token=" + WEEVE_BOT_TOKEN, "--owner_id=" + WEEVE_OWNER_ID, "--notify_errors"});
-					} catch(Throwable t) {
-						DMain.log.error("Failed to start weeve", t);
+						io.github.freshsupasulley.main.Main.main(args); // tokens passed from gradle.properties
+					} catch(Throwable t)
+					{
+						Main.log.error("Failed to start weeve", t);
 					}
 				}
 			};
@@ -542,9 +546,12 @@ public class DMain {
 		}
 		else
 		{
-			DMain.log.info("In IDE, not running weeve");
+			Main.log.info("In IDE, not running weeve");
 		}
 		
-		new DMain();
+		Map<String, String> map = Stream.of(args).filter(arg -> arg.startsWith("--")).map(arg -> arg.substring(2).split("=", 2)).collect(Collectors.toMap(pair -> pair[0], pair -> pair[1]));
+		DEMOCRACY_BOT_TOKEN = map.get("democracy");
+		GITHUB_ACCESS_TOKEN = map.get("github_access_token");
+		new Main();
 	}
 }

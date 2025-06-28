@@ -1,10 +1,9 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import java.time.Duration;
 import java.util.function.Consumer;
 
-import com.supasulley.utils.JsonUtils;
-
+import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -72,7 +71,7 @@ public abstract class Poll {
 	{
 		if(question.length() > MessagePoll.MAX_QUESTION_TEXT_LENGTH)
 		{
-			DMain.log.error(this.getClass() + " has too long of a question");
+			Main.log.error(this.getClass() + " has too long of a question");
 		}
 		
 		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(getVoteTime()).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
@@ -103,11 +102,11 @@ public abstract class Poll {
 	public void endPoll(JDA jda)
 	{
 		// Refresh channel
-		channel = jda.getGuildById(DMain.SERVER_ID).getTextChannelById(DMain.VOTING_BOOTH);
+		channel = jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.VOTING_BOOTH);
 		
 		Message pollMessage = channel.retrieveMessageById(messageID).onErrorMap(t ->
 		{
-			DMain.log.error("Failed to retrieve poll message", t);
+			Main.log.error("Failed to retrieve poll message", t);
 			return null;
 		}).complete();
 		
@@ -119,7 +118,7 @@ public abstract class Poll {
 		int numYes = poll.getAnswers().get(0).getVotes();
 		int numNo = poll.getAnswers().get(1).getVotes();
 		
-		DMain.log.info("To decide: Yes = " + numYes + ", No = " + numNo);
+		Main.log.info("To decide: Yes = " + numYes + ", No = " + numNo);
 		
 		// Delete voting message
 		pollMessage.delete().queue();
@@ -128,15 +127,15 @@ public abstract class Poll {
 		// Check for ratio
 		if(passesPoll(numYes, numNo))
 		{
-			DMain.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") passed!");
+			Main.log.info("***" + this.getClass().getName() + "*** poll (" + question + ") passed!");
 			channel.sendMessage(getFancyName() + " poll (" + question + ") passed, with a Yes / No ratio of **" + numYes + "** / **" + numNo + "**!").complete();
 			
 			// Perform actions
 			try {
 				performAction(jda);
-				DMain.updateServerData();
+				Main.updateServerData();
 			} catch(Throwable t) {
-				DMain.log.error("Error running action during passed poll", t);
+				Main.log.error("Error running action during passed poll", t);
 			}
 		}
 		else
@@ -144,7 +143,7 @@ public abstract class Poll {
 			// Fancy polling does this for us
 			String failedMsg = getFancyName() + " poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval (Yes / No ratio: **" + numYes + "** / **" + numNo + "**)";
 			channel.sendMessage(failedMsg).complete();
-			DMain.log.info(failedMsg);
+			Main.log.info(failedMsg);
 		}
 		
 		// Matches Server's checkMessageForPollResult function

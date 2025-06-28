@@ -1,4 +1,4 @@
-package com.supasulley.utils;
+package io.github.freshsupasulley.dbot.utils;
 
 import java.util.function.Function;
 
@@ -8,8 +8,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
-import democracy.Poll;
-import democracy.PollAdapter;
+import io.github.freshsupasulley.dbot.Poll;
+import io.github.freshsupasulley.dbot.PollAdapter;
 
 public class JsonUtils {
 	

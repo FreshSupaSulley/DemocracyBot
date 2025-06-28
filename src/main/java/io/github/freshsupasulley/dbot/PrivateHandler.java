@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,12 +13,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.supasulley.utils.JsonUtils;
 
+import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Activity.ActivityType;
@@ -55,9 +53,9 @@ public class PrivateHandler extends MessageHandler {
 											"update*Updates the bot from the latest release in the GitHub repo",
 											"logs*Retrieve logs in a file and clears them",
 											"data*Returns server data",
-											"shutdown*Forces shutdown of " + DMain.BOT_NAME,
-											"reboot*Reboots " + DMain.BOT_NAME,
-											"clear*Clears 100 " + DMain.BOT_NAME + " messages (bots cannot delete your private messages)",
+											"shutdown*Forces shutdown of " + Main.BOT_NAME,
+											"reboot*Reboots " + Main.BOT_NAME,
+											"clear*Clears 100 " + Main.BOT_NAME + " messages (bots cannot delete your private messages)",
 		});
 		
 		this.jda = jda;
@@ -70,16 +68,16 @@ public class PrivateHandler extends MessageHandler {
 			case (0):
 				return handleActivityRequest(message);
 			case (1):
-				Guild guild = jda.getGuildById(DMain.SERVER_ID);
-				guild.addRoleToMember(guild.retrieveMemberById(DMain.OWNER_ID).complete(), DMain.THE_MILITARY).complete();
+				Guild guild = jda.getGuildById(Main.SERVER_ID);
+				guild.addRoleToMember(guild.retrieveMemberById(Main.OWNER_ID).complete(), Main.THE_MILITARY).complete();
 				return "Applied.";
 			case (2):
-				Guild guild2 = jda.getGuildById(DMain.SERVER_ID);
-				guild2.removeRoleFromMember(guild2.retrieveMemberById(DMain.OWNER_ID).complete(), DMain.THE_MILITARY).complete();
+				Guild guild2 = jda.getGuildById(Main.SERVER_ID);
+				guild2.removeRoleFromMember(guild2.retrieveMemberById(Main.OWNER_ID).complete(), Main.THE_MILITARY).complete();
 				return "Removed.";
 			case (3):
-				Guild guild3 = jda.getGuildById(DMain.SERVER_ID);
-				TextChannel constipation = guild3.getTextChannelById(DMain.THE_CONSTIPATION);
+				Guild guild3 = jda.getGuildById(Main.SERVER_ID);
+				TextChannel constipation = guild3.getTextChannelById(Main.THE_CONSTIPATION);
 				List<Message> messages = constipation.getHistory().retrievePast(1).complete();
 				
 				if(messages.size() == 1) messages.get(0).editMessage(message).complete();
@@ -87,7 +85,7 @@ public class PrivateHandler extends MessageHandler {
 				
 				return "Done.";
 			case (4):
-				Guild guild4 = jda.getGuildById(DMain.SERVER_ID);
+				Guild guild4 = jda.getGuildById(Main.SERVER_ID);
 				String result = "";
 				for(TextChannel sample : guild4.getTextChannels())
 				{
@@ -97,7 +95,7 @@ public class PrivateHandler extends MessageHandler {
 			case (5):
 				return handleSayRequest(message);
 			case (6):
-				Guild guild5 = jda.getGuildById(DMain.SERVER_ID);
+				Guild guild5 = jda.getGuildById(Main.SERVER_ID);
 				String output = "";
 				
 				for(Ban ban : guild5.retrieveBanList().complete())
@@ -109,13 +107,13 @@ public class PrivateHandler extends MessageHandler {
 				if(output.isEmpty()) return "No one is banned!";
 				return output.substring(0, output.length() - 1);
 			case (7):
-				Role role = jda.getGuildById(DMain.SERVER_ID).getRoleById(message);
+				Role role = jda.getGuildById(Main.SERVER_ID).getRoleById(message);
 				if(role == null) return "No role found";
 				else return role.getName() + " " + role.getId();
 			case (8):
 				if(!message.contains(" ")) return "Incorrect format";
 				
-				Guild guild6 = jda.getGuildById(DMain.SERVER_ID);
+				Guild guild6 = jda.getGuildById(Main.SERVER_ID);
 				long id = 0;
 				
 				try {
@@ -136,7 +134,7 @@ public class PrivateHandler extends MessageHandler {
 				return "Could not find message ID with ID " + id;
 			case (9):
 			{
-				DMain.server.addAmendment(jda, message);
+				Main.server.addAmendment(jda, message);
 				return "Passed " + message;
 			}
 			case (10):
@@ -148,7 +146,7 @@ public class PrivateHandler extends MessageHandler {
 					return "Not a valid amendment #";
 				}
 				
-				return DMain.server.removeAmendment(jda, amendment);
+				return Main.server.removeAmendment(jda, amendment);
 			}
 			case (11):
 			{
@@ -168,7 +166,7 @@ public class PrivateHandler extends MessageHandler {
 					try(InputStream stream = callGitHubAPI("https://api.github.com/repos/FreshSupaSulley/DemocracyBot/releases/latest").getInputStream())
 					{
 						// For each asset
-						JsonArray array = JsonUtils.parse(IOUtils.toString(stream, StandardCharsets.UTF_8)).getAsJsonObject().get("assets").getAsJsonArray();
+						JsonArray array = JsonUtils.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject().get("assets").getAsJsonArray();
 						JsonObject object = array.asList().stream().map(element -> element.getAsJsonObject()).filter(element -> element.get("name").getAsString().equals("DemocracyBot.jar")).findFirst().orElse(null);
 						
 						if(object != null)
@@ -182,44 +180,44 @@ public class PrivateHandler extends MessageHandler {
 						return "Failed to find latest DBot release";
 					}
 					
-					DMain.sendToOperator("Updating from \"" + assetURL + "\"");
+					Main.sendToOperator("Updating from \"" + assetURL + "\"");
 					
 					HttpURLConnection connection = callGitHubAPI(assetURL);
 					connection.setRequestProperty("Accept", "application/octet-stream");
 					
 					try(InputStream stream = connection.getInputStream())
 					{
-						DMain.log.info("Downloading to " + JAR_FILE.getAbsolutePath());
+						Main.log.info("Downloading to " + JAR_FILE.getAbsolutePath());
 						Files.copy(stream, JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						
 						// Done downloading, reboot
-						DMain.sendToOperator("Done!");
+						Main.sendToOperator("Done!");
 						reboot();
 					} catch(Exception e)
 					{
 						// This should send to operator
-						DMain.log.error("Failed to update jar", e);
+						Main.log.error("Failed to update jar", e);
 					}
 					
 		            return null;
 				} catch(Exception e) {
-					DMain.log.error("Failed to update", e);
-					return "An error occured updating " + DMain.BOT_NAME;
+					Main.log.error("Failed to update", e);
+					return "An error occured updating " + Main.BOT_NAME;
 				}
 			}
 			case (13):
 				return "refer to weeve";
 			case (14):
-				DMain.updateServerData();
-				DMain.sendServerData();
+				Main.updateServerData();
+				Main.sendServerData();
 				return null;
 			case (15):
-				DMain.updateServerData();
-				DMain.shutdown();
+				Main.updateServerData();
+				Main.shutdown();
 				return null;
 			case (16):
 			{
-				DMain.updateServerData();
+				Main.updateServerData();
 				reboot();
 				return "Rebootin";
 			}
@@ -234,7 +232,7 @@ public class PrivateHandler extends MessageHandler {
 					if(sample.isPinned())
 						continue;
 					
-					boolean isBot = sample.getAuthor().getIdLong() == DMain.BOT_ID;
+					boolean isBot = sample.getAuthor().getIdLong() == Main.BOT_ID;
 					
 					if(isBot || getCommand(true, sample.getContentDisplay()) != null)
 					{
@@ -268,7 +266,7 @@ public class PrivateHandler extends MessageHandler {
 		URL url = new URL(path);
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("GET");
-		connection.setRequestProperty("Authorization", "Bearer " + DMain.GITHUB_ACCESS_TOKEN);
+		connection.setRequestProperty("Authorization", "Bearer " + Main.GITHUB_ACCESS_TOKEN);
 		return connection;
 	}
 	
@@ -317,7 +315,7 @@ public class PrivateHandler extends MessageHandler {
 	 */
 	public static void reboot()
 	{
-		DMain.updateServerData();
+		Main.updateServerData();
 		
 		// Reboot
 		try {

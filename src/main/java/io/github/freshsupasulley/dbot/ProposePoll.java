@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -16,7 +16,7 @@ public class ProposePoll extends Poll {
 	@Override
 	protected void performAction(JDA jda)
 	{
-		DMain.server.addAmendment(jda, proposal);
+		Main.server.addAmendment(jda, proposal);
 	}
 	
 	@Override

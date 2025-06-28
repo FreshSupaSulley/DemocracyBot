@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import net.dv8tion.jda.api.entities.Role;
 

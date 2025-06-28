@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import java.awt.Color;
 
@@ -57,14 +57,14 @@ public class MessageHandler {
 		for(int i = 0; i < this.commands.length - 1; i++)
 		{
 			String command = this.commands[i];
-			result += "**" + DMain.DEFAULT_PREFIX + command + "**" + (commandErrors[i].length() > 0 ? " (`" + command + " " + "'" + commandErrors[i] + "'`)" : "") + (commandDescriptions[i].length() > 0 ? " -- " + commandDescriptions[i] : "") + "\n";
+			result += "**" + Main.DEFAULT_PREFIX + command + "**" + (commandErrors[i].length() > 0 ? " (`" + command + " " + "'" + commandErrors[i] + "'`)" : "") + (commandDescriptions[i].length() > 0 ? " -- " + commandDescriptions[i] : "") + "\n";
 		}
 		
 		// Store standard + secret EmbedBuilders. Insert the command prefix when asked
 		EmbedBuilder e = new EmbedBuilder();
-		e.setTitle(DMain.BOT_NAME + " Usage");
+		e.setTitle(Main.BOT_NAME + " Usage");
 		e.setColor(new Color(149, 177, 255)); // burple
-		e.setDescription(result.substring(0, result.length() - 1) + "\n\n*All votes are found in <#" + DMain.VOTING_BOOTH + ">*");
+		e.setDescription(result.substring(0, result.length() - 1) + "\n\n*All votes are found in <#" + Main.VOTING_BOOTH + ">*");
 		helpEmbed = e.build();
 	}
 	
@@ -95,7 +95,7 @@ public class MessageHandler {
 			}
 			
 			int space = message.indexOf(" ");
-			if((DMain.DEFAULT_PREFIX + command).equals(message.substring(0, (space == -1 ? message.length() : space)))) return command;
+			if((Main.DEFAULT_PREFIX + command).equals(message.substring(0, (space == -1 ? message.length() : space)))) return command;
 		}
 		
 		return null;

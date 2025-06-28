@@ -1,4 +1,4 @@
-package democracy;
+package io.github.freshsupasulley.dbot;
 
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -21,7 +21,7 @@ public abstract class CustomListener extends ListenerAdapter {
 		}
 		else
 		{
-			DMain.log.warn("Message received, not guild or private message?", event);
+			Main.log.warn("Message received, not guild or private message?", event);
 		}
 	}
 	

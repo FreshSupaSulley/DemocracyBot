@@ -1,4 +1,4 @@
-package com.supasulley.utils;
+package io.github.freshsupasulley.dbot.utils;
 
 import java.util.function.BiConsumer;
 

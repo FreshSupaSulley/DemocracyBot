@@ -1,0 +1,65 @@
+plugins {
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Weeve
+    implementation files('libs/weeve.jar')
+    // Logback
+    implementation 'ch.qos.logback:logback-classic:1.4.7'
+    // Gson
+    implementation 'com.google.code.gson:gson:2.10.1'
+    // JDA
+    implementation 'net.dv8tion:JDA:5.2.1'
+    
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+application {
+    // Define the main class for the application.
+    mainClass = 'io.github.freshsupasulley.dbot.Main'
+}
+
+run {
+    args = project.properties.collect { key, value -> "--${key}=${value}" }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+shadowJar {
+	archiveClassifier.set('')
+    manifest {
+        attributes(
+            'Main-Class': application.mainClass.get()
+        )
+    }
+}
+
+tasks.named("distZip") {
+    dependsOn(tasks.shadowJar)
+}
+
+tasks.named("distTar") {
+    dependsOn(tasks.shadowJar)
+}
+
+tasks.named("startScripts") {
+    dependsOn(tasks.shadowJar)
+}
+
+tasks.jar.enabled = false
+tasks.build.dependsOn tasks.shadowJar
