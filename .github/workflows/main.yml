@@ -13,12 +13,22 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11' # Dbot uses java 11
+
       # Weeve activities
       - name: Build weeve
         run: |
+          echo I AM HERE
           git clone https://github.com/FreshSupaSulley/weeve.git
+          echo I AM HERE2
           ./weeve/gradlew build
+          echo I AM HERE3
           mkdir -p libs
+          echo I AM HER4
           cp weeve/build/libs/weeve.jar libs/weeve.jar
 
       - name: Create gradle.properties for tokens
@@ -32,17 +42,10 @@ jobs:
           echo "democracy=${{ secrets.DEMOCRACY }}" >> gradle.properties
           echo "github_access_token=${{ secrets.GHAC }}" >> gradle.properties
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '11' # Dbot uses java 11
-
-      - name: Grant execute permission for Gradle
-        run: chmod +x gradlew
-
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Build jar
+        run: |
+          chmod +x gradlew
+          ./gradlew build
 
         # I hope no one can see this
       - name: Upload JAR as private artifact
@@ -53,7 +56,7 @@ jobs:
     
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        # with:
-        #   files: build/libs/*.jar
+        with:
+          files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # this one is built-in
