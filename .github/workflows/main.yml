@@ -22,12 +22,11 @@ jobs:
       # Weeve activities
       - name: Build weeve
         run: |
-          git clone https://github.com/FreshSupaSulley/weeve.git
+          git clone --recursive https://github.com/FreshSupaSulley/weeve.git
           cd weeve
-          chmod +x gradlew
           ./gradlew build
           cd ..
-          mkdir -p libs
+          mkdir libs
           cp weeve/build/libs/weeve.jar libs/weeve.jar
 
       - name: Create gradle.properties for tokens
@@ -43,7 +42,6 @@ jobs:
 
       - name: Build jar
         run: |
-          chmod +x gradlew
           ./gradlew build
 
         # I hope no one can see this
