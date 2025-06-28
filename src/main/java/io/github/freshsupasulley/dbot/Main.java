@@ -84,6 +84,8 @@ public class Main {
 										TEST_CHANNEL = 1105627214587904010L;
 	public static long THE_WHITE_HOUSE_CATEGORY = 1102050716819918948L, MAGNA_FARTA_CATEGORY = 1102050764756635668L;
 	
+	public static long GITHUB_WEBHOOK_ID = 1388537076621770793L;
+	
 	// Roles
 	public static long THE_MILITARY_ID = 1102048289202917442L, THE_PRESIDENT_ID = 1102055622981206086L,
 										VOTER_ID = 1102055806159028347L;
@@ -152,7 +154,8 @@ public class Main {
 		
 		// JDA will reconnect after a very long period of downtime (I tested up to 3-4 hours)
 		// JDA will immediately fail if you try to create the bot when the internet is unavailable
-		JDABuilder builder = JDABuilder.createLight(DEMOCRACY_BOT_TOKEN).setAutoReconnect(true).enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT).setContextMap(null);
+		// setting eventPassthrough so I can see raw data when debugging (ONLY IN IDE THOUGH!)
+		JDABuilder builder = JDABuilder.createLight(DEMOCRACY_BOT_TOKEN).setAutoReconnect(true).enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT).setContextMap(null).setEventPassthrough(inIDE);
 		int attempts = 0;
 		
 		for(; jda == null; attempts++)
@@ -252,6 +255,8 @@ public class Main {
 		
 		try
 		{
+			// Create bot data if we need to
+			Main.serverData.createNewFile();
 			listener = loadServerData(attempts);
 		} catch(Throwable t)
 		{
@@ -314,12 +319,12 @@ public class Main {
 		
 		log.info("President: " + (president != null ? president.getEffectiveName() : "does not exist"));
 		
-		// Reset file
-		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("serverData.txt");;
+		// Reset file (named differently than serverData to avoid confusion with botData/serverData, which is only generated when testing dbot in the IDE)
+		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("resetData.txt");
 		boolean usingResetFile = resetFile != null;
 		
 		// Check for reset data as an internal resource
-		// Both files MUST exist
+		// At least one of these files MUST exist
 		if(!usingResetFile && !serverData.exists())
 		{
 			throw new IllegalStateException("Server file doesn't exist, and reset file wasn't provided. Make sure to provide a `serverData.txt` in src/main/resources when testing!");
@@ -407,6 +412,7 @@ public class Main {
 	public static void updateServerData()
 	{
 		// For recovery mode
+		// ^ what does this mean? We create Main.serverData now if it doesn't exist...
 		if(!Main.serverData.exists())
 		{
 			Main.log.warn("Refusing to update server data, serverFile doesn't exist");

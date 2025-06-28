@@ -3,9 +3,15 @@ package io.github.freshsupasulley.dbot;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
@@ -68,9 +74,34 @@ public class GenericEventHandler extends CustomListener {
 	@Override
 	public final void onGuildMessageReceived(MessageReceivedEvent event)
 	{
-		if(event.getChannel().getIdLong() != Main.GITHUB) return;
+		// Only consider the webhook build successes
+		if(event.getChannel().getIdLong() != Main.GITHUB || event.getAuthor().getIdLong() != Main.GITHUB_WEBHOOK_ID)
+			return;
 		
-		Main.sendToOperator(event.getRawData().toPrettyString());
+		// We have the priviledged intent for this
+		try
+		{
+			// Get the artifact associated with the run ID
+			JsonArray array = JsonParser.parseString(PrivateHandler.callGitHub("GET", "/actions/runs/" + event.getMessage().getContentRaw() + "/artifacts", null)).getAsJsonObject().get("artifacts").getAsJsonArray();
+			if(array.size() != 1) throw new IllegalStateException("Artifact size != 1!");
+			
+			String id = array.get(0).getAsJsonObject().get("id").getAsString();
+			Main.log.info("Downloading artifact with ID: {}", id);
+			
+			try(InputStream stream = PrivateHandler.initGitHubRequest("GET", "https://api.github.com/repos/FreshSupaSulley/DemocracyBot/actions/artifacts/" + id + "/zip", null))
+			{
+				Main.log.info("Downloading to " + PrivateHandler.JAR_FILE.getAbsolutePath());
+				Files.copy(stream, PrivateHandler.JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				
+				// Done downloading, reboot
+				Main.sendToOperator("Done!");
+				PrivateHandler.reboot();
+			}
+		} catch(Exception e)
+		{
+			// This should send to operator
+			Main.log.error("Failed to update jar", e);
+		}
 	}
 	
 	/**

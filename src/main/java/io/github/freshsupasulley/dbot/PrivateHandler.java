@@ -3,20 +3,19 @@ package io.github.freshsupasulley.dbot;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.JsonArray;
+import javax.annotation.Nullable;
+
 import com.google.gson.JsonObject;
 
-import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Activity.ActivityType;
@@ -37,25 +36,7 @@ public class PrivateHandler extends MessageHandler {
 	
 	public PrivateHandler(JDA jda)
 	{
-		super(new String[] {
-											"activity*Change what DBot is doing*(\"default\", \"competing\", \"listening\", \"streaming\", \"watching\", \"none\") + content",
-											"enroll*Join the military for administrator access",
-											"unenroll*Leave the military",
-											"constitution*Change text in constitution",
-											"channels*Get channel IDs",
-											"say*Say a message in a channel*channel ID",
-											"unbanAll*Unbans all members from Discordia",
-											"role*Get role from ID",
-											"edit*Edits a message*message ID + new text",
-											"amendment*Force pass an amendment*text",
-											"unamendment*Force remove an amendment*text",
-											"ip*Retrieves local IP address",
-											"update*Updates the bot from the latest release in the GitHub repo",
-											"logs*Retrieve logs in a file and clears them",
-											"data*Returns server data",
-											"shutdown*Forces shutdown of " + Main.BOT_NAME,
-											"reboot*Reboots " + Main.BOT_NAME,
-											"clear*Clears 100 " + Main.BOT_NAME + " messages (bots cannot delete your private messages)",
+		super(new String[] {"activity*Change what DBot is doing*(\"default\", \"competing\", \"listening\", \"streaming\", \"watching\", \"none\") + content", "enroll*Join the military for administrator access", "unenroll*Leave the military", "constitution*Change text in constitution", "channels*Get channel IDs", "say*Say a message in a channel*channel ID", "unbanAll*Unbans all members from Discordia", "role*Get role from ID", "edit*Edits a message*message ID + new text", "amendment*Force pass an amendment*text", "unamendment*Force remove an amendment*text", "ip*Retrieves local IP address", "update*Updates the bot from the latest release in the GitHub repo", "logs*Retrieve logs in a file and clears them", "data*Returns server data", "shutdown*Forces shutdown of " + Main.BOT_NAME, "reboot*Reboots " + Main.BOT_NAME, "clear*Clears 100 " + Main.BOT_NAME + " messages (bots cannot delete your private messages)",
 		});
 		
 		this.jda = jda;
@@ -80,8 +61,10 @@ public class PrivateHandler extends MessageHandler {
 				TextChannel constipation = guild3.getTextChannelById(Main.THE_CONSTIPATION);
 				List<Message> messages = constipation.getHistory().retrievePast(1).complete();
 				
-				if(messages.size() == 1) messages.get(0).editMessage(message).complete();
-				else constipation.sendMessage(message).queue();
+				if(messages.size() == 1)
+					messages.get(0).editMessage(message).complete();
+				else
+					constipation.sendMessage(message).queue();
 				
 				return "Done.";
 			case (4):
@@ -104,30 +87,38 @@ public class PrivateHandler extends MessageHandler {
 					guild5.unban(ban.getUser());
 				}
 				
-				if(output.isEmpty()) return "No one is banned!";
+				if(output.isEmpty())
+					return "No one is banned!";
 				return output.substring(0, output.length() - 1);
 			case (7):
 				Role role = jda.getGuildById(Main.SERVER_ID).getRoleById(message);
-				if(role == null) return "No role found";
-				else return role.getName() + " " + role.getId();
+				if(role == null)
+					return "No role found";
+				else
+					return role.getName() + " " + role.getId();
 			case (8):
-				if(!message.contains(" ")) return "Incorrect format";
+				if(!message.contains(" "))
+					return "Incorrect format";
 				
 				Guild guild6 = jda.getGuildById(Main.SERVER_ID);
 				long id = 0;
 				
-				try {
+				try
+				{
 					id = Long.parseLong(message.substring(0, message.indexOf(" ")));
-				} catch(NumberFormatException e) {
+				} catch(NumberFormatException e)
+				{
 					return "Not a valid ID";
 				}
 				
 				for(TextChannel sample : guild6.getTextChannels())
 				{
-					try {
+					try
+					{
 						sample.editMessageById(id, message.substring(message.indexOf(" ") + 1)).complete();
 						return "Edited.";
-					} catch(Exception e) {
+					} catch(Exception e)
+					{
 						continue;
 					}
 				}
@@ -140,9 +131,11 @@ public class PrivateHandler extends MessageHandler {
 			case (10):
 			{
 				int amendment;
-				try {
+				try
+				{
 					amendment = Integer.parseInt(message);
-				} catch(Exception e) {
+				} catch(Exception e)
+				{
 					return "Not a valid amendment #";
 				}
 				
@@ -150,59 +143,29 @@ public class PrivateHandler extends MessageHandler {
 			}
 			case (11):
 			{
-				try (Socket socket = new Socket()) {
+				try(Socket socket = new Socket())
+				{
 					socket.connect(new InetSocketAddress("google.com", 80));
 					return socket.getLocalAddress().getHostAddress();
-				} catch(IOException e) {
+				} catch(IOException e)
+				{
 					return "Could not access IP address: " + e.toString();
 				}
 			}
-			case(12):
+			case (12):
 			{
-				try {
-					String assetURL = null;
-					
-					// Get DemocracyBot.jar asset URL
-					try(InputStream stream = callGitHubAPI("https://api.github.com/repos/FreshSupaSulley/DemocracyBot/releases/latest").getInputStream())
-					{
-						// For each asset
-						JsonArray array = JsonUtils.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject().get("assets").getAsJsonArray();
-						JsonObject object = array.asList().stream().map(element -> element.getAsJsonObject()).filter(element -> element.get("name").getAsString().equals("DemocracyBot.jar")).findFirst().orElse(null);
-						
-						if(object != null)
-						{
-							assetURL = object.getAsJsonObject().get("url").getAsString();
-						}
-					}
-					
-					if(assetURL == null)
-					{
-						return "Failed to find latest DBot release";
-					}
-					
-					Main.sendToOperator("Updating from \"" + assetURL + "\"");
-					
-					HttpURLConnection connection = callGitHubAPI(assetURL);
-					connection.setRequestProperty("Accept", "application/octet-stream");
-					
-					try(InputStream stream = connection.getInputStream())
-					{
-						Main.log.info("Downloading to " + JAR_FILE.getAbsolutePath());
-						Files.copy(stream, JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
-						
-						// Done downloading, reboot
-						Main.sendToOperator("Done!");
-						reboot();
-					} catch(Exception e)
-					{
-						// This should send to operator
-						Main.log.error("Failed to update jar", e);
-					}
-					
-		            return null;
-				} catch(Exception e) {
-					Main.log.error("Failed to update", e);
-					return "An error occured updating " + Main.BOT_NAME;
+				if(Main.inIDE)
+					return "in IDE! Why are you tryna update prod from a dev env??";
+				
+				try
+				{
+					JsonObject json = new JsonObject();
+					json.addProperty("ref", "main");
+					return callGitHub("PUT", "/actions/workflows/update.yaml/dispatches", json.toString());
+				} catch(IOException e)
+				{
+					Main.log.error("Failed to trigger update workflow", e);
+					return e.getLocalizedMessage();
 				}
 			}
 			case (13):
@@ -261,13 +224,41 @@ public class PrivateHandler extends MessageHandler {
 		}
 	}
 	
-	private HttpURLConnection callGitHubAPI(String path) throws IOException
+	/**
+	 * Calls the GitHub API for bot updating purposes.
+	 * 
+	 * @param method HTTP method (e.g., GET, POST, PUT)
+	 * @param path   API endpoint to hit (e.g., /actions/...), or absolute path (if it starts with http)
+	 * @return responses
+	 * @throws IOException if something goes wrong
+	 */
+	public static InputStream initGitHubRequest(String method, String path, @Nullable String body) throws IOException
 	{
-		URL url = new URL(path);
+		URL url = new URL(path.startsWith("http") ? path : "https://api.github.com/repos/FreshSupaSulley/DemocracyBot" + path);
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod("GET");
+		connection.setRequestMethod(method);
 		connection.setRequestProperty("Authorization", "Bearer " + Main.GITHUB_ACCESS_TOKEN);
-		return connection;
+		
+		if(body != null)
+		{
+			connection.setDoOutput(true);
+			
+			try(OutputStream os = connection.getOutputStream())
+			{
+				byte[] input = body.getBytes(StandardCharsets.UTF_8);
+				os.write(input, 0, input.length);
+			}
+		}
+		
+		Main.log.info("Sending GH request to {}", url);
+		return connection.getInputStream();
+	}
+	
+	public static String callGitHub(String method, String path, @Nullable String body) throws IOException
+	{
+		String result = new String(initGitHubRequest(method, path, body).readAllBytes(), StandardCharsets.UTF_8);
+		Main.log.info("Response from GH: {}", result);
+		return result;
 	}
 	
 	private String handleActivityRequest(String message)
@@ -318,10 +309,12 @@ public class PrivateHandler extends MessageHandler {
 		Main.updateServerData();
 		
 		// Reboot
-		try {
+		try
+		{
 			Process p = Runtime.getRuntime().exec("sudo reboot");
 			p.waitFor();
-		} catch(InterruptedException | IOException e) {
+		} catch(InterruptedException | IOException e)
+		{
 			System.err.println("An error occured rebooting bot");
 			e.printStackTrace();
 		}
