@@ -1,0 +1,44 @@
+name: Build DemocracyBot
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v1.0.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Create gradle.properties
+        run: |
+          # Weeve (yall can know my discord acc thats cool)
+          echo "token=${{ secrets.WEEVE }}" >> gradle.properties
+          echo "test_token=${{ secrets.OBAMA_BOT }}" >> gradle.properties
+          echo "owner_id=276886864525262849" >> gradle.properties
+          echo "notify_errors=true" >> gradle.properties
+          # Dbot
+          echo "democracy=${{ secrets.DEMOCRACY }}" >> gradle.properties
+          echo "github_access_token=${{ secrets.GHAC }}" >> gradle.properties
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11' # Dbot uses java 11
+
+      - name: Grant execute permission for Gradle
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # this one is built-in
