@@ -48,7 +48,13 @@ jobs:
         with:
           name: DemocracyBot
           path: build/libs/*.jar
-    
+
+      - name: Notify DemocracyBot
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{"content": "${{ github.run_id }}"}' \
+          https://discord.com/api/webhooks/1388537076621770793/O4OrWaDJUDKUnsReFy1fJiG6zwOYk-flBT1rYCq4g46062_6r_wx2NOL_J9AsShNI7Ef
       # - name: Create GitHub Release
       #   uses: softprops/action-gh-release@v2
       #   with:
