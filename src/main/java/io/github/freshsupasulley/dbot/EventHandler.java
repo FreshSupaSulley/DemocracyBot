@@ -292,7 +292,7 @@ public class EventHandler extends GenericEventHandler {
 			{
 				String content = event.getOption("amendment").getAsString();
 				
-				content = MarkdownSanitizer.sanitize(content);
+				content = MarkdownSanitizer.escape(content);
 				
 				// Add the poll
 				Main.server.beginPoll(event, new ProposePoll(jda.getTextChannelById(Main.VOTING_BOOTH), content));
