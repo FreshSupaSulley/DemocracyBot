@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -21,6 +21,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDA.Status;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
@@ -38,6 +39,8 @@ import net.dv8tion.jda.api.requests.CloseCode;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 public class EventHandler extends GenericEventHandler {
+	
+	private static final String BAD_HEX_RESPONSE = "Invalid hex color code. Click [here](<https://rgbcolorcode.com>) for a generator";
 	
 	// 1 minute per tick
 	private static final long TICK_TIME = 60000;
@@ -145,10 +148,16 @@ public class EventHandler extends GenericEventHandler {
 					// ENTER EDIT SUBCOMMAND!
 					PoliticalParty party = sender.getPoliticalParty();
 					
-					// Ensure this is the party owner
-					if(sender.getID() != Optional.ofNullable(party).map(PoliticalParty::getOwnerID).orElse(0L))
+					// Ensure this is the party leader
+					if(party == null)
 					{
-						event.reply("Party owner only (" + MarkdownSanitizer.escape(guild.getMemberById(party.getOwnerID()).getEffectiveName()) + ")").queue();
+						event.reply("You aren't in a party").queue();
+						break;
+					}
+					
+					if(sender.getID() != party.getLeaderID())
+					{
+						event.reply("Party leader only (" + MarkdownSanitizer.escape(guild.getMemberById(party.getLeaderID()).getEffectiveName()) + ")").queue();
 						break;
 					}
 					
@@ -160,7 +169,7 @@ public class EventHandler extends GenericEventHandler {
 							
 							if(Main.server.partyNameCollision(guild, name))
 							{
-								event.reply("There's already a party with that name!").queue();
+								event.reply("There's already a party with that name").queue();
 								break;
 							}
 							
@@ -180,7 +189,7 @@ public class EventHandler extends GenericEventHandler {
 							
 							if(color == null)
 							{
-								event.reply("Invalid hex color code. Click [here](rgbcolorcode.com) for help.").queue();
+								event.reply(BAD_HEX_RESPONSE).queue();
 								break;
 							}
 							
@@ -192,6 +201,47 @@ public class EventHandler extends GenericEventHandler {
 								event.reply(Main.ERROR_MSG).queue();
 							});
 							
+							break;
+						}
+						case "transfer":
+						{
+							Member member = event.getOption("user").getAsMember();
+							
+							// I specified OptionType.USER, but apparently that can return a user that's not in this guild? Idk, just a safety net
+							if(member == null)
+							{
+								Main.log.error("Mentioned {}, but that apparently isn't a member...?", member);
+								event.reply("Unknown user").queue();
+								break;
+							}
+							
+							if(member.getUser().isBot() || member.getUser().isSystem())
+							{
+								event.reply("Bots don't have rights :robot:").queue();
+								break;
+							}
+							
+							// Check if member is part of the leader's party
+							ServerMember mentioned = Main.server.getMember(member.getUser());
+							
+							// There's a null check in .equals dw
+							if(!sender.getPoliticalParty().equals(mentioned.getPoliticalParty()))
+							{
+								event.reply("That user isn't a member of your party").queue();
+								break;
+							}
+							
+							// Stop from transferring to themselves
+							if(mentioned.getID() == sender.getID())
+							{
+								event.reply("You're already the leader").queue();
+								return;
+							}
+							
+							// Transfer ownership
+							mentioned.getPoliticalParty().setLeader(mentioned.getID());
+							Main.updateServerData();
+							event.reply("Transferred leadership of your party to <@" + mentioned.getID() + ">").queue();
 							break;
 						}
 					}
@@ -214,16 +264,16 @@ public class EventHandler extends GenericEventHandler {
 							
 							if(Main.server.partyNameCollision(guild, name))
 							{
-								event.reply("There's already a party with that name!").queue();
+								event.reply("There's already a party with that name").queue();
 								return;
 							}
 							
 							int randomColor = (int) (Math.random() * 0x1000000); // generate a default hex if not provided (color is optional)
-							Color color = validateHex(event.getOption("color", String.format("#%06X", randomColor), OptionMapping::getAsString));
+							Color color = validateHex(event.getOption("color", String.format("%06X", randomColor), OptionMapping::getAsString));
 							
 							if(color == null)
 							{
-								event.reply("Invalid hex color code. Click [here](rgbcolorcode.com) for help.").queue();
+								event.reply(BAD_HEX_RESPONSE).queue();
 								break;
 							}
 							
@@ -235,9 +285,14 @@ public class EventHandler extends GenericEventHandler {
 							AtomicReference<Category> createdCategory = new AtomicReference<>();
 							List<GuildChannel> createdChannels = new ArrayList<>();
 							
-							guild.createRole().setName(name + " Party").setColor(color).submit().thenCompose(role ->
+							guild.createRole().setName(name).setColor(color).submit().thenCompose(role ->
 							{
 								createdRole.set(role);
+								// Hoist it above citizen so the colors show
+								int targetIndex = 2;
+								return guild.modifyRolePositions().selectPosition(role).moveTo(targetIndex).submit().thenApply(__ -> role);
+							}).thenCompose(role ->
+							{
 								return guild.addRoleToMember(user, role).submit().thenApply(__ -> role);
 							}).thenCompose(role -> guild.createCategory(role.getName()).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenApply(category ->
 							{
@@ -255,8 +310,13 @@ public class EventHandler extends GenericEventHandler {
 								return CompletableFuture.allOf(textFuture, voiceFuture);
 							}).thenRun(() ->
 							{
-								event.getHook().sendMessage("Congratulations :tada:! You are now the proud owner of the <@&" + createdRole.get().getId() + "> party!").queue();
-								Main.server.addPoliticalParty(new PoliticalParty(createdRole.get().getIdLong(), createdCategory.get().getIdLong(), user.getIdLong()));
+								// Create the party and set the sender to be a member of it
+								PoliticalParty party = new PoliticalParty(createdRole.get().getIdLong(), createdCategory.get().getIdLong(), user.getIdLong());
+								Main.server.createPoliticalParty(party);
+								sender.setPoliticalParty(party);
+								Main.updateServerData();
+								
+								event.getHook().sendMessage("Congratulations! :tada: You are now the proud leader of the <@&" + createdRole.get().getId() + "> party!").setAllowedMentions(Set.of()).queue();
 							}).exceptionally(e ->
 							{
 								Main.log.error("Party creation failed", e);
@@ -305,18 +365,11 @@ public class EventHandler extends GenericEventHandler {
 							// If the user is already in a political party
 							if(sender.getPoliticalParty() != null)
 							{
-								event.reply("You already belong to a party!").queue();
+								event.reply(role.getIdLong() == sender.getPoliticalParty().getRole() ? "You're already in this party" : "You already belong to a party").queue();
 								return;
 							}
 							
-							// Check if we're already in this party
-							if(role.getIdLong() == sender.getPoliticalParty().getRole())
-							{
-								event.reply("You're already in this party!").queue();
-								return;
-							}
-							
-							PoliticalParty party = Main.server.getParty(role);
+							PoliticalParty party = Main.server.getParty(role.getIdLong());
 							
 							// If the role mentioned is an actual political party
 							if(party == null)
@@ -336,7 +389,7 @@ public class EventHandler extends GenericEventHandler {
 							guild.addRoleToMember(user, role).queue(done ->
 							{
 								// id rather not mention roles in order to avoid pinging the entire party
-								event.reply("Joined the **" + MarkdownSanitizer.escape(role.getName()) + "** party!").queue();
+								event.reply("Joined <@&" + role.getId() + ">").setAllowedMentions(Set.of()).queue();
 								sender.setPoliticalParty(party);
 								Main.updateServerData();
 							}, e ->
@@ -370,15 +423,15 @@ public class EventHandler extends GenericEventHandler {
 							// return;
 							// }
 							
-							// If this is the owner
+							// If this is the leader
 							PoliticalParty party = sender.getPoliticalParty();
 							// Should never be null...? right?
 							Role role = guild.getRoleById(party.getRole());
 							
-							if(party.getOwnerID() == user.getIdLong())
+							if(party.getLeaderID() == user.getIdLong())
 							{
-								// If the owner is the only one who remains
-								if(Main.server.getPartyMembers(user.getIdLong()).size() == 1)
+								// If the leader is the only one who remains
+								if(Main.server.getPartyMembers(party).size() == 1)
 								{
 									// This might take a while
 									event.deferReply().queue();
@@ -386,6 +439,11 @@ public class EventHandler extends GenericEventHandler {
 									Main.server.deletePartyAndChannels(party, guild).thenAccept(status ->
 									{
 										event.getHook().sendMessage(status ? "Party deleted" : Main.ERROR_MSG).queue();
+									}).exceptionally(e ->
+									{
+										Main.log.error("Failed to delete party", e);
+										event.getHook().sendMessage(Main.ERROR_MSG).queue();
+										return null;
 									});
 									
 									return;
@@ -403,7 +461,7 @@ public class EventHandler extends GenericEventHandler {
 								
 								guild.removeRoleFromMember(user, role).queue(done ->
 								{
-									event.reply("Left **" + MarkdownSanitizer.escape(role.getName()) + "**").queue();
+									event.reply("Left <@&" + role.getId() + ">").setAllowedMentions(Set.of()).queue();
 									Main.updateServerData();
 								}, e ->
 								{
@@ -417,42 +475,42 @@ public class EventHandler extends GenericEventHandler {
 						case "info":
 						{
 							// Should never be null...? right?
-							Role party = event.getOption("party").getAsRole();
+							Role role = event.getOption("party").getAsRole();
 							
 							// If the role mentioned is an actual political party
-							if(!Main.server.isParty(party))
+							if(!Main.server.isParty(role))
 							{
 								event.reply("That role isn't a political party").queue();
 								return;
 							}
 							
-							List<ServerMember> members = Main.server.getPartyMembers(party.getIdLong());
+							List<ServerMember> members = Main.server.getPartyMembers(Main.server.getParty(role.getIdLong()));
 							StringBuilder description = new StringBuilder("**Party members** (" + members.size() + " total):");
 							
 							for(int i = 0; i < Math.min(15, members.size()); i++)
 							{
-								description.append("\n- <@" + members.get(i) + ">");
+								description.append("\n- <@" + members.get(i).getID() + ">");
 							}
 							
 							if(members.size() > 15)
 								description.append("\n... and ").append(members.size() - 15).append(" more");
 							
-							// Owner is guaranteed to not be null at this point
+							// Leader is guaranteed to not be null at this point
 							EmbedBuilder builder = new EmbedBuilder();
-							builder.setColor(party.getColor());
-							builder.setTitle(party.getName());
+							builder.setColor(role.getColor());
+							builder.setTitle(role.getName());
 							builder.setDescription(description);
 							
-							// In case the owner left the party (this should be picked up by a party deleter function)
-							guild.retrieveMemberById(Main.server.getParty(party).getOwnerID()).queue(owner ->
+							// In case the leader left the party (this should be picked up by a party deleter function)
+							guild.retrieveMemberById(Main.server.getParty(role.getIdLong()).getLeaderID()).queue(leader ->
 							{
-								String ownerName = owner != null ? owner.getEffectiveName() : "Unknown";
+								String leaderName = leader != null ? leader.getEffectiveName() : "Unknown";
 								
-								builder.setFooter("Soverign of the Party – " + MarkdownSanitizer.escape(ownerName), user.getEffectiveAvatarUrl());
+								builder.setFooter("Led by " + MarkdownSanitizer.escape(leaderName), user.getEffectiveAvatarUrl());
 								event.replyEmbeds(builder.build()).queue();
 							}, e ->
 							{
-								Main.log.error("Failed to get party info");
+								Main.log.error("Failed to get party info", e);
 								event.reply(Main.ERROR_MSG).queue();
 							});
 							
@@ -460,20 +518,10 @@ public class EventHandler extends GenericEventHandler {
 						}
 					}
 				}
+				
+				// Exit party loop
+				break;
 			}
-			// case "party edit transfer":
-			// {
-			// Member party = event.getOption("user").getAsMember();
-			//
-			// // I specified OptionType.USER, but apparently that can return a user that's not in this guild? Idk, just a safety net
-			// if(party == null)
-			// {
-			// event.reply("Unknown user").queue();
-			// return;
-			// }
-			//
-			// break;
-			// }
 			case "campaign":
 			{
 				// Don't allow new lines
@@ -525,7 +573,7 @@ public class EventHandler extends GenericEventHandler {
 					
 					if(party == null)
 					{
-						event.reply("You need to join a party first!").queue();
+						event.reply("You need to join a party first").queue();
 						return;
 					}
 					
@@ -695,10 +743,17 @@ public class EventHandler extends GenericEventHandler {
 		}
 	}
 	
+	/**
+	 * Don't prepend the HEX color with a number sign.
+	 * 
+	 * @param hex hex without number sign (e.g., FF0000)
+	 * @return color
+	 */
 	@Nullable
 	private Color validateHex(String hex)
 	{
 		Color color = null;
+		hex = "#" + hex;
 		
 		try
 		{
@@ -729,7 +784,7 @@ public class EventHandler extends GenericEventHandler {
 	@Override
 	public void onGuildMemberJoin(GuildMemberJoinEvent event)
 	{
-		Main.log.info(event.getUser().getName() + " " + event.getUser().getIdLong() + " joined!");
+		Main.log.info("{} joined the server", event.getUser());
 	}
 	
 	@Override

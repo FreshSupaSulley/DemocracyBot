@@ -190,32 +190,25 @@ public class Server {
 		return initMember;
 	}
 	
-	public void addPoliticalParty(PoliticalParty party)
+	public void createPoliticalParty(PoliticalParty party)
 	{
 		parties.put(party.getRole(), party);
-		Main.updateServerData();
-	}
-	
-	public void removePoliticalParty(PoliticalParty party)
-	{
-		parties.remove(party.getRole());
-		Main.updateServerData();
 	}
 	
 	public boolean isParty(Role party)
 	{
-		return getParty(party) != null;
+		return getParty(party.getIdLong()) != null;
 	}
 	
 	@Nullable
-	public PoliticalParty getParty(Role party)
+	public PoliticalParty getParty(long partyID)
 	{
-		return parties.get(party.getIdLong());
+		return parties.get(partyID);
 	}
 	
-	public List<ServerMember> getPartyMembers(long roleID)
+	public List<ServerMember> getPartyMembers(PoliticalParty party)
 	{
-		return members.stream().filter(member -> member.getPoliticalParty().getRole() == roleID).collect(Collectors.toList());
+		return members.stream().filter(member -> Optional.ofNullable(member.getPoliticalParty()).map(sample -> sample.getRole() == party.getRole()).orElse(false)).collect(Collectors.toList());
 	}
 	
 	/**
@@ -308,8 +301,8 @@ public class Server {
 				// Handle parties (we don't need the iterator this time)
 				PoliticalParty party = member.getPoliticalParty();
 				
-				// If we're the owner of a party
-				if(party != null && party.getOwnerID() == id)
+				// If we're the leader of a party
+				if(party != null && party.getLeaderID() == id)
 				{
 					deletePartyAndChannels(party, jda.getGuildById(Main.SERVER_ID));
 				}
@@ -322,14 +315,25 @@ public class Server {
 	public CompletableFuture<Boolean> deletePartyAndChannels(PoliticalParty party, Guild guild)
 	{
 		// First, kick members out of this party
-		members.stream().filter(member -> member.getPoliticalParty().equals(party)).forEach(member -> member.setPoliticalParty(null));
+		members.stream().filter(member -> party.equals(member.getPoliticalParty())).forEach(member -> member.setPoliticalParty(null));
 		
 		// Now delete all artifacts
 		Category category = guild.getCategoryById(party.getCategory());
+		Role role = guild.getRoleById(party.getRole());
 		
-		return CompletableFuture.allOf(category.getChannels().stream().map(channel -> channel.delete().submit()).toArray(CompletableFuture[]::new)).thenCompose(__ -> category.delete().submit()).thenCompose(__ -> guild.getRoleById(party.getRole()).delete().submit()).thenApply(__ -> true).exceptionally(e ->
+		if(role == null || category == null)
 		{
-			Main.log.error("Failed to delete party", e);
+			Main.log.error("Role ({}) or category ({}) is null when trying to delete party", role, category);
+			return CompletableFuture.completedFuture(false);
+		}
+		
+		// Remove from data
+		parties.remove(role.getIdLong());
+		Main.updateServerData();
+		
+		return CompletableFuture.allOf(category.getChannels().stream().map(channel -> channel.delete().submit()).toArray(CompletableFuture[]::new)).thenCompose(__ -> category.delete().submit()).thenCompose(__ -> role.delete().submit()).thenApply(__ -> true).exceptionally(e ->
+		{
+			Main.log.error("Failed to delete party roles / attributes", e);
 			return false;
 		});
 	}

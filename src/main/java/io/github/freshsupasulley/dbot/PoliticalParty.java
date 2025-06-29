@@ -4,13 +4,16 @@ package io.github.freshsupasulley.dbot;
 // getters and setters it is
 public class PoliticalParty {
 	
-	private final long owner, role, category;
+	private final long role, category;
+	
+	/** Leaders can change */
+	private long leader;
 	
 	public PoliticalParty(long role, long category, long owner)
 	{
 		this.role = role;
 		this.category = category;
-		this.owner = owner;
+		this.leader = owner;
 	}
 	
 	public long getRole()
@@ -23,13 +26,18 @@ public class PoliticalParty {
 		return category;
 	}
 	
-	public long getOwnerID()
+	public long getLeaderID()
 	{
-		return owner;
+		return leader;
+	}
+	
+	public void setLeader(long leader)
+	{
+		this.leader = leader;
 	}
 	
 	public boolean equals(PoliticalParty party)
 	{
-		return party.role == this.role;
+		return party != null && party.role == this.role;
 	}
 }

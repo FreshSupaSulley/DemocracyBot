@@ -10,7 +10,7 @@ public class ServerMember {
 	private final long userID;
 	
 	/** Corresponds to a role ID of their political party */
-	private PoliticalParty party;
+	private long partyRole;
 	
 	public ServerMember(long userID)
 	{
@@ -24,7 +24,7 @@ public class ServerMember {
 	 */
 	public PoliticalParty getPoliticalParty()
 	{
-		return party;
+		return Main.server.getParty(partyRole);
 	}
 	
 	/**
@@ -34,7 +34,7 @@ public class ServerMember {
 	 */
 	public void setPoliticalParty(@Nullable PoliticalParty party)
 	{
-		this.party = party;
+		this.partyRole = party == null ? 0 : party.getRole();
 	}
 	
 	/**

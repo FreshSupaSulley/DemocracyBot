@@ -217,16 +217,16 @@ public class Main {
 			}
 		});
 		
-		SubcommandData[] partySubcommands = new SubcommandData[] {
-											// max length of a role is 100 apparently (hard-coded in JDA but not a static constant we can pull from). 50 it is
-											new SubcommandData("create", "Create a political party").addOptions(new OptionData(OptionType.STRING, "name", "Name of your political party (\"Party\" will be suffixed to the name)", true).setMaxLength(50), new OptionData(OptionType.STRING, "color", "Party color in HEX (e.g., #FF5733)", false)), new SubcommandData("join", "Join a political party (must not own a party)").addOptions(new OptionData(OptionType.ROLE, "party", "The political party to join", true)), new SubcommandData("leave", "Leave your political party (must not own the party you are leaving)"), new SubcommandData("info", "View party info").addOptions(new OptionData(OptionType.ROLE, "party", "The party to lookup", true)),
-		};
+		OptionData name = new OptionData(OptionType.STRING, "name", "Name of your party", true).setMaxLength(50);
+		OptionData color = new OptionData(OptionType.STRING, "color", "Party color in HEX (e.g., FF5733). Don't include the number sign (#)", false);
+		
+		// max length of a role is 100 apparently (hard-coded in JDA but not a static constant we can pull from). 50 it is
+		SubcommandData[] partySubcommands = {new SubcommandData("create", "Create a party").addOptions(name, color), new SubcommandData("join", "Join a party").addOptions(new OptionData(OptionType.ROLE, "party", "The party to join", true)), new SubcommandData("leave", "Leave your party"), new SubcommandData("info", "View party info").addOptions(new OptionData(OptionType.ROLE, "party", "The party to lookup", true))};
 		
 		// Subcommand group
-		SubcommandData[] partyEditSubcommands = new SubcommandData[] {new SubcommandData("name", "Change party name").addOptions(new OptionData(OptionType.STRING, "name", "Name of your political party", true)), new SubcommandData("color", "Change party color").addOptions(new OptionData(OptionType.STRING, "color", "Party color in HEX (e.g., #FF5733)", true)),
-											// new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
+		SubcommandData[] partyEditSubcommands = new SubcommandData[] {new SubcommandData("name", "Change party name").addOptions(name), new SubcommandData("color", "Change party color").addOptions(shallowClone(color).setRequired(true)), new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
 		};
-											
+		
 		// Public slash commands
 		CommandData[] publicCommands = new CommandData[] {
 											// Commands.slash("timeout", "Timeout a member (president only)").addOption(OptionType.USER, "user", "User to timeout").addOptions(new
@@ -289,6 +289,19 @@ public class Main {
 		// System.exit(1);
 		
 		jda.addEventListener(listener);
+	}
+	
+	/**
+	 * Clones an {@link OptionData} instance without copying everything.
+	 * 
+	 * @param original data to copy
+	 * @return shallow clone
+	 */
+	private OptionData shallowClone(OptionData original)
+	{
+		OptionData copy = new OptionData(original.getType(), original.getName(), original.getDescription(), original.isRequired(), original.isAutoComplete());
+		copy.addChoices(original.getChoices());
+		return copy;
 	}
 	
 	/**
