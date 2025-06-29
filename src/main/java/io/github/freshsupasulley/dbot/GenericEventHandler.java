@@ -99,7 +99,7 @@ public class GenericEventHandler extends CustomListener {
 				
 				// Do some clean up
 				event.getMessage().delete().complete(); // delete the webhook message
-				PrivateHandler.callGitHub("DELETE", "/actions/runs/" + actionID + "/artifacts", null); // delete the run to reduce clogging
+				PrivateHandler.callGitHub("DELETE", "/actions/runs/" + actionID, null); // delete the run to reduce clogging
 				
 				Main.sendToOperator("Done updating! Rebooting...");
 				PrivateHandler.reboot();
