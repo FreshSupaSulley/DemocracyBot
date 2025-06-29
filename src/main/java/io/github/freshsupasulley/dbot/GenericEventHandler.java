@@ -1,6 +1,7 @@
 package io.github.freshsupasulley.dbot;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +10,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
@@ -85,17 +88,38 @@ public class GenericEventHandler extends CustomListener {
 			
 			// Get the artifact associated with the run ID
 			JsonArray array = JsonParser.parseString(PrivateHandler.callGitHub("GET", "/actions/runs/" + actionID + "/artifacts", null)).getAsJsonObject().get("artifacts").getAsJsonArray();
-			if(array.size() != 1) throw new IllegalStateException("Artifact size != 1!");
+			if(array.size() != 1)
+				throw new IllegalStateException("Artifact size != 1!");
 			
 			String id = array.get(0).getAsJsonObject().get("id").getAsString();
 			Main.log.info("Downloading artifact with ID: {}", id);
 			
 			try(InputStream stream = PrivateHandler.initGitHubRequest("GET", "https://api.github.com/repos/FreshSupaSulley/DemocracyBot/actions/artifacts/" + id + "/zip", null))
 			{
-				Main.log.info("Downloading to " + PrivateHandler.JAR_FILE.getAbsolutePath());
-				Files.copy(stream, PrivateHandler.JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				// Temp zip, then we extract to jar
+				File zipFile = File.createTempFile("temp", "zip");
+				
+				Main.log.info("Downloading to " + zipFile.getAbsolutePath());
+				Files.copy(stream, zipFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				
 				// Done downloading!
+				// Unzip and extract .jar
+				try(ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile)))
+				{
+					ZipEntry entry;
+					
+					while((entry = zis.getNextEntry()) != null)
+					{
+						if(entry.getName().endsWith(".jar"))
+						{
+							Main.log.info("Extracting JAR: {}", entry.getName());
+							Files.copy(zis, PrivateHandler.JAR_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
+							break;
+						}
+					}
+				}
+				
+				zipFile.delete();
 				
 				// Do some clean up
 				event.getMessage().delete().complete(); // delete the webhook message

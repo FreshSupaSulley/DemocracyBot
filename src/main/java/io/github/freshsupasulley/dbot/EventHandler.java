@@ -291,8 +291,7 @@ public class EventHandler extends GenericEventHandler {
 			case "propose":
 			{
 				String content = event.getOption("amendment").getAsString();
-				
-				content = MarkdownSanitizer.escape(content);
+				content = MarkdownSanitizer.escape(content); // escape, not sanitize. Allows people to type * instead of removing it
 				
 				// Add the poll
 				Main.server.beginPoll(event, new ProposePoll(jda.getTextChannelById(Main.VOTING_BOOTH), content));
