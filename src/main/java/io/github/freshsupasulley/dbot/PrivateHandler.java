@@ -154,14 +154,14 @@ public class PrivateHandler extends MessageHandler {
 			}
 			case (12):
 			{
-				if(Main.inIDE)
-					return "in IDE! Why are you tryna update prod from a dev env??";
+//				if(Main.inIDE)
+//					return "in IDE! Why are you tryna update prod from a dev env??";
 				
 				try
 				{
 					JsonObject json = new JsonObject();
 					json.addProperty("ref", "main");
-					return callGitHub("PUT", "/actions/workflows/update.yaml/dispatches", json.toString());
+					return callGitHub("PUT", "/actions/workflows/update.yml/dispatches", json.toString());
 				} catch(IOException e)
 				{
 					Main.log.error("Failed to trigger update workflow", e);
@@ -237,10 +237,9 @@ public class PrivateHandler extends MessageHandler {
 		URL url = new URL(path.startsWith("http") ? path : "https://api.github.com/repos/FreshSupaSulley/DemocracyBot" + path);
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod(method);
-		connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28"); // might as well stick to a fixed API version
+		connection.setRequestProperty("Accept", "application/vnd.github+json");
 		connection.setRequestProperty("Authorization", "Bearer " + Main.GITHUB_ACCESS_TOKEN);
-		
-		System.out.println(Main.GITHUB_ACCESS_TOKEN);
+		connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28"); // might as well stick to a fixed API version
 		
 		if(body != null)
 		{
