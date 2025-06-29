@@ -314,8 +314,10 @@ public class Server {
 	
 	public CompletableFuture<Boolean> deletePartyAndChannels(PoliticalParty party, Guild guild)
 	{
-		// First, kick members out of this party
+		// First, handle data by kicking members out of this party and deleting it from storage
 		members.stream().filter(member -> party.equals(member.getPoliticalParty())).forEach(member -> member.setPoliticalParty(null));
+		parties.remove(party.getRole());
+		Main.updateServerData();
 		
 		// Now delete all artifacts
 		Category category = guild.getCategoryById(party.getCategory());
@@ -327,10 +329,7 @@ public class Server {
 			return CompletableFuture.completedFuture(false);
 		}
 		
-		// Remove from data
-		parties.remove(role.getIdLong());
-		Main.updateServerData();
-		
+		// Deleting a category decategorizes inner channels instead of cascading the delete so this is required
 		return CompletableFuture.allOf(category.getChannels().stream().map(channel -> channel.delete().submit()).toArray(CompletableFuture[]::new)).thenCompose(__ -> category.delete().submit()).thenCompose(__ -> role.delete().submit()).thenApply(__ -> true).exceptionally(e ->
 		{
 			Main.log.error("Failed to delete party roles / attributes", e);

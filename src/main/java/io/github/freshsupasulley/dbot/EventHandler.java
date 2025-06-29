@@ -157,7 +157,7 @@ public class EventHandler extends GenericEventHandler {
 					
 					if(sender.getID() != party.getLeaderID())
 					{
-						event.reply("Party leader only (" + MarkdownSanitizer.escape(guild.getMemberById(party.getLeaderID()).getEffectiveName()) + ")").queue();
+						event.reply("You are not the party leader (<@&" + party.getLeaderID() + "> is)").setAllowedMentions(Set.of()).queue();
 						break;
 					}
 					
@@ -294,7 +294,8 @@ public class EventHandler extends GenericEventHandler {
 							}).thenCompose(role ->
 							{
 								return guild.addRoleToMember(user, role).submit().thenApply(__ -> role);
-							}).thenCompose(role -> guild.createCategory(role.getName()).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenApply(category ->
+								// Hoist the category about general probably
+							}).thenCompose(role -> guild.createCategory(role.getName()).setPosition(2).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenApply(category ->
 							{
 								createdCategory.set(category);
 								return new AbstractMap.SimpleEntry<>(role, category);
@@ -304,8 +305,9 @@ public class EventHandler extends GenericEventHandler {
 								Category category = entry.getValue();
 								
 								// Create text and voice channels
-								CompletableFuture<Void> textFuture = guild.createTextChannel("party-chat", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
-								CompletableFuture<Void> voiceFuture = guild.createVoiceChannel("party-voice", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
+								// This works! Discord sanitizes the channel names
+								CompletableFuture<Void> textFuture = guild.createTextChannel(role.getName() + " chat", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
+								CompletableFuture<Void> voiceFuture = guild.createVoiceChannel(role.getName() + " voice", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
 								
 								return CompletableFuture.allOf(textFuture, voiceFuture);
 							}).thenRun(() ->
