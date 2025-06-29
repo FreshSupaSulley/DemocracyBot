@@ -1,8 +1,6 @@
 package io.github.freshsupasulley.dbot;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * Used to track the proposal times of each member.
@@ -11,8 +9,8 @@ public class ServerMember {
 	
 	private final long userID;
 	
-	// Times of proposing each type of poll
-	private Map<String, Long> pollCooldownExpiryTimes = new HashMap<String, Long>();
+	/** Corresponds to a role ID of their political party */
+	private PoliticalParty party;
 	
 	public ServerMember(long userID)
 	{
@@ -20,32 +18,23 @@ public class ServerMember {
 	}
 	
 	/**
-	 * Ticks this server member to help clear cache.
+	 * Gets the political party this user is a member of.
 	 * 
-	 * @return true if this member should be removed from cache, false otherwise.
+	 * @return the political party, or null if user is not apart of a party.
 	 */
-	public boolean shouldDelete()
+	public PoliticalParty getPoliticalParty()
 	{
-		Iterator<Map.Entry<String, Long>> iterator = pollCooldownExpiryTimes.entrySet().iterator();
-		boolean updated = true;
-		
-		while(iterator.hasNext())
-		{
-			// If the expiry time hasn't been passed yet
-			if(iterator.next().getValue() > System.currentTimeMillis())
-			{
-				updated = false;
-				break;
-			}
-		}
-		
-		if(updated)
-		{
-			Main.log.info("Clearing poll cooldown expiry times for {}", userID);
-			pollCooldownExpiryTimes.clear();
-		}
-		
-		return updated;
+		return party;
+	}
+	
+	/**
+	 * Sets the political party this member belongs to.
+	 * 
+	 * @param role political party role, or null to leave the party
+	 */
+	public void setPoliticalParty(@Nullable PoliticalParty party)
+	{
+		this.party = party;
 	}
 	
 	/**
@@ -56,17 +45,7 @@ public class ServerMember {
 	 */
 	public boolean canPropose(Poll poll)
 	{
-		// Hehe (I need this for when I need to fix bot (trust (im a dictator)))
-		if(userID == Main.OWNER_ID) return true;
-		
-		// If the current time passed the expiry time
-		if(System.currentTimeMillis() >= pollCooldownExpiryTimes.getOrDefault(poll.getClass().getName(), 0L))
-		{
-			pollCooldownExpiryTimes.put(poll.getClass().getName(), System.currentTimeMillis() + poll.getVotingCooldown());
-			return true;
-		}
-		
-		return false;
+		return Main.server.canPropose(this, poll);
 	}
 	
 	/**
@@ -77,7 +56,7 @@ public class ServerMember {
 	 */
 	public long getMillisRemaining(Poll poll)
 	{
-		return pollCooldownExpiryTimes.getOrDefault(poll.getClass().getName(), System.currentTimeMillis()) - System.currentTimeMillis();
+		return Main.server.getMillisRemaining(this, poll);
 	}
 	
 	/**

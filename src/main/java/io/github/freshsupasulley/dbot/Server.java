@@ -4,13 +4,18 @@ import java.awt.Color;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -23,6 +28,7 @@ import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
@@ -45,7 +51,10 @@ public class Server {
 	private List<String> amendmentIDs = new ArrayList<String>();
 	private Map<String, String> caqEntries = new HashMap<String, String>();
 	private List<Poll> polls = new ArrayList<Poll>();
-	private List<ServerMember> memberCache = new ArrayList<ServerMember>();
+	// Times of proposing each type of poll. Purposely disassociating this from ServerMember for leaving server functionality / avoid spamming poll abuse
+	private Map<Long, Map<String, Long>> pollCooldownExpiryTimes = new HashMap<Long, Map<String, Long>>();
+	private List<ServerMember> members = new ArrayList<ServerMember>();
+	private Map<Long, PoliticalParty> parties = new HashMap<Long, PoliticalParty>();
 	private long presidentID;
 	private String slogan;
 	private long termEndTime;
@@ -101,10 +110,71 @@ public class Server {
 		return false;
 	}
 	
+	public boolean partyNameCollision(Guild guild, String name)
+	{
+		return !guild.getRolesByName(name, false).isEmpty();
+	}
+	
+	@Nullable
+	// public PoliticalParty getUserParty(long id)
+	// {
+	// return memberCache.stream().filter(entry -> entry.getID() == id).map(member -> member.getPoliticalParty()).findAny().orElse(null);
+	// }
+	
+	/**
+	 * Ensure this person isn't endlessly requesting this poll. If the member can propose, the cooldown is reset.
+	 * 
+	 * @param poll poll to check
+	 * @return true if the member can propose the poll, false otherwise
+	 */
+	public boolean canPropose(ServerMember member, Poll poll)
+	{
+		// Hehe (I need this for when I need to fix bot (trust (im a dictator)))
+		if(member.getID() == Main.OWNER_ID)
+			return true;
+		
+		// Get or create the cooldown map for this member
+		Map<String, Long> cooldowns = pollCooldownExpiryTimes.computeIfAbsent(member.getID(), k -> new HashMap<String, Long>());
+		
+		String pollType = poll.getClass().getName();
+		long now = System.currentTimeMillis();
+		long expiryTime = cooldowns.getOrDefault(pollType, 0L);
+		
+		if(now >= expiryTime)
+		{
+			cooldowns.put(pollType, now + poll.getVotingCooldown());
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Returns the time remaining in the poll cooldown.
+	 * 
+	 * @param poll poll to check
+	 * @return time remaining in milliseconds before the member can request again
+	 */
+	public long getMillisRemaining(ServerMember member, Poll poll)
+	{
+		Map<String, Long> cooldowns = pollCooldownExpiryTimes.getOrDefault(member.getID(), Collections.emptyMap());
+		long expiry = cooldowns.getOrDefault(poll.getClass().getName(), 0L);
+		return Math.max(0, expiry - System.currentTimeMillis());
+	}
+	
+	/**
+	 * Removes all cooldowns of this member.
+	 */
+	public void clearCooldowns()
+	{
+		Main.server.pollCooldownExpiryTimes.clear();
+		Main.updateServerData();
+	}
+	
 	public ServerMember getMember(User user)
 	{
 		// Now that we have the server, search for member within server
-		for(ServerMember member : memberCache)
+		for(ServerMember member : members)
 		{
 			// If the user already exists, move to front of list
 			if(member.getID() == user.getIdLong())
@@ -115,9 +185,37 @@ public class Server {
 		
 		// If we couldn't find user / server, the ServerMember is new
 		ServerMember initMember = new ServerMember(user.getIdLong());
-		memberCache.add(initMember);
+		members.add(initMember);
 		Main.updateServerData();
 		return initMember;
+	}
+	
+	public void addPoliticalParty(PoliticalParty party)
+	{
+		parties.put(party.getRole(), party);
+		Main.updateServerData();
+	}
+	
+	public void removePoliticalParty(PoliticalParty party)
+	{
+		parties.remove(party.getRole());
+		Main.updateServerData();
+	}
+	
+	public boolean isParty(Role party)
+	{
+		return getParty(party) != null;
+	}
+	
+	@Nullable
+	public PoliticalParty getParty(Role party)
+	{
+		return parties.get(party.getIdLong());
+	}
+	
+	public List<ServerMember> getPartyMembers(long roleID)
+	{
+		return members.stream().filter(member -> member.getPoliticalParty().getRole() == roleID).collect(Collectors.toList());
 	}
 	
 	/**
@@ -167,7 +265,9 @@ public class Server {
 	 */
 	public void removeMember(JDA jda, long id)
 	{
-		// I'm intentionally not immediately removing them from memberCache, because that would mean they could leave and rejoin and spam polls
+		// ~~I'm intentionally not immediately removing them from memberCache, because that would mean they could leave and rejoin and spam polls~~
+		// ^ not anymore (handled at the bottom)! Cooldowns are now decoupled from server member instances
+		
 		// If this was the president
 		if(hasPresident() && id == getPresidentID())
 		{
@@ -177,24 +277,61 @@ public class Server {
 		
 		// Remove member from candidates
 		// If there are any candidates, it implies a vote is active
-		Iterator<Candidate> iterator = Main.server.getCandidates().iterator();
-		
-		while(iterator.hasNext())
+		for(Iterator<Candidate> iterator = Main.server.getCandidates().iterator(); iterator.hasNext();)
 		{
 			Candidate member = iterator.next();
 			
 			if(member.getID() == id)
 			{
-				Main.sendToOperator("A candidate left the running, maybe check its still good?");
-				Main.log.info("Removing candidate from running");
 				iterator.remove();
+				
+				Main.sendToOperator("A candidate left the running, maybe check that the poll is still functional?");
+				Main.log.info("Removing candidate from running");
 				
 				// Remove the reaction that belonged to it
 				getPresidentialVote(jda).getReaction(Emoji.fromUnicode(Main.server.slotToReaction(member.getSlot()))).removeReaction().queue();
 				updatePresidentialVote(jda);
-				return;
+				break;
 			}
 		}
+		
+		// Remove member from data
+		for(Iterator<ServerMember> iterator = members.iterator(); iterator.hasNext();)
+		{
+			ServerMember member = iterator.next();
+			
+			if(member.getID() == id)
+			{
+				iterator.remove();
+				Main.log.info("A server member left: {}", member.getID());
+				
+				// Handle parties (we don't need the iterator this time)
+				PoliticalParty party = member.getPoliticalParty();
+				
+				// If we're the owner of a party
+				if(party != null && party.getOwnerID() == id)
+				{
+					deletePartyAndChannels(party, jda.getGuildById(Main.SERVER_ID));
+				}
+				
+				break;
+			}
+		}
+	}
+	
+	public CompletableFuture<Boolean> deletePartyAndChannels(PoliticalParty party, Guild guild)
+	{
+		// First, kick members out of this party
+		members.stream().filter(member -> member.getPoliticalParty().equals(party)).forEach(member -> member.setPoliticalParty(null));
+		
+		// Now delete all artifacts
+		Category category = guild.getCategoryById(party.getCategory());
+		
+		return CompletableFuture.allOf(category.getChannels().stream().map(channel -> channel.delete().submit()).toArray(CompletableFuture[]::new)).thenCompose(__ -> category.delete().submit()).thenCompose(__ -> guild.getRoleById(party.getRole()).delete().submit()).thenApply(__ -> true).exceptionally(e ->
+		{
+			Main.log.error("Failed to delete party", e);
+			return false;
+		});
 	}
 	
 	public long getPresidentID()
@@ -250,22 +387,6 @@ public class Server {
 			updateCAQ(jda);
 		}
 		
-		// Check member cache for deletions
-		boolean dataChanged = false;
-		
-		for(Iterator<ServerMember> iterator = memberCache.iterator(); iterator.hasNext() && (iterator.next()).shouldDelete();)
-		{
-			Main.log.info("Marking member for deletion");
-			dataChanged = true;
-			iterator.remove();
-		}
-		
-		// If someone was deleted from cache
-		if(dataChanged)
-		{
-			Main.updateServerData();
-		}
-		
 		// Ensure presidentialVote is updated in case it crashed
 		// This will fetch the message object using the stored presidentialVoteMessageID
 		presidentialVote = getPresidentialVote(jda);
@@ -279,11 +400,12 @@ public class Server {
 				Main.log.info("Opening up Presidential vote");
 				
 				// Add President as a re-election
-				if(Main.server.hasPresident() && !Main.server.isLastTerm())
-				{
-					// Always the first slot, 0
-					candidates.add(new Candidate(0, Main.server.getPresidentID(), Main.server.getPresidentialSlogan(), Main.THE_PRESIDENT));
-				}
+				// ... no. They need to rerun themselves + I'm lazy
+				// if(Main.server.hasPresident() && !Main.server.isLastTerm())
+				// {
+				// // Always the first slot, 0
+				// candidates.add(new Candidate(0, Main.server.getPresidentID(), Main.server.getPresidentialSlogan(), Main.THE_PRESIDENT.getId()));
+				// }
 				
 				// Create vote, add first reaction (President re-election)
 				presidentialVote = jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.VOTING_BOOTH).sendMessageEmbeds(buildPresidentialVote()).complete();
@@ -397,7 +519,7 @@ public class Server {
 						this.presidentialCount++;
 						
 						// Add to commanders and queefs
-						Role safeParty = Optional.ofNullable(guild.getRoleById(nextPresident.getRoleID())).orElse(Main.THE_PRESIDENT);
+						Role safeParty = Optional.ofNullable(guild.getRoleById(nextPresident.getPoliticalParty().getRole())).orElse(Main.THE_PRESIDENT); // I am PRAYING that the role exists because of the "don't leave if candidate" check
 						EmbedBuilder e = new EmbedBuilder();
 						e.setTitle(ordinal(Main.server.getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.escape(nextPresidentMember.getUser().getEffectiveName()) + "**");
 						e.setColor(safeParty.getColor());
@@ -496,7 +618,7 @@ public class Server {
 		Main.server.candidates.stream().sorted((o1, o2) -> Integer.compare(o1.getSlot(), o2.getSlot())).forEach((candidate) ->
 		{
 			// no need to sanitize, it's handled in the EventHandler
-			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + candidate.getRoleID() + ">) - *\"" + candidate.getSlogan() + "\"*");
+			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + candidate.getPoliticalParty().getRole() + ">) - *\"" + candidate.getSlogan() + "\"*");
 		});
 		
 		if(Main.server.getCandidates().isEmpty())
@@ -577,6 +699,11 @@ public class Server {
 	public List<Candidate> getCandidates()
 	{
 		return candidates;
+	}
+	
+	public boolean isCampaining(ServerMember sender)
+	{
+		return candidates.stream().anyMatch(candidate -> candidate.getID() == sender.getID());
 	}
 	
 	public String removeAmendment(JDA jda, int number)

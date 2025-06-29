@@ -45,6 +45,8 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.FileUpload;
@@ -215,6 +217,16 @@ public class Main {
 			}
 		});
 		
+		SubcommandData[] partySubcommands = new SubcommandData[] {
+											// max length of a role is 100 apparently (hard-coded in JDA but not a static constant we can pull from). 50 it is
+											new SubcommandData("create", "Create a political party").addOptions(new OptionData(OptionType.STRING, "name", "Name of your political party (\"Party\" will be suffixed to the name)", true).setMaxLength(50), new OptionData(OptionType.STRING, "color", "Party color in HEX (e.g., #FF5733)", false)), new SubcommandData("join", "Join a political party (must not own a party)").addOptions(new OptionData(OptionType.ROLE, "party", "The political party to join", true)), new SubcommandData("leave", "Leave your political party (must not own the party you are leaving)"), new SubcommandData("info", "View party info").addOptions(new OptionData(OptionType.ROLE, "party", "The party to lookup", true)),
+		};
+		
+		// Subcommand group
+		SubcommandData[] partyEditSubcommands = new SubcommandData[] {new SubcommandData("name", "Change party name").addOptions(new OptionData(OptionType.STRING, "name", "Name of your political party", true)), new SubcommandData("color", "Change party color").addOptions(new OptionData(OptionType.STRING, "color", "Party color in HEX (e.g., #FF5733)", true)),
+											// new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
+		};
+											
 		// Public slash commands
 		CommandData[] publicCommands = new CommandData[] {
 											// Commands.slash("timeout", "Timeout a member (president only)").addOption(OptionType.USER, "user", "User to timeout").addOptions(new
@@ -222,12 +234,9 @@ public class Main {
 											// "hours", "Number of hours", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24), new OptionData(OptionType.INTEGER, "minutes", "Number of
 											// minutes", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24 * 60)),
 											// Commands.slash("kick", "Kick a member (president only)").addOption(OptionType.USER, "user", "User to kick"),
-											Commands.slash("campaign", "Run for President").addOption(OptionType.ROLE, "party", "Your political party", true).addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
-											Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
-											Commands.slash("next-election", "Returns next election time"),
-											Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add (markdown will be escaped)", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
-											Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)),
-											Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
+											Commands.slash("party", "Party commands").addSubcommands(partySubcommands).addSubcommandGroups(new SubcommandGroupData("edit", "Party editing commands").addSubcommands(partyEditSubcommands)), Commands.slash("campaign", "Run for President (must be in a party)").addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), // in case it changes
+											Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), Commands.slash("next-election", "Returns next election time"), Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add (markdown will be escaped)", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
+											Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)), Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
 											// Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the secret command",
 											// true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
 											// Commands.slash("all-secrets", "Lists all secrets (prepare for bad words)"),

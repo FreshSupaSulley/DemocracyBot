@@ -1,16 +1,30 @@
 package io.github.freshsupasulley.dbot;
 
+import java.awt.Color;
 import java.text.SimpleDateFormat;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.annotation.Nullable;
 
 import com.google.gson.JsonElement;
 
 import io.github.freshsupasulley.dbot.utils.JsonUtils;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDA.Status;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.ExceptionEvent;
 import net.dv8tion.jda.api.events.GatewayPingEvent;
@@ -18,6 +32,7 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.session.SessionDisconnectEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.CloseCode;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
@@ -120,61 +135,345 @@ public class EventHandler extends GenericEventHandler {
 		
 		Main.log.info("[SLASH COMMAND (" + guild.getId() + ", channel #" + event.getChannel().getId() + ") - '" + user.getName() + "']: \"" + event.getCommandString() + "\"");
 		
-		switch(event.getFullCommandName())
+		switch(event.getName())
 		{
-			// bad idea. just make an "anti-baby-raging" role
-//			case "timeout":
-//			{
-//				if(!DMain.server.isPresident(sender))
-//				{
-//					event.reply("Only the President can use this command").queue();
-//					return;
-//				}
-//				
-//				if(DMain.server.isElectionActive())
-//				{
-//					event.reply("Baby raging prohibited");
-//					return;
-//				}
-//				
-//				Map<String, Integer> multipliers = Map.of("minutes", 1, "hours", 60, "days", 1440);
-//				
-//				long totalMinutes = multipliers.entrySet().stream().mapToLong(entry ->
-//				{
-//					OptionMapping opt = event.getOption(entry.getKey());
-//					return (opt != null ? opt.getAsInt() : 0) * entry.getValue();
-//				}).sum();
-//				
-//				if(totalMinutes > Member.MAX_TIME_OUT_LENGTH * 1440L)
-//				{
-//					event.reply("Can't timeout a member for more than " + Member.MAX_TIME_OUT_LENGTH + " days").queue();
-//				}
-//				else
-//				{
-//					event.getOption("user", option -> option.getAsMember()).timeoutFor(totalMinutes, TimeUnit.MINUTES).queue();
-//					event.reply("Timed out <@" + user.getId() + "> for " + totalMinutes + " minute(s)").queue();
-//				}
-//				
-//				break;
-//			}
-//			case "kick":
-//			{
-//				if(!DMain.server.isPresident(sender))
-//				{
-//					event.reply("Only the President can use this command").queue();
-//					return;
-//				}
-//				
-//				if(DMain.server.isElectionActive())
-//				{
-//					event.reply("Baby raging prohibited");
-//					return;
-//				}
-//				
-//				event.getOption("user", option -> option.getAsMember());
-//				
-//				break;
-//			}
+			case "party":
+			{
+				// If this is a subcommand group, it's guaranteed to be edit (at least right now)
+				if(event.getSubcommandGroup() != null)
+				{
+					// ENTER EDIT SUBCOMMAND!
+					PoliticalParty party = sender.getPoliticalParty();
+					
+					// Ensure this is the party owner
+					if(sender.getID() != Optional.ofNullable(party).map(PoliticalParty::getOwnerID).orElse(0L))
+					{
+						event.reply("Party owner only (" + MarkdownSanitizer.escape(guild.getMemberById(party.getOwnerID()).getEffectiveName()) + ")").queue();
+						break;
+					}
+					
+					switch(event.getSubcommandName())
+					{
+						case "name":
+						{
+							String name = event.getOption("name").getAsString();
+							
+							if(Main.server.partyNameCollision(guild, name))
+							{
+								event.reply("There's already a party with that name!").queue();
+								break;
+							}
+							
+							guild.getRoleById(party.getRole()).getManager().setName(name).queue(done ->
+							{
+								event.reply("Changed party name to **" + MarkdownSanitizer.escape(name) + "**").queue();
+							}, e ->
+							{
+								event.reply(Main.ERROR_MSG).queue();
+							});
+							
+							break;
+						}
+						case "color":
+						{
+							Color color = validateHex(event.getOption("color").getAsString());
+							
+							if(color == null)
+							{
+								event.reply("Invalid hex color code. Click [here](rgbcolorcode.com) for help.").queue();
+								break;
+							}
+							
+							guild.getRoleById(party.getRole()).getManager().setColor(color).queue(done ->
+							{
+								event.reply("Changed party color").queue();
+							}, e ->
+							{
+								event.reply(Main.ERROR_MSG).queue();
+							});
+							
+							break;
+						}
+					}
+				}
+				// General party commands (non-edit)
+				else
+				{
+					switch(event.getSubcommandName())
+					{
+						case "create":
+						{
+							// Check if already in a party
+							if(sender.getPoliticalParty() != null)
+							{
+								event.reply("Leave your political party before creating one").queue();
+								return;
+							}
+							
+							String name = event.getOption("name").getAsString();
+							
+							if(Main.server.partyNameCollision(guild, name))
+							{
+								event.reply("There's already a party with that name!").queue();
+								return;
+							}
+							
+							int randomColor = (int) (Math.random() * 0x1000000); // generate a default hex if not provided (color is optional)
+							Color color = validateHex(event.getOption("color", String.format("#%06X", randomColor), OptionMapping::getAsString));
+							
+							if(color == null)
+							{
+								event.reply("Invalid hex color code. Click [here](rgbcolorcode.com) for help.").queue();
+								break;
+							}
+							
+							// Creating a party could take a while
+							event.deferReply().queue();
+							
+							// Begin party creation!
+							AtomicReference<Role> createdRole = new AtomicReference<>();
+							AtomicReference<Category> createdCategory = new AtomicReference<>();
+							List<GuildChannel> createdChannels = new ArrayList<>();
+							
+							guild.createRole().setName(name + " Party").setColor(color).submit().thenCompose(role ->
+							{
+								createdRole.set(role);
+								return guild.addRoleToMember(user, role).submit().thenApply(__ -> role);
+							}).thenCompose(role -> guild.createCategory(role.getName()).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenApply(category ->
+							{
+								createdCategory.set(category);
+								return new AbstractMap.SimpleEntry<>(role, category);
+							})).thenCompose(entry ->
+							{
+								Role role = entry.getKey();
+								Category category = entry.getValue();
+								
+								// Create text and voice channels
+								CompletableFuture<Void> textFuture = guild.createTextChannel("party-chat", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
+								CompletableFuture<Void> voiceFuture = guild.createVoiceChannel("party-voice", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
+								
+								return CompletableFuture.allOf(textFuture, voiceFuture);
+							}).thenRun(() ->
+							{
+								event.getHook().sendMessage("Congratulations :tada:! You are now the proud owner of the <@&" + createdRole.get().getId() + "> party!").queue();
+								Main.server.addPoliticalParty(new PoliticalParty(createdRole.get().getIdLong(), createdCategory.get().getIdLong(), user.getIdLong()));
+							}).exceptionally(e ->
+							{
+								Main.log.error("Party creation failed", e);
+								event.getHook().sendMessage(Main.ERROR_MSG).queue();
+								
+								// Rollback in reverse order (order probably doesn't matter tho)
+								for(GuildChannel channel : createdChannels)
+								{
+									channel.delete().queue();
+								}
+								
+								if(createdCategory.get() != null)
+								{
+									createdCategory.get().delete().queue();
+								}
+								
+								if(createdRole.get() != null)
+								{
+									createdRole.get().delete().queue();
+								}
+								
+								return null;
+							});
+							
+							// guild.createRole().setName(name + " Party").setColor(color).submit().thenCompose(role -> guild.addRoleToMember(user, role).submit().thenApply(unused ->
+							// role)).thenAccept(role ->
+							// {
+							// // We succeeded
+							// event.reply("Congratulations :tada:! You are now the proud owner of the <@&" + role.getId() + "> party!").queue(); // its ok to ping the role here because
+							// the party was just made (no one to ping)
+							// Main.server.createPoliticalParty(role, user);
+							// Main.updateServerData();
+							// }).exceptionally(e ->
+							// {
+							// Main.log.error("Failed to create political party", e);
+							// event.reply(Main.ERROR_MSG).queue();
+							// return null;
+							// });
+							
+							break;
+						}
+						case "join":
+						{
+							Role role = event.getOption("party").getAsRole();
+							
+							// If the user is already in a political party
+							if(sender.getPoliticalParty() != null)
+							{
+								event.reply("You already belong to a party!").queue();
+								return;
+							}
+							
+							// Check if we're already in this party
+							if(role.getIdLong() == sender.getPoliticalParty().getRole())
+							{
+								event.reply("You're already in this party!").queue();
+								return;
+							}
+							
+							PoliticalParty party = Main.server.getParty(role);
+							
+							// If the role mentioned is an actual political party
+							if(party == null)
+							{
+								event.reply("That role isn't a political party").queue();
+								return;
+							}
+							
+							// this might be unnecessary
+							// Check if they already have the role they mentioned
+							// if(guild.getMemberById(user.getId()).getRoles().stream().anyMatch(role -> role.getId().equals(party.getId())))
+							// {
+							// event.reply("You're already in this party!").queue();
+							// return;
+							// }
+							
+							guild.addRoleToMember(user, role).queue(done ->
+							{
+								// id rather not mention roles in order to avoid pinging the entire party
+								event.reply("Joined the **" + MarkdownSanitizer.escape(role.getName()) + "** party!").queue();
+								sender.setPoliticalParty(party);
+								Main.updateServerData();
+							}, e ->
+							{
+								Main.log.error("Failed to join political party", e);
+								event.reply(Main.ERROR_MSG).queue();
+							});
+							
+							break;
+						}
+						case "leave":
+						{
+							if(sender.getPoliticalParty() == null)
+							{
+								event.reply("You're not in a party!").queue();
+								return;
+							}
+							
+							if(Main.server.isCampaining(sender))
+							{
+								event.reply("You can't change parties while campaigning!").queue();
+								return;
+							}
+							
+							// if(role == null)
+							// {
+							// Main.log.error("The political party role doesn't exist: {}", sender.getPoliticalParty());
+							// event.reply("Huh. Couldn't find the role associated with your political party... left it anyways?").queue();
+							// sender.setPoliticalParty(null);
+							// Main.updateServerData();
+							// return;
+							// }
+							
+							// If this is the owner
+							PoliticalParty party = sender.getPoliticalParty();
+							// Should never be null...? right?
+							Role role = guild.getRoleById(party.getRole());
+							
+							if(party.getOwnerID() == user.getIdLong())
+							{
+								// If the owner is the only one who remains
+								if(Main.server.getPartyMembers(user.getIdLong()).size() == 1)
+								{
+									// This might take a while
+									event.deferReply().queue();
+									
+									Main.server.deletePartyAndChannels(party, guild).thenAccept(status ->
+									{
+										event.getHook().sendMessage(status ? "Party deleted" : Main.ERROR_MSG).queue();
+									});
+									
+									return;
+								}
+								else
+								{
+									event.reply("Transfer power to one of your disciples first!").queue();
+									return;
+								}
+							}
+							else
+							{
+								sender.setPoliticalParty(null);
+								Main.updateServerData();
+								
+								guild.removeRoleFromMember(user, role).queue(done ->
+								{
+									event.reply("Left **" + MarkdownSanitizer.escape(role.getName()) + "**").queue();
+									Main.updateServerData();
+								}, e ->
+								{
+									Main.log.error("Failed to leave party", e);
+									event.reply(Main.ERROR_MSG).queue();
+								});
+							}
+							
+							break;
+						}
+						case "info":
+						{
+							// Should never be null...? right?
+							Role party = event.getOption("party").getAsRole();
+							
+							// If the role mentioned is an actual political party
+							if(!Main.server.isParty(party))
+							{
+								event.reply("That role isn't a political party").queue();
+								return;
+							}
+							
+							List<ServerMember> members = Main.server.getPartyMembers(party.getIdLong());
+							StringBuilder description = new StringBuilder("**Party members** (" + members.size() + " total):");
+							
+							for(int i = 0; i < Math.min(15, members.size()); i++)
+							{
+								description.append("\n- <@" + members.get(i) + ">");
+							}
+							
+							if(members.size() > 15)
+								description.append("\n... and ").append(members.size() - 15).append(" more");
+							
+							// Owner is guaranteed to not be null at this point
+							EmbedBuilder builder = new EmbedBuilder();
+							builder.setColor(party.getColor());
+							builder.setTitle(party.getName());
+							builder.setDescription(description);
+							
+							// In case the owner left the party (this should be picked up by a party deleter function)
+							guild.retrieveMemberById(Main.server.getParty(party).getOwnerID()).queue(owner ->
+							{
+								String ownerName = owner != null ? owner.getEffectiveName() : "Unknown";
+								
+								builder.setFooter("Soverign of the Party – " + MarkdownSanitizer.escape(ownerName), user.getEffectiveAvatarUrl());
+								event.replyEmbeds(builder.build()).queue();
+							}, e ->
+							{
+								Main.log.error("Failed to get party info");
+								event.reply(Main.ERROR_MSG).queue();
+							});
+							
+							break;
+						}
+					}
+				}
+			}
+			// case "party edit transfer":
+			// {
+			// Member party = event.getOption("user").getAsMember();
+			//
+			// // I specified OptionType.USER, but apparently that can return a user that's not in this guild? Idk, just a safety net
+			// if(party == null)
+			// {
+			// event.reply("Unknown user").queue();
+			// return;
+			// }
+			//
+			// break;
+			// }
 			case "campaign":
 			{
 				// Don't allow new lines
@@ -222,8 +521,15 @@ public class EventHandler extends GenericEventHandler {
 						}
 					}
 					
-					Role party = event.getOption("party").getAsRole();
-					Main.server.getCandidates().add(new Candidate(Main.server.getNextCandidateSlot(), user.getIdLong(), slogan, party));
+					PoliticalParty party = sender.getPoliticalParty();
+					
+					if(party == null)
+					{
+						event.reply("You need to join a party first!").queue();
+						return;
+					}
+					
+					Main.server.getCandidates().add(new Candidate(sender, Main.server.getNextCandidateSlot(), slogan));
 					
 					// Add reactions
 					for(int i = 0; i < Main.server.getCandidates().size(); i++)
@@ -291,7 +597,7 @@ public class EventHandler extends GenericEventHandler {
 			case "propose":
 			{
 				String content = event.getOption("amendment").getAsString();
-//				content = MarkdownSanitizer.escape(content); // escape, not sanitize. Allows people to type * instead of removing it
+				// content = MarkdownSanitizer.escape(content); // escape, not sanitize. Allows people to type * instead of removing it
 				
 				// Add the poll
 				Main.server.beginPoll(event, new ProposePoll(jda.getTextChannelById(Main.VOTING_BOOTH), content));
@@ -334,52 +640,52 @@ public class EventHandler extends GenericEventHandler {
 				Main.server.beginPoll(event, poll);
 				break;
 			}
-//			case "secret":
-//			{
-//				String word = event.getOption("word").getAsString().trim();
-//				String response = event.getOption("response").getAsString().trim();
-//				
-//				DMain.server.addSecret(word, response);
-//				
-//				event.reply("\"" + word + "\" is now a secret command (will send " + response + ")").queue();
-//				return;
-//			}
-//			case "all-secrets":
-//			{
-//				event.reply(DMain.server.getSecretCommands().keySet().stream().sorted().collect(Collectors.joining(", "))).queue();
-//				return;
-//			}
-//			case "unsecret":
-//			{
-//				String word = event.getOption("word").getAsString();
-//				
-//				// If success
-//				if(DMain.server.unsecret(word))
-//				{
-//					event.reply("Removed \"" + MarkdownSanitizer.sanitize(word) + "\" from secret commands").queue();
-//				}
-//				else
-//				{
-//					event.reply("\"" + MarkdownSanitizer.sanitize(word) + "\" isn't a secret command").queue();
-//				}
-//				
-//				return;
-//			}
-//			case "resecret":
-//			{
-//				String word = event.getOption("word").getAsString();
-//				
-//				if(DMain.server.resecretSecret(word))
-//				{
-//					event.reply("Resecreted \"" + MarkdownSanitizer.sanitize(word) + "\"").queue();
-//				}
-//				else
-//				{
-//					event.reply("\"" + MarkdownSanitizer.sanitize(word) + "\" isn't an unsecreted command").queue();
-//				}
-//				
-//				return;
-//			}
+			// case "secret":
+			// {
+			// String word = event.getOption("word").getAsString().trim();
+			// String response = event.getOption("response").getAsString().trim();
+			//
+			// DMain.server.addSecret(word, response);
+			//
+			// event.reply("\"" + word + "\" is now a secret command (will send " + response + ")").queue();
+			// return;
+			// }
+			// case "all-secrets":
+			// {
+			// event.reply(DMain.server.getSecretCommands().keySet().stream().sorted().collect(Collectors.joining(", "))).queue();
+			// return;
+			// }
+			// case "unsecret":
+			// {
+			// String word = event.getOption("word").getAsString();
+			//
+			// // If success
+			// if(DMain.server.unsecret(word))
+			// {
+			// event.reply("Removed \"" + MarkdownSanitizer.sanitize(word) + "\" from secret commands").queue();
+			// }
+			// else
+			// {
+			// event.reply("\"" + MarkdownSanitizer.sanitize(word) + "\" isn't a secret command").queue();
+			// }
+			//
+			// return;
+			// }
+			// case "resecret":
+			// {
+			// String word = event.getOption("word").getAsString();
+			//
+			// if(DMain.server.resecretSecret(word))
+			// {
+			// event.reply("Resecreted \"" + MarkdownSanitizer.sanitize(word) + "\"").queue();
+			// }
+			// else
+			// {
+			// event.reply("\"" + MarkdownSanitizer.sanitize(word) + "\" isn't an unsecreted command").queue();
+			// }
+			//
+			// return;
+			// }
 			default:
 			{
 				Main.log.error("Unhandled command {}", event.getName());
@@ -387,6 +693,22 @@ public class EventHandler extends GenericEventHandler {
 				return;
 			}
 		}
+	}
+	
+	@Nullable
+	private Color validateHex(String hex)
+	{
+		Color color = null;
+		
+		try
+		{
+			color = Color.decode(hex);
+		} catch(NumberFormatException e)
+		{
+			Main.log.warn("Can't parse user's color: {}", hex);
+		}
+		
+		return color;
 	}
 	
 	@Override
