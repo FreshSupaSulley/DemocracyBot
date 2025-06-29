@@ -15,6 +15,10 @@ import javax.annotation.Nullable;
 
 import com.google.gson.JsonElement;
 
+import io.github.freshsupasulley.dbot.polls.ImpeachPoll;
+import io.github.freshsupasulley.dbot.polls.NaturalizePoll;
+import io.github.freshsupasulley.dbot.polls.ProposePoll;
+import io.github.freshsupasulley.dbot.polls.RepealPoll;
 import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -157,7 +161,7 @@ public class EventHandler extends GenericEventHandler {
 					
 					if(sender.getID() != party.getLeaderID())
 					{
-						event.reply("You are not the party leader (<@&" + party.getLeaderID() + "> is)").setAllowedMentions(Set.of()).queue();
+						event.reply("You are not the party leader (<@" + party.getLeaderID() + "> is)").setAllowedMentions(Set.of()).queue();
 						break;
 					}
 					
@@ -215,7 +219,7 @@ public class EventHandler extends GenericEventHandler {
 								break;
 							}
 							
-							if(member.getUser().isBot() || member.getUser().isSystem())
+							if(botCheck(member))
 							{
 								event.reply("Bots don't have rights :robot:").queue();
 								break;
@@ -524,6 +528,34 @@ public class EventHandler extends GenericEventHandler {
 				// Exit party loop
 				break;
 			}
+			case "naturalize":
+			{
+				Member member = event.getOption("user").getAsMember();
+				
+				// This is something we need to check because you can put in foreign users apparently
+				if(member == null)
+				{
+					event.reply("Unknown member").queue();
+					break;
+				}
+				
+				// Check if it's a bot
+				if(botCheck(member))
+				{
+					event.reply("Bots don't have rights :robot:").queue();
+					break;
+				}
+				
+				// Check if we already have the citizen role
+				if(Main.server.isNaturalized(member))
+				{
+					event.reply("This user is already naturalized").queue();
+					break;
+				}
+				
+				Main.server.beginPoll(event, new NaturalizePoll(jda.getTextChannelById(Main.VOTING_BOOTH), member));
+				break;
+			}
 			case "campaign":
 			{
 				// Don't allow new lines
@@ -745,6 +777,11 @@ public class EventHandler extends GenericEventHandler {
 		}
 	}
 	
+	private boolean botCheck(Member member)
+	{
+		return member.getUser().isBot() || member.getUser().isSystem();
+	}
+	
 	/**
 	 * Don't prepend the HEX color with a number sign.
 	 * 
@@ -786,7 +823,8 @@ public class EventHandler extends GenericEventHandler {
 	@Override
 	public void onGuildMemberJoin(GuildMemberJoinEvent event)
 	{
-		Main.log.info("{} joined the server", event.getUser());
+		// This will add back the citizen role if they were naturalized
+		Main.log.info("{} joined the server. Naturalized: {}", event.getUser(), Main.server.isNaturalized(event.getMember()));
 	}
 	
 	@Override

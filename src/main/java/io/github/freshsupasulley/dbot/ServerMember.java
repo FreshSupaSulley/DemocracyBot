@@ -2,6 +2,8 @@ package io.github.freshsupasulley.dbot;
 
 import javax.annotation.Nullable;
 
+import io.github.freshsupasulley.dbot.polls.Poll;
+
 /**
  * Used to track the proposal times of each member.
  */
@@ -45,7 +47,7 @@ public class ServerMember {
 	 */
 	public boolean canPropose(Poll poll)
 	{
-		return Main.server.canPropose(this, poll);
+		return Main.server.meetsCooldown(this, poll);
 	}
 	
 	/**

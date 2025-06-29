@@ -1,5 +1,6 @@
-package io.github.freshsupasulley.dbot;
+package io.github.freshsupasulley.dbot.polls;
 
+import io.github.freshsupasulley.dbot.Main;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
@@ -24,11 +25,5 @@ public class RepealPoll extends Poll {
 	protected void performAction(JDA jda)
 	{
 		Main.server.repealAmendment(jda, amendment);
-	}
-	
-	@Override
-	protected String getFancyName()
-	{
-		return "Repeal";
 	}
 }

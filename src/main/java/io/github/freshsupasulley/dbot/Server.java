@@ -7,16 +7,19 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.github.freshsupasulley.dbot.polls.Poll;
 import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -55,6 +58,7 @@ public class Server {
 	private Map<Long, Map<String, Long>> pollCooldownExpiryTimes = new HashMap<Long, Map<String, Long>>();
 	private List<ServerMember> members = new ArrayList<ServerMember>();
 	private Map<Long, PoliticalParty> parties = new HashMap<Long, PoliticalParty>();
+	private Set<Long> naturalizedCitizens = new HashSet<Long>(); // Set automatically prevents duplicates
 	private long presidentID;
 	private String slogan;
 	private long termEndTime;
@@ -91,6 +95,60 @@ public class Server {
 		}).complete();
 	}
 	
+	// public boolean isNaturalized(long userID)
+	// {
+	// return naturalizedCitizens.stream().anyMatch(sample -> sample == userID);
+	// }
+	
+	public boolean isNaturalized(Member member)
+	{
+		// If they have the citizen role
+		if(member.getRoles().stream().anyMatch(role -> role.getIdLong() == Main.CITIZEN_ID))
+		{
+			// Also ensure they're in naturalized set
+			if(naturalizedCitizens.add(member.getIdLong()))
+			{
+				Main.log.warn("{} is a citizen but wasn't in the naturalization list", member);
+				Main.updateServerData();
+			}
+			
+			return true;
+		}
+		// If they're in the set but don't have the role
+		else if(naturalizedCitizens.contains(member.getIdLong()))
+		{
+			naturalize(member);
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Adds the citizen role to the member, even if they're already naturalized internally. Useful if we want to ensure they have the citizen role safely.
+	 * 
+	 * @param member member
+	 */
+	public void naturalize(Member member)
+	{
+		// If we didn't already have them naturalized
+		if(naturalizedCitizens.add(member.getIdLong()))
+		{
+			Main.updateServerData();
+		}
+		
+		// Add the role (doesn't do anything besides lets people know they're naturalized)
+		// If they already have it, this does nothing (safe)
+		Guild guild = member.getJDA().getGuildById(Main.SERVER_ID);
+		guild.addRoleToMember(member, guild.getRoleById(Main.CITIZEN_ID)).queue(success ->
+		{
+			Main.log.info("Added citizen role to member");
+		}, e ->
+		{
+			Main.log.error("Failed to apply citizen role to naturalize new citizen: {}", member, e);
+		});
+	}
+	
 	public boolean isElectionActive()
 	{
 		return presidentialVoteMessageID != 0;
@@ -115,19 +173,17 @@ public class Server {
 		return !guild.getRolesByName(name, false).isEmpty();
 	}
 	
-	@Nullable
-	// public PoliticalParty getUserParty(long id)
-	// {
-	// return memberCache.stream().filter(entry -> entry.getID() == id).map(member -> member.getPoliticalParty()).findAny().orElse(null);
-	// }
-	
 	/**
 	 * Ensure this person isn't endlessly requesting this poll. If the member can propose, the cooldown is reset.
+	 * 
+	 * <p>
+	 * This does <b>NOT</b> check if the member is naturalized.
+	 * </p>
 	 * 
 	 * @param poll poll to check
 	 * @return true if the member can propose the poll, false otherwise
 	 */
-	public boolean canPropose(ServerMember member, Poll poll)
+	public boolean meetsCooldown(ServerMember member, Poll poll)
 	{
 		// Hehe (I need this for when I need to fix bot (trust (im a dictator)))
 		if(member.getID() == Main.OWNER_ID)
@@ -219,6 +275,13 @@ public class Server {
 	 */
 	public void beginPoll(SlashCommandInteractionEvent event, Poll poll)
 	{
+		// Check if naturalized
+		if(!isNaturalized(event.getMember()))// && Main.OWNER_ID != event.getMember().getIdLong())
+		{
+			event.reply("You aren't a citizen! You need to be naturalized before you can participate in democracy").queue();
+			return;
+		}
+		
 		// Ensure a duplicate poll doesn't exist
 		for(Poll sample : polls)
 		{
@@ -535,6 +598,9 @@ public class Server {
 							
 							// Update data
 							Main.updateServerData();
+						}, error ->
+						{
+							Main.log.error("Failed to create CAQ entry", error);
 						});
 						
 						// Update all CAQs for potential out of date URLs
@@ -642,11 +708,11 @@ public class Server {
 		
 		// Change records for historical accuracy. Latest message in CAQ is the current president
 		TextChannel channel = guild.getJDA().getGuildById(Main.SERVER_ID).getTextChannelById(Main.COMMANDERS_AND_QUEEFS);
-		channel.retrieveMessageById(channel.getLatestMessageId()).queue(message ->
+		channel.retrieveMessageById(channel.getLatestMessageId()).submit().thenCompose(message ->
 		{
 			MessageEmbed embed = message.getEmbeds().get(0);
 			String footer = embed.getFooter().getText();
-			message.editMessageEmbeds(EmbedBuilder.fromData(embed.toData()).setFooter(footer.substring(footer.indexOf("-") + 2) + " impeached " + getUSEnglishDateFormat(System.currentTimeMillis())).build()).queue();
+			return message.editMessageEmbeds(EmbedBuilder.fromData(embed.toData()).setFooter(footer.substring(footer.indexOf("-") + 2) + " impeached " + getUSEnglishDateFormat(System.currentTimeMillis())).build()).submit();
 		});
 		
 		// Reset data
@@ -796,7 +862,7 @@ public class Server {
 					// Check for any active polls lingering around in server data by checking if their voting time expired a long time ago
 					if(sample.getStartTime() + sample.getVoteTime().toMillis() * 2 < System.currentTimeMillis())
 					{
-						Main.log.error("Weird. {} poll stuck around much longer than it should've. Perhaps it doesn't exist?", sample.getFancyName());
+						Main.log.error("Weird. {} poll stuck around much longer than it should've. Perhaps it doesn't exist?", sample.getName());
 						iterator.remove();
 						pollDeleted = true;
 					}

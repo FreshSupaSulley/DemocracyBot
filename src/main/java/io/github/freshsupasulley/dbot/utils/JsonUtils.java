@@ -8,8 +8,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
-import io.github.freshsupasulley.dbot.Poll;
-import io.github.freshsupasulley.dbot.PollAdapter;
+import io.github.freshsupasulley.dbot.polls.Poll;
+import io.github.freshsupasulley.dbot.polls.PollAdapter;
 
 public class JsonUtils {
 	

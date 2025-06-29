@@ -1,5 +1,6 @@
-package io.github.freshsupasulley.dbot;
+package io.github.freshsupasulley.dbot.polls;
 
+import io.github.freshsupasulley.dbot.Main;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
@@ -22,11 +23,5 @@ public class ImpeachPoll extends Poll {
 	protected void performAction(JDA jda)
 	{
 		Main.server.impeachPresident(jda.getGuildById(Main.SERVER_ID));
-	}
-	
-	@Override
-	protected String getFancyName()
-	{
-		return "Impeach";
 	}
 }

@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
+import io.github.freshsupasulley.dbot.polls.Poll;
 import io.github.freshsupasulley.dbot.utils.ErrorAppender;
 import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.JDA.Status;
@@ -90,8 +91,10 @@ public class Main {
 	
 	// Roles
 	public static long THE_MILITARY_ID = 1102048289202917442L, THE_PRESIDENT_ID = 1102055622981206086L,
-										VOTER_ID = 1102055806159028347L;
-	public static Role THE_MILITARY, THE_PRESIDENT, IMMIGRANT, VOTER;
+										CITIZEN_ID = 1310459289999114240L;
+	
+	@Deprecated
+	public static Role THE_MILITARY, THE_PRESIDENT;
 	
 	// Debug booleans
 	private static boolean debug = true;
@@ -229,24 +232,12 @@ public class Main {
 		
 		// Public slash commands
 		CommandData[] publicCommands = new CommandData[] {
-											// Commands.slash("timeout", "Timeout a member (president only)").addOption(OptionType.USER, "user", "User to timeout").addOptions(new
-											// OptionData(OptionType.INTEGER, "days", "Number of days", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH), new OptionData(OptionType.INTEGER,
-											// "hours", "Number of hours", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24), new OptionData(OptionType.INTEGER, "minutes", "Number of
-											// minutes", false).setMinValue(1).setMaxValue(Member.MAX_TIME_OUT_LENGTH * 24 * 60)),
-											// Commands.slash("kick", "Kick a member (president only)").addOption(OptionType.USER, "user", "User to kick"),
-											Commands.slash("party", "Party commands").addSubcommands(partySubcommands).addSubcommandGroups(new SubcommandGroupData("edit", "Party editing commands").addSubcommands(partyEditSubcommands)), Commands.slash("campaign", "Run for President (must be in a party)").addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), // in case it changes
+											Commands.slash("party", "Party commands").addSubcommands(partySubcommands).addSubcommandGroups(new SubcommandGroupData("edit", "Party editing commands").addSubcommands(partyEditSubcommands)), Commands.slash("campaign", "Run for President").addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), // in case it changes
 											Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), Commands.slash("next-election", "Returns next election time"), Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add (markdown will be escaped)", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
 											Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)), Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
-											// Commands.slash("secret", "Add a word to be a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The word to become the secret command",
-											// true), new OptionData(OptionType.STRING, "response", "The response to the new command", true)),
-											// Commands.slash("all-secrets", "Lists all secrets (prepare for bad words)"),
-											// Commands.slash("unsecret", "Remove a secret command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to remove", true)),
-											// Commands.slash("resecret", "Adds back an unsecreted command").addOptions(new OptionData(OptionType.STRING, "word", "The secret word to add back", true)),
-											
-											// Presidential commands
-											// Commands.slash("president", "Presidental commands").addSub.addOptions(new OptionData(OptionType.STRING, "word", "The word to remove from commands", true)),
+											Commands.slash("naturalize", "Naturalize an immigrant").addOptions(new OptionData(OptionType.USER, "user", "The user to naturalize", true))
 		};
-											
+		
 		// Update public commands
 		if(!inIDE)
 		{
@@ -329,7 +320,6 @@ public class Main {
 		// Initialize roles
 		THE_MILITARY = guild.getRoleById(THE_MILITARY_ID);
 		THE_PRESIDENT = guild.getRoleById(THE_PRESIDENT_ID);
-		VOTER = guild.getRoleById(VOTER_ID);
 		
 		// Get current president
 		Member president = null;
@@ -572,7 +562,7 @@ public class Main {
 					{
 						// Dump all props into weeve
 						String[] newArgs = properties.entrySet().stream().map(e -> "--" + e.getKey() + "=" + e.getValue()).toArray(String[]::new);
-						io.github.freshsupasulley.main.Main.main(newArgs);
+						io.github.freshsupasulley.weeve.Main.main(newArgs);
 					} catch(Throwable t)
 					{
 						Main.log.error("Failed to start weeve", t);

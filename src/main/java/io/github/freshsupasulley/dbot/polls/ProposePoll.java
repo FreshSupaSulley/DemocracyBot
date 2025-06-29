@@ -1,5 +1,6 @@
-package io.github.freshsupasulley.dbot;
+package io.github.freshsupasulley.dbot.polls;
 
+import io.github.freshsupasulley.dbot.Main;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
@@ -17,11 +18,5 @@ public class ProposePoll extends Poll {
 	protected void performAction(JDA jda)
 	{
 		Main.server.addAmendment(jda, proposal);
-	}
-	
-	@Override
-	protected String getFancyName()
-	{
-		return "Propose";
 	}
 }

@@ -60,7 +60,7 @@
 	
 	<!-- DemocracyBot -->
 	<!-- Additivity is enabled by default. This will be sent through the root and thus STDOUT and errorAppender -->
-	<logger name="democracy.DMain" level="all">
+	<logger name="io.github.freshsupasulley.dbot.Main" level="all">
 		<appender-ref ref="democracy" />
 	</logger>
 	
@@ -70,7 +70,7 @@
 	</logger>
 
 	<!-- weeve -->
-	<logger name="io.github.freshsupasulley.dbot.Main" level="all">
+	<logger name="io.github.freshsupasulley.weeve.Main" level="all">
 		<appender-ref ref="weeve" />
 	</logger>
 </configuration>
