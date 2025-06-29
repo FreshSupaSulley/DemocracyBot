@@ -21,3 +21,4 @@ src/main/resources/serverData.txt
 /bin
 .classpath
 .settings
+.project
