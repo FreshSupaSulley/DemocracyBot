@@ -291,7 +291,7 @@ public class EventHandler extends GenericEventHandler {
 			case "propose":
 			{
 				String content = event.getOption("amendment").getAsString();
-				content = MarkdownSanitizer.escape(content); // escape, not sanitize. Allows people to type * instead of removing it
+//				content = MarkdownSanitizer.escape(content); // escape, not sanitize. Allows people to type * instead of removing it
 				
 				// Add the poll
 				Main.server.beginPoll(event, new ProposePoll(jda.getTextChannelById(Main.VOTING_BOOTH), content));
@@ -403,115 +403,6 @@ public class EventHandler extends GenericEventHandler {
 			Main.log.error("An error occured in command handling", t);
 		}
 	}
-	
-//	@Override
-//	public void onGuildMessageReceived(MessageReceivedEvent event)
-//	{
-//		DMain.server.checkMessageForPollResult(event.getMessage());
-//		
-//		// BEYOND THIS POINT IS ONLY SECRET COMMANDS
-//		if(event.getAuthor().isBot() || DMain.SERVER_ID != event.getGuild().getIdLong() || !event.isFromType(ChannelType.TEXT))
-//			return;
-//		
-//		// Get user
-//		TextChannel channel = event.getChannel().asTextChannel();
-//		
-//		// Handle server command requests
-//		String message = event.getMessage().getContentDisplay().replaceAll("\n", "");
-//		
-//		// Secret commands
-//		if(channel.getParentCategory() == null || channel.getParentCategory().getIdLong() == DMain.THE_WHITE_HOUSE_CATEGORY || channel.getParentCategory().getIdLong() == DMain.MAGNA_FARTA_CATEGORY)
-//			return;
-//		if(message.contains("http"))
-//			return;
-//			
-//		// boolean canReact = eventMessage.getGuild().getSelfMember().hasPermission(Permission.MESSAGE_ADD_REACTION);
-//		// int numReacts = 0;
-//		StringBuilder builder = new StringBuilder();
-//		Map<String, String> commands = new HashMap<String, String>();
-//		
-//		// For each key (word)
-//		for(String key : DMain.server.getSecretCommands().keySet())
-//		{
-//			// If it CONTAINS, not equals
-//			if(message.toLowerCase().contains(key.toLowerCase()))
-//			{
-//				String[] values = DMain.server.getSecretCommands().get(key).split("\n");
-//				// Pick random link
-//				String value = values[(int) (Math.random() * values.length)];
-//				
-//				// +1 for break character
-//				if(builder.length() + value.length() + 1 > Message.MAX_CONTENT_LENGTH)
-//					break;
-//				
-//				// Append command
-//				builder.append(value + "\n");
-//				commands.put(key, value);
-//				//
-//				// if(canReact && numReacts < Message.MAX_REACTIONS)
-//				// {
-//				// numReacts++;
-//				// eventMessage.addReaction(Emoji.fromUnicode(unicode)).queue();
-//				// }
-//			}
-//		}
-//		
-//		// This can happen believe it or not (user can make a poll and then this blows tf up)
-//		if(builder.toString().isEmpty())
-//			return;
-//		
-//		event.getChannel().sendMessage(builder.toString()).queue(queued ->
-//		{
-//			// Wait before getting the new message
-//			event.getChannel().retrieveMessageById(queued.getId()).queueAfter(3, TimeUnit.SECONDS, success ->
-//			{
-//				boolean modified = false;
-//				
-//				// For each secret
-//				for(Entry<String, String> set : commands.entrySet())
-//				{
-//					String key = set.getKey();
-//					String link = set.getValue();
-//					
-//					// If that secret is a link (trying to be an embed)
-//					if(link.contains("http"))
-//					{
-//						boolean found = false;
-//						
-//						// Check if that link actually embedded properly
-//						for(MessageEmbed embed : success.getEmbeds())
-//						{
-//							String url = embed.getUrl();
-//							
-//							if(url.equals(link))
-//							{
-//								found = true;
-//								break;
-//							}
-//						}
-//						
-//						if(!found)
-//						{
-//							modified = true;
-//							DMain.log.info("Removing {} from secret commands. Embed didn't work at {}", key, link);
-//							DMain.server.getSecretCommands().remove(key);
-//							
-//							// If it was just one secret command, just delete the message
-//							if(commands.size() == 1)
-//							{
-//								success.delete().queue();
-//							}
-//						}
-//					}
-//				}
-//				
-//				if(modified)
-//				{
-//					DMain.updateServerData();
-//				}
-//			});
-//		});
-//	}
 	
 	@Override
 	public void onGuildMemberJoin(GuildMemberJoinEvent event)

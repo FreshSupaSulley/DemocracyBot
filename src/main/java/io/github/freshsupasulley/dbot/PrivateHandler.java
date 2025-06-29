@@ -161,7 +161,8 @@ public class PrivateHandler extends MessageHandler {
 				{
 					JsonObject json = new JsonObject();
 					json.addProperty("ref", "main");
-					return callGitHub("POST", "/actions/workflows/update.yml/dispatches", json.toString());
+					callGitHub("POST", "/actions/workflows/update.yml/dispatches", json.toString()); // doesn't seem to return anything
+					return "Workflow dispatched";
 				} catch(IOException e)
 				{
 					Main.log.error("Failed to trigger update workflow", e);

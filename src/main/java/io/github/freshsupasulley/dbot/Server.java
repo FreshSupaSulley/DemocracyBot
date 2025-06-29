@@ -388,7 +388,7 @@ public class Server {
 						termEndTime = System.currentTimeMillis() + TERM_LENGTH;
 						
 						// This gets scooped up and deleted by checkMessageForPollResult below
-						guild.getTextChannelById(Main.VOTING_BOOTH).sendMessage("Welcome <@" + nextPresident.getID() + "> to The White House!").queue();//.complete().delete().queueAfter(1, TimeUnit.HOURS);
+						guild.getTextChannelById(Main.VOTING_BOOTH).sendMessage("Welcome <@" + nextPresident.getID() + "> to The White House!").queue();// .complete().delete().queueAfter(1, TimeUnit.HOURS);
 						
 						Member nextPresidentMember = guild.retrieveMemberById(nextPresident.getID()).complete();
 						guild.addRoleToMember(nextPresidentMember, Main.THE_PRESIDENT).complete();
@@ -441,10 +441,10 @@ public class Server {
 			// But this works if the ID is valid and Discord can't find the user associated with it. User then becomes null!
 			User user = jda.retrieveUserById(caqEntries.get(message.getId())).onErrorMap(throwable -> null).complete();
 			
-//			if(user != null)
-//			{
-//				builder.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.sanitize(user.getEffectiveName()) + "**");
-//			}
+			// if(user != null)
+			// {
+			// builder.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.sanitize(user.getEffectiveName()) + "**");
+			// }
 			
 			// Update image in case user changes pfp, or user is magically deleted
 			builder.setImage(user != null ? user.getEffectiveAvatarUrl() : "https://cdn.discordapp.com/embed/avatars/0.png");
@@ -535,9 +535,15 @@ public class Server {
 		guild.retrieveMemberById(Main.server.getPresidentID()).submit().thenApply(member -> guild.removeRoleFromMember(member, Main.THE_PRESIDENT));
 	}
 	
+	/**
+	 * Adds an amendment but escapes, not sanitizes, any markdown.
+	 * 
+	 * @param jda
+	 * @param content
+	 */
 	public void addAmendment(JDA jda, String content)
 	{
-		jda.getTextChannelById(Main.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.sanitize(content)).queue(success ->
+		jda.getTextChannelById(Main.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.escape(content)).queue(success ->
 		{
 			Main.log.info("Added amendment {}", content);
 			amendmentIDs.add(success.getId());
