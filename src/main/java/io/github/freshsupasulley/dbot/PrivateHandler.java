@@ -154,14 +154,14 @@ public class PrivateHandler extends MessageHandler {
 			}
 			case (12):
 			{
-//				if(Main.inIDE)
-//					return "in IDE! Why are you tryna update prod from a dev env??";
+				if(Main.inIDE)
+					return "in IDE! Why are you tryna update prod from a dev env??";
 				
 				try
 				{
 					JsonObject json = new JsonObject();
 					json.addProperty("ref", "main");
-					return callGitHub("PUT", "/actions/workflows/update.yml/dispatches", json.toString());
+					return callGitHub("POST", "/actions/workflows/update.yml/dispatches", json.toString());
 				} catch(IOException e)
 				{
 					Main.log.error("Failed to trigger update workflow", e);
