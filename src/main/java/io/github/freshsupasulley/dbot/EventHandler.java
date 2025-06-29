@@ -512,7 +512,7 @@ public class EventHandler extends GenericEventHandler {
 							{
 								String leaderName = leader != null ? leader.getEffectiveName() : "Unknown";
 								
-								builder.setFooter("Led by " + MarkdownSanitizer.escape(leaderName), user.getEffectiveAvatarUrl());
+								builder.setFooter("Led by " + MarkdownSanitizer.escape(leaderName), leader.getEffectiveAvatarUrl());
 								event.replyEmbeds(builder.build()).queue();
 							}, e ->
 							{
