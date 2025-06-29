@@ -142,6 +142,13 @@ public class EventHandler extends GenericEventHandler {
 		
 		Main.log.info("[SLASH COMMAND (" + guild.getId() + ", channel #" + event.getChannel().getId() + ") - '" + user.getName() + "']: \"" + event.getCommandString() + "\"");
 		
+		// Check if naturalized
+		if(!Main.server.isNaturalized(event.getMember()))// && Main.OWNER_ID != event.getMember().getIdLong())
+		{
+			event.reply("You aren't a citizen! You need to be naturalized before you can use " + Main.BOT_NAME + " commands. Ask a citizen to start a naturalization poll!").queue();
+			return;
+		}
+		
 		switch(event.getName())
 		{
 			case "party":
@@ -299,7 +306,7 @@ public class EventHandler extends GenericEventHandler {
 							{
 								return guild.addRoleToMember(user, role).submit().thenApply(__ -> role);
 								// Hoist the category about general probably
-							}).thenCompose(role -> guild.createCategory(role.getName()).setPosition(2).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenApply(category ->
+							}).thenCompose(role -> guild.createCategory(role.getName()).setPosition(2).addPermissionOverride(guild.getRoleById(Main.THE_PRESIDENT_ID), null, EnumSet.of(Permission.MANAGE_CHANNEL)).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenApply(category ->
 							{
 								createdCategory.set(category);
 								return new AbstractMap.SimpleEntry<>(role, category);
@@ -310,8 +317,8 @@ public class EventHandler extends GenericEventHandler {
 								
 								// Create text and voice channels
 								// This works! Discord sanitizes the channel names
-								CompletableFuture<Void> textFuture = guild.createTextChannel(role.getName() + " chat", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
-								CompletableFuture<Void> voiceFuture = guild.createVoiceChannel(role.getName() + " voice", category).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
+								CompletableFuture<Void> textFuture = guild.createTextChannel(role.getName() + " chat", category).addPermissionOverride(guild.getRoleById(Main.THE_PRESIDENT_ID), null, EnumSet.of(Permission.MANAGE_CHANNEL)).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
+								CompletableFuture<Void> voiceFuture = guild.createVoiceChannel(role.getName() + " voice", category).addPermissionOverride(guild.getRoleById(Main.THE_PRESIDENT_ID), null, EnumSet.of(Permission.MANAGE_CHANNEL)).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(role, EnumSet.of(Permission.VIEW_CHANNEL), null).addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL)).submit().thenAccept(channel -> createdChannels.add(channel));
 								
 								return CompletableFuture.allOf(textFuture, voiceFuture);
 							}).thenRun(() ->

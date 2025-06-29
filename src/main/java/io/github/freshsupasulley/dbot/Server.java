@@ -275,13 +275,6 @@ public class Server {
 	 */
 	public void beginPoll(SlashCommandInteractionEvent event, Poll poll)
 	{
-		// Check if naturalized
-		if(!isNaturalized(event.getMember()))// && Main.OWNER_ID != event.getMember().getIdLong())
-		{
-			event.reply("You aren't a citizen! You need to be naturalized before you can participate in democracy").queue();
-			return;
-		}
-		
 		// Ensure a duplicate poll doesn't exist
 		for(Poll sample : polls)
 		{
