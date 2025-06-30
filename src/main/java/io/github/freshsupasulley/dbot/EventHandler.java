@@ -605,7 +605,10 @@ public class EventHandler extends GenericEventHandler {
 									
 									Main.server.deletePartyAndChannels(party, guild).thenAccept(status ->
 									{
-										event.getHook().sendMessage(status ? "Party deleted" : Main.ERROR_MSG).queue();
+										event.getHook().sendMessage(status ? "Party deleted" : Main.ERROR_MSG).queue(null, failure ->
+										{
+											Main.log.warn("Failed to return a response to the leave party command... maybe they called the command in the channel that was deleted. Channel: {}", event.getChannel(), failure);
+										});
 									}).exceptionally(e ->
 									{
 										Main.log.error("Failed to delete party", e);
