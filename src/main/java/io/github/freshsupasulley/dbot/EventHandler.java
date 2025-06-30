@@ -202,7 +202,7 @@ public class EventHandler extends GenericEventHandler {
 							guild.getRoleById(party.getRole()).getManager().setName(name).submit().thenCompose(entry ->
 							{
 								// Rename the category
-								Category category = guild.getCategoryById(party.getRole());
+								Category category = guild.getCategoryById(party.getCategory());
 								return category.getManager().setName(name).submit().thenApply(__ -> category);
 							}).thenCompose(category ->
 							{
@@ -277,7 +277,7 @@ public class EventHandler extends GenericEventHandler {
 								ServerMember mentioned = Main.server.getMember(member);
 								
 								// If the banned user is in this party
-								if(mentioned.getPoliticalParty().equals(party))
+								if(party.equals(mentioned.getPoliticalParty()))
 								{
 									mentioned.setPoliticalParty(null);
 								}
@@ -309,7 +309,7 @@ public class EventHandler extends GenericEventHandler {
 							}
 							else
 							{
-								event.reply("<@" + member.getIdLong() + "> is already banned").queue();
+								event.reply("<@" + member.getIdLong() + "> isn't banned").queue();
 							}
 							
 							break;
@@ -378,7 +378,7 @@ public class EventHandler extends GenericEventHandler {
 							ServerMember mentioned = Main.server.getMember(member);
 							
 							// There's a null check in .equals dw
-							if(!sender.getPoliticalParty().equals(mentioned.getPoliticalParty()))
+							if(!party.equals(mentioned.getPoliticalParty()))
 							{
 								event.reply("That user isn't a member of your party").queue();
 								break;
