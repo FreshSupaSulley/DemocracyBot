@@ -38,6 +38,7 @@ import net.dv8tion.jda.api.events.GatewayPingEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.SessionDisconnectEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -117,6 +118,13 @@ public class EventHandler extends GenericEventHandler {
 				Main.server.tick(event.getJDA());
 			}
 		}
+	}
+	
+	@Override
+	public void onGuildMessageReceived(MessageReceivedEvent event)
+	{
+		super.onGuildMessageReceived(event);
+		Main.server.checkMessageForPollResult(event.getMessage());
 	}
 	
 	private void slashCommand(SlashCommandInteractionEvent event)

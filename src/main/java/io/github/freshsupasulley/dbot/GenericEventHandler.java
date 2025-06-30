@@ -75,7 +75,7 @@ public class GenericEventHandler extends CustomListener {
 	
 	// Used to update the bot
 	@Override
-	public final void onGuildMessageReceived(MessageReceivedEvent event)
+	public void onGuildMessageReceived(MessageReceivedEvent event)
 	{
 		// Only consider the webhook build successes
 		if(event.getChannel().getIdLong() != Main.GITHUB || event.getAuthor().getIdLong() != Main.GITHUB_WEBHOOK_ID)
