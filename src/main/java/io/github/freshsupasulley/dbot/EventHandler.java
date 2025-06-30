@@ -274,16 +274,20 @@ public class EventHandler extends GenericEventHandler {
 							
 							if(party.addBan(member))
 							{
-								ServerMember mentioned = Main.server.getMember(member);
-								
-								// If the banned user is in this party
-								if(party.equals(mentioned.getPoliticalParty()))
+								if(!isBot(member))
 								{
-									mentioned.setPoliticalParty(null);
+									sender.setPoliticalParty(null);
+									Main.updateServerData();
 								}
 								
-								Main.updateServerData();
-								event.reply("Banned <@" + member.getIdLong() + "> from <@&" + party.getRole() + ">").setAllowedMentions(Set.of()).queue();
+								guild.removeRoleFromMember(user, guild.getRoleById(party.getRole())).queue(done ->
+								{
+									event.reply("Banned <@" + member.getIdLong() + "> from <@&" + party.getRole() + ">").setAllowedMentions(Set.of()).queue();
+								}, e ->
+								{
+									Main.log.error("Failed to leave party", e);
+									event.reply(Main.ERROR_MSG).queue();
+								});
 							}
 							else
 							{
