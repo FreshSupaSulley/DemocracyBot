@@ -29,6 +29,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.ExceptionEvent;
@@ -138,7 +140,7 @@ public class EventHandler extends GenericEventHandler {
 			return;
 		}
 		
-		ServerMember sender = Main.server.getMember(user);
+		ServerMember sender = Main.server.getMember(event.getMember());
 		
 		Main.log.info("[SLASH COMMAND (" + guild.getId() + ", channel #" + event.getChannel().getId() + ") - '" + user.getName() + "']: \"" + event.getCommandString() + "\"");
 		
@@ -184,12 +186,46 @@ public class EventHandler extends GenericEventHandler {
 								break;
 							}
 							
-							guild.getRoleById(party.getRole()).getManager().setName(name).queue(done ->
+							// Rename the role
+							guild.getRoleById(party.getRole()).getManager().setName(name).submit().thenCompose(entry ->
+							{
+								// Rename the category
+								Category category = guild.getCategoryById(party.getRole());
+								return category.getManager().setName(name).submit().thenApply(__ -> category);
+							}).thenCompose(category ->
+							{
+								List<CompletableFuture<Void>> renameFutures = new ArrayList<>();
+								
+								for(GuildChannel channel : category.getChannels())
+								{
+									String newChannelName;
+									
+									if(channel instanceof TextChannel)
+									{
+										newChannelName = name.toLowerCase() + " chat";
+									}
+									else if(channel instanceof VoiceChannel)
+									{
+										newChannelName = name.toLowerCase() + " voice";
+									}
+									else
+									{
+										// Skip unknown types
+										continue;
+									}
+									
+									renameFutures.add(channel.getManager().setName(newChannelName).submit());
+								}
+								
+								return CompletableFuture.allOf(renameFutures.toArray(CompletableFuture[]::new));
+							}).thenRun(() ->
 							{
 								event.reply("Changed party name to **" + MarkdownSanitizer.escape(name) + "**").queue();
-							}, e ->
+							}).exceptionally(e ->
 							{
+								Main.log.error("Failed to rename party artifacts", e);
 								event.reply(Main.ERROR_MSG).queue();
+								return null;
 							});
 							
 							break;
@@ -214,6 +250,100 @@ public class EventHandler extends GenericEventHandler {
 							
 							break;
 						}
+						case "ban":
+						{
+							Member member = event.getOption("user").getAsMember();
+							
+							if(member == null)
+							{
+								event.reply("Unknown member").queue();
+								break;
+							}
+							
+							if(party.addBan(member))
+							{
+								ServerMember mentioned = Main.server.getMember(member);
+								
+								// If the banned user is in this party
+								if(mentioned.getPoliticalParty().equals(party))
+								{
+									mentioned.setPoliticalParty(null);
+								}
+								
+								Main.updateServerData();
+								event.reply("Banned <@" + member.getIdLong() + "> from <@&" + party.getRole() + ">").setAllowedMentions(Set.of()).queue();
+							}
+							else
+							{
+								event.reply("<@" + member.getIdLong() + "> is already banned").queue();
+							}
+							
+							break;
+						}
+						case "unban":
+						{
+							Member member = event.getOption("user").getAsMember();
+							
+							if(member == null)
+							{
+								event.reply("Unknown member").queue();
+								break;
+							}
+							
+							if(party.removeBan(member))
+							{
+								Main.updateServerData();
+								event.reply("Unbanned <@" + member.getIdLong() + "> from <@&" + party.getRole() + ">").setAllowedMentions(Set.of()).queue();
+							}
+							else
+							{
+								event.reply("<@" + member.getIdLong() + "> is already banned").queue();
+							}
+							
+							break;
+						}
+						case "invite-bot":
+						{
+							Member member = event.getOption("user").getAsMember();
+							
+							if(member == null)
+							{
+								event.reply("Unknown member").queue();
+								break;
+							}
+							
+							// Ensure user is a bot
+							if(!isBot(member))
+							{
+								event.reply("<@" + member.getId() + "> is not a bot").setAllowedMentions(Set.of()).queue();
+								break;
+							}
+							
+							// Might as well check for this
+							if(party.isBanned(member))
+							{
+								event.reply("<@" + member.getId() + "> is banned!").setAllowedMentions(Set.of()).queue();
+								break;
+							}
+							
+							// If this bot already has a role
+							if(member.getRoles().stream().anyMatch(role -> role.getIdLong() == party.getRole()))
+							{
+								event.reply("<@" + member.getId() + "> is already a party member").setAllowedMentions(Set.of()).queue();
+								break;
+							}
+							
+							// Add role to bot
+							guild.addRoleToMember(member, guild.getRoleById(party.getRole())).queue(success ->
+							{
+								event.reply("Added <@" + member.getId() + "> to <@&" + party.getRole() + ">").setAllowedMentions(Set.of()).queue();
+							}, e ->
+							{
+								event.reply(Main.ERROR_MSG).queue();
+							});
+							
+							break;
+						}
 						case "transfer":
 						{
 							Member member = event.getOption("user").getAsMember();
@@ -226,14 +356,14 @@ public class EventHandler extends GenericEventHandler {
 								break;
 							}
 							
-							if(botCheck(member))
+							if(isBot(member))
 							{
 								event.reply("Bots don't have rights :robot:").queue();
 								break;
 							}
 							
 							// Check if member is part of the leader's party
-							ServerMember mentioned = Main.server.getMember(member.getUser());
+							ServerMember mentioned = Main.server.getMember(member);
 							
 							// There's a null check in .equals dw
 							if(!sender.getPoliticalParty().equals(mentioned.getPoliticalParty()))
@@ -391,6 +521,13 @@ public class EventHandler extends GenericEventHandler {
 								return;
 							}
 							
+							// Check if the member is banned
+							if(party.isBanned(event.getMember()))
+							{
+								event.reply("You're banned from <@&" + party.getRole() + ">!").setAllowedMentions(Set.of()).queue();
+								return;
+							}
+							
 							// this might be unnecessary
 							// Check if they already have the role they mentioned
 							// if(guild.getMemberById(user.getId()).getRoles().stream().anyMatch(role -> role.getId().equals(party.getId())))
@@ -508,6 +645,23 @@ public class EventHandler extends GenericEventHandler {
 							if(members.size() > 15)
 								description.append("\n... and ").append(members.size() - 15).append(" more");
 							
+							PoliticalParty party = sender.getPoliticalParty();
+							List<Long> blacklist = new ArrayList<Long>(party.getBlacklist());
+							
+							// If we have banned members
+							if(!blacklist.isEmpty())
+							{
+								description.append("\n\n**Banned members** (" + blacklist.size() + " total):");
+								
+								for(int i = 0; i < Math.min(15, blacklist.size()); i++)
+								{
+									description.append("\n- <@" + blacklist.get(i) + ">");
+								}
+								
+								if(blacklist.size() > 15)
+									description.append("\n... and ").append(blacklist.size() - 15).append(" more");
+							}
+							
 							// Leader is guaranteed to not be null at this point
 							EmbedBuilder builder = new EmbedBuilder();
 							builder.setColor(role.getColor());
@@ -547,7 +701,7 @@ public class EventHandler extends GenericEventHandler {
 				}
 				
 				// Check if it's a bot
-				if(botCheck(member))
+				if(isBot(member))
 				{
 					event.reply("Bots don't have rights :robot:").queue();
 					break;
@@ -784,7 +938,7 @@ public class EventHandler extends GenericEventHandler {
 		}
 	}
 	
-	private boolean botCheck(Member member)
+	private boolean isBot(Member member)
 	{
 		return member.getUser().isBot() || member.getUser().isSystem();
 	}

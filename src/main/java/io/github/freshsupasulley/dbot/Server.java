@@ -227,7 +227,7 @@ public class Server {
 		Main.updateServerData();
 	}
 	
-	public ServerMember getMember(User user)
+	public ServerMember getMember(Member user)
 	{
 		// Now that we have the server, search for member within server
 		for(ServerMember member : members)
@@ -286,7 +286,7 @@ public class Server {
 		}
 		
 		// Ensure no one is spamming the poll
-		ServerMember member = getMember(event.getUser());
+		ServerMember member = getMember(event.getMember());
 		
 		// This HAS to be the last thing checked, as it will add a cooldown to the command
 		if(!member.canPropose(poll))

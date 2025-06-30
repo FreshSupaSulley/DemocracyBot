@@ -12,7 +12,7 @@ public class NaturalizePoll extends Poll {
 	
 	public NaturalizePoll(TextChannel channel, Member member)
 	{
-		super(0.5f, 5, 43200000, "Naturalize " + member.getEffectiveName() + "? They will be able to propose and participate in democracy", channel);
+		super(0.75f, 5, 43200000, "Naturalize " + member.getEffectiveName() + "? They will be able to propose and participate in democracy", channel);
 		
 		this.member = member.getIdLong();
 	}

@@ -227,7 +227,13 @@ public class Main {
 		SubcommandData[] partySubcommands = {new SubcommandData("create", "Create a party").addOptions(name, color), new SubcommandData("join", "Join a party").addOptions(new OptionData(OptionType.ROLE, "party", "The party to join", true)), new SubcommandData("leave", "Leave your party"), new SubcommandData("info", "View party info").addOptions(new OptionData(OptionType.ROLE, "party", "The party to lookup", true))};
 		
 		// Subcommand group
-		SubcommandData[] partyEditSubcommands = new SubcommandData[] {new SubcommandData("name", "Change party name").addOptions(name), new SubcommandData("color", "Change party color").addOptions(shallowClone(color).setRequired(true)), new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
+		SubcommandData[] partyEditSubcommands = new SubcommandData[] {
+			new SubcommandData("name", "Change party name").addOptions(name),
+			new SubcommandData("color", "Change party color").addOptions(shallowClone(color).setRequired(true)),
+			new SubcommandData("ban", "Ban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
+			new SubcommandData("unban", "Unban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
+			new SubcommandData("invite-bot", "Invites a bot to the party").addOptions(new OptionData(OptionType.USER, "bot", "Bot to join", true)),
+			new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
 		};
 		
 		// Public slash commands
