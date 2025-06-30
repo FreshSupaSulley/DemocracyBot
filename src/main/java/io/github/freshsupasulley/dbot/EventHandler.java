@@ -277,8 +277,9 @@ public class EventHandler extends GenericEventHandler {
 								if(!isBot(member))
 								{
 									sender.setPoliticalParty(null);
-									Main.updateServerData();
 								}
+								
+								Main.updateServerData();
 								
 								guild.removeRoleFromMember(user, guild.getRoleById(party.getRole())).queue(done ->
 								{
