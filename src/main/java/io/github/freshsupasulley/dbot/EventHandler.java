@@ -316,7 +316,7 @@ public class EventHandler extends GenericEventHandler {
 						}
 						case "invite-bot":
 						{
-							Member member = event.getOption("user").getAsMember();
+							Member member = event.getOption("bot").getAsMember();
 							
 							if(member == null)
 							{
