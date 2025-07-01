@@ -6,15 +6,22 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
-public class NaturalizePoll extends Poll {
+public class NaturalizePoll extends Poll<NaturalizePoll> {
 	
 	private final long member;
 	
 	public NaturalizePoll(TextChannel channel, Member member)
 	{
-		super(0.75f, 5, 43200000, "Naturalize " + member.getEffectiveName() + "? They will be able to propose and participate in democracy", channel);
+		// 3 day cooldown
+		super(0.75f, 5, 259200000L, "Naturalize " + member.getEffectiveName() + "? They will be able to propose and participate in democracy", channel);
 		
 		this.member = member.getIdLong();
+	}
+	
+	@Override
+	public boolean isDuplicate(NaturalizePoll poll)
+	{
+		return member == poll.member;
 	}
 	
 	@Override

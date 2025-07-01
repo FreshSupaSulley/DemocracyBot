@@ -4,7 +4,7 @@ import io.github.freshsupasulley.dbot.Main;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
-public class ProposePoll extends Poll {
+public class ProposePoll extends Poll<ProposePoll> {
 	
 	private final String proposal;
 	
@@ -12,6 +12,12 @@ public class ProposePoll extends Poll {
 	{
 		super(0.5f, 5, 43200000, "New amendment: " + proposal, channel);
 		this.proposal = proposal;
+	}
+	
+	@Override
+	public boolean isDuplicate(ProposePoll poll)
+	{
+		return poll.proposal.equals(proposal);
 	}
 	
 	@Override

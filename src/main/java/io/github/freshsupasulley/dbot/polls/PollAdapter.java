@@ -12,10 +12,10 @@ import com.google.gson.JsonSerializer;
 
 import io.github.freshsupasulley.dbot.Main;
 
-public class PollAdapter implements JsonDeserializer<Poll>, JsonSerializer<Poll> {
+public class PollAdapter implements JsonDeserializer<Poll<?>>, JsonSerializer<Poll<?>> {
 	
 	@Override
-	public Poll deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException
+	public Poll<?> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException
 	{
 		JsonObject data = json.getAsJsonObject();
 		
@@ -28,7 +28,7 @@ public class PollAdapter implements JsonDeserializer<Poll>, JsonSerializer<Poll>
 	}
 	
 	@Override
-	public JsonElement serialize(Poll src, Type typeOfSrc, JsonSerializationContext context)
+	public JsonElement serialize(Poll<?> src, Type typeOfSrc, JsonSerializationContext context)
 	{
 		JsonObject element = context.serialize(src).getAsJsonObject();
 		element.addProperty("type", src.getClass().getName());

@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 import io.github.freshsupasulley.dbot.Main;
-import io.github.freshsupasulley.dbot.utils.JsonUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -15,7 +14,7 @@ import net.dv8tion.jda.api.utils.messages.MessagePollData;
 /**
  * Uses officially supported Discord polling functions. All of these kinds of polls last an hour.
  */
-public abstract class Poll {
+public abstract class Poll<T extends Poll<T>> {
 	
 	/** Defines the maximum allowed characters a poll can have before content is added. Not enforced */
 	public static final int POLL_QUESTION_PREFIX = 50;
@@ -46,9 +45,24 @@ public abstract class Poll {
 	 * 
 	 * @return name of the poll
 	 */
-	public String getName()
+	public String getsName()
 	{
 		return this.getClass().getSimpleName();
+	}
+	
+	/**
+	 * Checks if this poll equals another poll.
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public final boolean equals(Object obj)
+	{
+		if(this == obj)
+			return true;
+		if(obj == null || getClass() != obj.getClass())
+			return false;
+		
+		return isDuplicate((T) obj);
 	}
 	
 	/**
@@ -57,10 +71,7 @@ public abstract class Poll {
 	 * @param poll poll to check
 	 * @return true if this poll is a duplicate, false otherwise
 	 */
-	public boolean isDuplicate(Poll poll)
-	{
-		return JsonUtils.serialize(poll).equals(JsonUtils.serialize(this));
-	}
+	public abstract boolean isDuplicate(T poll);
 	
 	public void firePoll(Consumer<Message> onSuccess, Consumer<Throwable> onFailure)
 	{
@@ -77,7 +88,7 @@ public abstract class Poll {
 	{
 		if(question.length() > MessagePoll.MAX_QUESTION_TEXT_LENGTH)
 		{
-			Main.log.error(getName() + " has too long of a question");
+			Main.log.error("{} has too long of a question", this);
 		}
 		
 		return MessagePollData.builder(question.substring(0, Math.min(question.length(), MessagePoll.MAX_QUESTION_TEXT_LENGTH))).setDuration(getVoteTime()).addAnswer("Yes", Emoji.fromFormatted(YES_EMOJI)).addAnswer("No", Emoji.fromFormatted(NO_EMOJI)).build();
@@ -139,8 +150,8 @@ public abstract class Poll {
 		// Check for ratio
 		if(passesPoll(numYes, numNo))
 		{
-			Main.log.info("***" + getName() + "*** poll (" + question + ") passed!");
-			channel.sendMessage(getName() + " poll (" + question + ") passed, with a Yes / No ratio of **" + numYes + "** / **" + numNo + "**!").complete();
+			Main.log.info("{} poll ({}) passed!", this, question);
+			channel.sendMessage(question + " passed, with a Yes / No ratio of **" + numYes + "** / **" + numNo + "**!").complete();
 			
 			// Perform actions
 			try
@@ -155,7 +166,7 @@ public abstract class Poll {
 		else
 		{
 			// Fancy polling does this for us
-			String failedMsg = getName() + " poll (" + question + ") failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval (Yes / No ratio: **" + numYes + "** / **" + numNo + "**)";
+			String failedMsg = question + " failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval (Yes / No ratio: **" + numYes + "** / **" + numNo + "**)";
 			channel.sendMessage(failedMsg).complete();
 			Main.log.info(failedMsg);
 		}

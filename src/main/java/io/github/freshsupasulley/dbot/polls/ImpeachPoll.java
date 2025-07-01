@@ -4,7 +4,7 @@ import io.github.freshsupasulley.dbot.Main;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
-public class ImpeachPoll extends Poll {
+public class ImpeachPoll extends Poll<ImpeachPoll> {
 	
 	public ImpeachPoll(TextChannel channel, String reason)
 	{
@@ -14,9 +14,9 @@ public class ImpeachPoll extends Poll {
 	
 	// Don't allow 2 impeach polls
 	@Override
-	public boolean isDuplicate(Poll poll)
+	public boolean isDuplicate(ImpeachPoll poll)
 	{
-		return poll instanceof ImpeachPoll;
+		return true;
 	}
 	
 	@Override

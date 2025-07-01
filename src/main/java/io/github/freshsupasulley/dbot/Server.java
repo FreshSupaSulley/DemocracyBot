@@ -53,7 +53,7 @@ public class Server {
 	private int presidentialCount = 0;
 	private List<String> amendmentIDs = new ArrayList<String>();
 	private Map<String, String> caqEntries = new HashMap<String, String>();
-	private List<Poll> polls = new ArrayList<Poll>();
+	private List<Poll<?>> polls = new ArrayList<Poll<?>>();
 	// Times of proposing each type of poll. Purposely disassociating this from ServerMember for leaving server functionality / avoid spamming poll abuse
 	private Map<Long, Map<String, Long>> pollCooldownExpiryTimes = new HashMap<Long, Map<String, Long>>();
 	private List<ServerMember> members = new ArrayList<ServerMember>();
@@ -183,10 +183,10 @@ public class Server {
 	 * @param poll poll to check
 	 * @return true if the member can propose the poll, false otherwise
 	 */
-	public boolean meetsCooldown(ServerMember member, Poll poll)
+	public boolean meetsCooldown(ServerMember member, Poll<?> poll)
 	{
-		// Hehe (I need this for when I need to fix bot (trust (im a dictator)))
-		if(member.getID() == Main.OWNER_ID)
+		// Need this for testing
+		if(Main.inIDE && member.getID() == Main.OWNER_ID)
 			return true;
 		
 		// Get or create the cooldown map for this member
@@ -211,7 +211,7 @@ public class Server {
 	 * @param poll poll to check
 	 * @return time remaining in milliseconds before the member can request again
 	 */
-	public long getMillisRemaining(ServerMember member, Poll poll)
+	public long getMillisRemaining(ServerMember member, Poll<?> poll)
 	{
 		Map<String, Long> cooldowns = pollCooldownExpiryTimes.getOrDefault(member.getID(), Collections.emptyMap());
 		long expiry = cooldowns.getOrDefault(poll.getClass().getName(), 0L);
@@ -273,12 +273,12 @@ public class Server {
 	 * @param poll poll to start
 	 * @return user response, indicating if it the request was successful
 	 */
-	public void beginPoll(SlashCommandInteractionEvent event, Poll poll)
+	public void beginPoll(SlashCommandInteractionEvent event, Poll<?> poll)
 	{
 		// Ensure a duplicate poll doesn't exist
-		for(Poll sample : polls)
+		for(Poll<?> sample : polls)
 		{
-			if(poll.isDuplicate(sample))
+			if(poll.equals(sample))
 			{
 				event.reply("Another poll of this kind already exists!").setEphemeral(true).queue();
 				return;
@@ -834,12 +834,12 @@ public class Server {
 		{
 			// If it's a poll result, it's assumed the following logic will work to grab the referenced poll
 			long pollID = message.getMessageReference().getMessageIdLong();
-			Iterator<Poll> iterator = polls.iterator();
+			Iterator<Poll<?>> iterator = polls.iterator();
 			
 			// For each poll in server data
 			while(iterator.hasNext())
 			{
-				Poll sample = iterator.next();
+				Poll<?> sample = iterator.next();
 				
 				// If this active poll matches the message
 				if(sample.getMessageID() == pollID)
@@ -855,7 +855,7 @@ public class Server {
 					// Check for any active polls lingering around in server data by checking if their voting time expired a long time ago
 					if(sample.getStartTime() + sample.getVoteTime().toMillis() * 2 < System.currentTimeMillis())
 					{
-						Main.log.error("Weird. {} poll stuck around much longer than it should've. Perhaps it doesn't exist?", sample.getName());
+						Main.log.error("Weird. {} poll stuck around much longer than it should've. Perhaps it doesn't exist?", sample);
 						iterator.remove();
 						pollDeleted = true;
 					}

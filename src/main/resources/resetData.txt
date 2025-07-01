@@ -62,7 +62,8 @@
     "1383956939452711038",
     "1384331941708300381",
     "1385366527620153518",
-    "1386473627817349210"
+    "1386473627817349210",
+    "1389254613907144887"
   ],
   "caqEntries": {
     "1318075733419098123": "268508920530731008",
@@ -75,36 +76,6 @@
     "1382111639381217383": "297517194735255562"
   },
   "polls": [
-    {
-      "proposal": "get a job",
-      "question": "New amendment: get a job",
-      "messageID": 1388892213236469922,
-      "startTime": 1751208108086,
-      "ratio": 0.5,
-      "minParticipation": 5,
-      "votingCooldown": 43200000,
-      "type": "io.github.freshsupasulley.dbot.polls.ProposePoll"
-    },
-    {
-      "proposal": "more goongass terror",
-      "question": "New amendment: more goongass terror",
-      "messageID": 1389031080765558785,
-      "startTime": 1751241216830,
-      "ratio": 0.5,
-      "minParticipation": 5,
-      "votingCooldown": 43200000,
-      "type": "io.github.freshsupasulley.dbot.polls.ProposePoll"
-    },
-    {
-      "proposal": "NICK DID NOTHING WRONG! NICK DID NOTHING WRONG! NICK DID NOTHING WRONG! NICK DID NOTHING WRONG! NICK DID NOTHING WRONG!",
-      "question": "New amendment: NICK DID NOTHING WRONG! NICK DID NOTHING WRONG! NICK DID NOTHING WRONG! NICK DID NOTHING WRONG! NICK DID NOTHING WRONG!",
-      "messageID": 1389056496675061873,
-      "startTime": 1751247276389,
-      "ratio": 0.5,
-      "minParticipation": 5,
-      "votingCooldown": 43200000,
-      "type": "io.github.freshsupasulley.dbot.polls.ProposePoll"
-    },
     {
       "member": 1389058011019870350,
       "question": "Naturalize Grug? They will be able to propose and participate in democracy",
@@ -134,18 +105,54 @@
       "minParticipation": 5,
       "votingCooldown": 43200000,
       "type": "io.github.freshsupasulley.dbot.polls.ProposePoll"
+    },
+    {
+      "proposal": "There shall be a channel dedicated to the spamming of gifs and images which is separate from \u003c#1387598470939938968\u003e",
+      "question": "New amendment: There shall be a channel dedicated to the spamming of gifs and images which is separate from \u003c#1387598470939938968\u003e",
+      "messageID": 1389274653054206014,
+      "startTime": 1751299288957,
+      "ratio": 0.5,
+      "minParticipation": 5,
+      "votingCooldown": 43200000,
+      "type": "io.github.freshsupasulley.dbot.polls.ProposePoll"
+    },
+    {
+      "member": 476568604536733706,
+      "question": "Naturalize Soul of Discordias? They will be able to propose and participate in democracy",
+      "messageID": 1389347857324179709,
+      "startTime": 1751316742232,
+      "ratio": 0.75,
+      "minParticipation": 5,
+      "votingCooldown": 43200000,
+      "type": "io.github.freshsupasulley.dbot.polls.NaturalizePoll"
+    },
+    {
+      "member": 1389058011019870350,
+      "question": "Naturalize Grug? They will be able to propose and participate in democracy",
+      "messageID": 1389418532642750464,
+      "startTime": 1751333592427,
+      "ratio": 0.75,
+      "minParticipation": 5,
+      "votingCooldown": 43200000,
+      "type": "io.github.freshsupasulley.dbot.polls.NaturalizePoll"
     }
   ],
   "pollCooldownExpiryTimes": {
     "268508920530731008": {
       "io.github.freshsupasulley.dbot.polls.ProposePoll": 1751284416175,
-      "io.github.freshsupasulley.dbot.polls.NaturalizePoll": 1751291929919
+      "io.github.freshsupasulley.dbot.polls.NaturalizePoll": 1751359941729
     },
     "296323749660196874": {
       "io.github.freshsupasulley.dbot.polls.ProposePoll": 1751292446028
     },
     "267431503238135818": {
       "io.github.freshsupasulley.dbot.polls.ProposePoll": 1751293922024
+    },
+    "314508361242640386": {
+      "io.github.freshsupasulley.dbot.polls.ProposePoll": 1751342488538
+    },
+    "266604586784129024": {
+      "io.github.freshsupasulley.dbot.polls.NaturalizePoll": 1751376792025
     }
   },
   "members": [
@@ -180,6 +187,14 @@
     {
       "userID": 910579031391498330,
       "partyRole": 0
+    },
+    {
+      "userID": 314508361242640386,
+      "partyRole": 1389034011837333556
+    },
+    {
+      "userID": 266604586784129024,
+      "partyRole": 0
     }
   ],
   "parties": {
@@ -201,7 +216,9 @@
     276886864525262849,
     267431503238135818,
     269872388064280581,
-    296323749660196874
+    296323749660196874,
+    314508361242640386,
+    266604586784129024
   ],
   "presidentID": 297517194735255562,
   "slogan": "No shenanigans. No drama.",
