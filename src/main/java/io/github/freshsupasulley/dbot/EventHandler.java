@@ -1,6 +1,7 @@
 package io.github.freshsupasulley.dbot;
 
 import java.awt.Color;
+import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -47,7 +48,7 @@ import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 public class EventHandler extends GenericEventHandler {
 	
-	private static final String BAD_HEX_RESPONSE = "Invalid hex color code. Click [here](<https://rgbcolorcode.com>) for a generator";
+	private static final String BAD_COLOR_RESPONSE = "Unknown color name or invalid [hex color code](<https://rgbcolorcode.com>)";
 	
 	// 1 minute per tick
 	private static final long TICK_TIME = 60000;
@@ -244,11 +245,11 @@ public class EventHandler extends GenericEventHandler {
 						}
 						case "color":
 						{
-							Color color = validateHex(event.getOption("color").getAsString());
+							Color color = parseColor(event.getOption("color").getAsString());
 							
 							if(color == null)
 							{
-								event.reply(BAD_HEX_RESPONSE).queue();
+								event.reply(BAD_COLOR_RESPONSE).queue();
 								break;
 							}
 							
@@ -427,11 +428,11 @@ public class EventHandler extends GenericEventHandler {
 							}
 							
 							int randomColor = (int) (Math.random() * 0x1000000); // generate a default hex if not provided (color is optional)
-							Color color = validateHex(event.getOption("color", String.format("%06X", randomColor), OptionMapping::getAsString));
+							Color color = parseColor(event.getOption("color", String.format("%06X", randomColor), OptionMapping::getAsString));
 							
 							if(color == null)
 							{
-								event.reply(BAD_HEX_RESPONSE).queue();
+								event.reply(BAD_COLOR_RESPONSE).queue();
 								break;
 							}
 							
@@ -964,23 +965,35 @@ public class EventHandler extends GenericEventHandler {
 	}
 	
 	/**
-	 * Don't prepend the HEX color with a number sign.
+	 * Attempts to parse a string as a color. Don't prepend a HEX color with its number sign.
 	 * 
-	 * @param hex hex without number sign (e.g., FF0000)
+	 * @param raw color name, or hex without number sign (e.g., FF0000)
 	 * @return color
 	 */
 	@Nullable
-	private Color validateHex(String hex)
+	private Color parseColor(String raw)
 	{
 		Color color = null;
-		hex = "#" + hex;
+		
+		// First try by color name
+		try
+		{
+			Field field = Color.class.getField(raw.toLowerCase());
+			return (Color) field.get(null);
+		} catch(Exception e)
+		{
+			Main.log.warn("Failed to parse user's color as a color name: {}", raw, e);
+		}
+		
+		// If that didn't work, try hex
+		raw = "#" + raw;
 		
 		try
 		{
-			color = Color.decode(hex);
+			color = Color.decode(raw);
 		} catch(NumberFormatException e)
 		{
-			Main.log.warn("Can't parse user's color: {}", hex);
+			Main.log.warn("Can't parse user's color: {}", raw);
 		}
 		
 		return color;

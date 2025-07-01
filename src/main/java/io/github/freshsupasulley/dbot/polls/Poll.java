@@ -141,7 +141,7 @@ public abstract class Poll<T extends Poll<T>> {
 		if(passesPoll(numYes, numNo))
 		{
 			Main.log.info("{} poll ({}) passed!", this, question);
-			channel.sendMessage(question + " passed, with a Yes / No ratio of **" + numYes + "** / **" + numNo + "**!").complete();
+			channel.sendMessage("**" + question + "** passed, with a Yes / No ratio of **" + numYes + "** / **" + numNo + "**!").complete();
 			
 			// Perform actions
 			try
@@ -156,7 +156,7 @@ public abstract class Poll<T extends Poll<T>> {
 		else
 		{
 			// Fancy polling does this for us
-			String failedMsg = question + " failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval (Yes / No ratio: **" + numYes + "** / **" + numNo + "**)";
+			String failedMsg = "**" + question + "** failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval (Yes / No ratio: **" + numYes + "** / **" + numNo + "**)";
 			channel.sendMessage(failedMsg).complete();
 			Main.log.info(failedMsg);
 		}

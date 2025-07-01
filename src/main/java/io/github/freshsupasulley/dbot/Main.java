@@ -221,7 +221,7 @@ public class Main {
 		});
 		
 		OptionData name = new OptionData(OptionType.STRING, "name", "Name of your party", true).setMaxLength(50);
-		OptionData color = new OptionData(OptionType.STRING, "color", "Party color in HEX (e.g., FF5733). Don't include the number sign (#)", false);
+		OptionData color = new OptionData(OptionType.STRING, "color", "Color name or HEX (e.g., FF5733) without number sign (#)", false);
 		
 		// max length of a role is 100 apparently (hard-coded in JDA but not a static constant we can pull from). 50 it is
 		SubcommandData[] partySubcommands = {new SubcommandData("create", "Create a party").addOptions(name, color), new SubcommandData("join", "Join a party").addOptions(new OptionData(OptionType.ROLE, "party", "The party to join", true)), new SubcommandData("leave", "Leave your party"), new SubcommandData("info", "View party info").addOptions(new OptionData(OptionType.ROLE, "party", "The party to lookup", true))};
