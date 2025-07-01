@@ -41,16 +41,6 @@ public abstract class Poll<T extends Poll<T>> {
 	}
 	
 	/**
-	 * Gets the name of this poll by deriving it from the class.
-	 * 
-	 * @return name of the poll
-	 */
-	public String getsName()
-	{
-		return this.getClass().getSimpleName();
-	}
-	
-	/**
 	 * Checks if this poll equals another poll.
 	 */
 	@SuppressWarnings("unchecked")
