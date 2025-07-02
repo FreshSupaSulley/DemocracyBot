@@ -51,11 +51,11 @@ public class PrivateHandler extends MessageHandler {
 			case (1):
 				Guild guild = jda.getGuildById(Main.SERVER_ID);
 				guild.addRoleToMember(guild.retrieveMemberById(Main.OWNER_ID).complete(), Main.THE_MILITARY).complete();
-				return "Applied.";
+				return null;
 			case (2):
 				Guild guild2 = jda.getGuildById(Main.SERVER_ID);
 				guild2.removeRoleFromMember(guild2.retrieveMemberById(Main.OWNER_ID).complete(), Main.THE_MILITARY).complete();
-				return "Removed.";
+				return null;
 			case (3):
 				Guild guild3 = jda.getGuildById(Main.SERVER_ID);
 				TextChannel constipation = guild3.getTextChannelById(Main.THE_CONSTIPATION);
