@@ -858,6 +858,27 @@ public class EventHandler extends GenericEventHandler {
 				
 				return;
 			}
+			case "refer":
+			{
+				int number = event.getOption("amendment-number").getAsInt();
+				
+				if(number < 1 || number > Main.server.getAmendments())
+				{
+					event.reply("Enter a number between 1 - " + Main.server.getAmendments()).setEphemeral(true).queue();
+					break;
+				}
+				
+				// Pass in index, not number
+				String raw = Main.server.getAmendment(jda, number - 1);
+				
+				if(raw.startsWith("~~") && raw.endsWith("~~"))
+				{
+					raw += " – this amendment is repealed!";
+				}
+				
+				event.reply(raw).queue();
+				break;
+			}
 			case "propose":
 			{
 				String content = event.getOption("amendment").getAsString();

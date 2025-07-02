@@ -2,6 +2,7 @@ package io.github.freshsupasulley.dbot;
 
 import java.awt.Color;
 import java.text.SimpleDateFormat;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -62,6 +64,12 @@ public class Server {
 	private long presidentID;
 	private String slogan;
 	private long termEndTime;
+	
+	// For /refer
+	// Amendment index -> text, expiration time (epoch millis)
+	// Honestly this doesn't even really need to be a thing. We're just continuing the pain of making the text channel the SoT when it could be based off serverData
+	private transient Map<Integer, Entry<String, Long>> amendmentCache = new HashMap<Integer, Map.Entry<String, Long>>();
+	private static final long AMENDMENT_CACHE_TIME = 86400000L; // one day
 	
 	@SuppressWarnings("unused")
 	private boolean lastTerm;
@@ -731,6 +739,7 @@ public class Server {
 		{
 			Main.log.info("Added amendment {}", content);
 			amendmentIDs.add(success.getId());
+			amendmentCache.put(amendmentIDs.size() - 1, new SimpleEntry<String, Long>(content, System.currentTimeMillis() + AMENDMENT_CACHE_TIME));
 			Main.updateServerData();
 		}, failure ->
 		{
@@ -738,24 +747,39 @@ public class Server {
 		});
 	}
 	
-	public void repealAmendment(JDA jda, int number)
+	public void repealAmendment(JDA jda, int index)
 	{
-		Message message = jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete();
+		Message message = jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete();
 		String raw = message.getContentRaw();
 		
-		if(!raw.startsWith("~~") && !raw.endsWith("~~"))
-		{
-			message.editMessage("~~" + message.getContentRaw() + "~~").complete();
-		}
-		else
-		{
-			message.editMessage(raw.substring(2, raw.length() - 2)).complete();
-		}
+		String newContent = raw.startsWith("~~") && raw.endsWith("~~") ? raw.substring(2, raw.length() - 2) : "~~" + message.getContentRaw() + "~~";
+		message.editMessage(newContent).queue();
+		
+		// Update cache
+		amendmentCache.put(index, new SimpleEntry<>(newContent, System.currentTimeMillis() + AMENDMENT_CACHE_TIME));
 	}
 	
+	/**
+	 * Gets the amendment at the index.
+	 * 
+	 * @param jda   JDA
+	 * @param index amendment index, <b>NOT</b> its number
+	 * @return amendment text
+	 */
 	public String getAmendment(JDA jda, int index)
 	{
-		return jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete().getContentRaw();
+		// Check if cache expired
+		Entry<String, Long> entry = amendmentCache.get(index);
+		
+		// If we don't have the amendment in cache yet, or if we passed the expiration time
+		if(!amendmentCache.containsKey(index) || System.currentTimeMillis() > entry.getValue())
+		{
+			Main.log.info("Amendment is not in cache, fetching amendment index {}", index);
+			String amendment = jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete().getContentRaw();
+			amendmentCache.put(index, new SimpleEntry<>(amendment, System.currentTimeMillis() + AMENDMENT_CACHE_TIME));
+		}
+		
+		return amendmentCache.get(index).getKey();
 	}
 	
 	public List<Candidate> getCandidates()
@@ -768,20 +792,21 @@ public class Server {
 		return candidates.stream().anyMatch(candidate -> candidate.getID() == sender.getID());
 	}
 	
-	public String removeAmendment(JDA jda, int number)
+	public String removeAmendment(JDA jda, int index)
 	{
-		if(number > 0 && number <= amendmentIDs.size())
+		if(index > 0 && index <= amendmentIDs.size())
 		{
 			// Decrement to indices
-			number--;
+			index--;
 			// Delete OG message
-			jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(number)).complete().delete().complete();
+			jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete().delete().queue();
+			amendmentCache.remove(index);
 			// Remove from data
-			return "Deleted " + amendmentIDs.remove(number);
+			return "Deleted " + amendmentIDs.remove(index);
 		}
 		
 		Main.updateServerData();
-		return "Did not find amendment with ID " + number;
+		return "Did not find amendment with ID " + index;
 	}
 	
 	public void updatePresidentialVote(JDA jda)

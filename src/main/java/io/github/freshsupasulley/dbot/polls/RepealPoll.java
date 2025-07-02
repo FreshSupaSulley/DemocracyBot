@@ -13,10 +13,11 @@ public class RepealPoll extends Poll<RepealPoll> {
 	 * Creates a new repeal amendment poll.
 	 * 
 	 * @param channel   vote proposal
-	 * @param amendment amendment index, <b>NOT</b> the number
+	 * @param amendment amendment number
 	 */
 	public RepealPoll(TextChannel channel, int amendment)
 	{
+		// - 1 to 0 base it
 		super(0.5f, 3, 43200000, "Repeal " + MarkdownSanitizer.sanitize(Main.server.getAmendment(channel.getJDA(), amendment - 1)), channel);
 		this.amendment = amendment;
 	}
