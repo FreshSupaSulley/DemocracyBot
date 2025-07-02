@@ -870,13 +870,16 @@ public class EventHandler extends GenericEventHandler {
 				
 				// Pass in index, not number
 				String raw = Main.server.getAmendment(jda, number - 1);
+				boolean repealed = raw.startsWith("~~") && raw.endsWith("~~");
 				
-				if(raw.startsWith("~~") && raw.endsWith("~~"))
+				if(repealed)
 				{
-					raw += " – this amendment is repealed!";
+					raw += " this amendment is repealed!";
 				}
 				
-				event.reply(raw).queue();
+				// If it has any @s in it don't let this ping them
+				// Also, if its repealed, don't let any embeds be in it (anti secret commands measure)
+				event.reply(raw).setAllowedMentions(Set.of()).setSuppressEmbeds(repealed).queue();
 				break;
 			}
 			case "propose":

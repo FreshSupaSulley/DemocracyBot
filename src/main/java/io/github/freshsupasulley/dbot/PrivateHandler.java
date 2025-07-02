@@ -36,7 +36,7 @@ public class PrivateHandler extends MessageHandler {
 	
 	public PrivateHandler(JDA jda)
 	{
-		super(new String[] {"activity*Change what DBot is doing*(\"default\", \"competing\", \"listening\", \"streaming\", \"watching\", \"none\") + content", "enroll*Join the military for administrator access", "unenroll*Leave the military", "constitution*Change text in constitution", "channels*Get channel IDs", "say*Say a message in a channel*channel ID", "unbanAll*Unbans all members from Discordias", "role*Get role from ID", "edit*Edits a message*message ID + new text", "amendment*Force pass an amendment*text", "unamendment*Force remove an amendment*text", "ip*Retrieves local IP address", "cooldown*Clears all cooldowns of members", "update*Updates the bot from the latest release in the GitHub repo", "data*Returns server data", "shutdown*Forces shutdown of " + Main.BOT_NAME, "reboot*Reboots " + Main.BOT_NAME, "clear*Clears 100 " + Main.BOT_NAME + " messages (bots cannot delete your private messages)",
+		super(new String[] {"activity*Change what DBot is doing*(\"default\", \"competing\", \"listening\", \"streaming\", \"watching\", \"none\") + content", "enroll*Join the military for administrator access", "unenroll*Leave the military", "constitution*Change text in constitution", "channels*Get channel IDs", "say*Say a message in a channel*channel ID", "unbanAll*Unbans all members from Discordias", "role*Get role from ID", "edit*Edits a message*message ID + new text", "amendment*Force pass an amendment*text", "unamendment*Force remove an amendment (INDEX, NOT NUMBER)*text", "repeal*Repeals an amendment (INDEX, NOT NUMBER)*text", "ip*Retrieves local IP address", "cooldown*Clears all cooldowns of members", "update*Updates the bot from the latest release in the GitHub repo", "data*Returns server data", "shutdown*Forces shutdown of " + Main.BOT_NAME, "reboot*Reboots " + Main.BOT_NAME, "clear*Clears 100 " + Main.BOT_NAME + " messages (bots cannot delete your private messages)",
 		});
 		
 		this.jda = jda;
@@ -141,7 +141,22 @@ public class PrivateHandler extends MessageHandler {
 				
 				return Main.server.removeAmendment(jda, amendment);
 			}
+			// Repeal
 			case (11):
+			{
+				int amendment;
+				try
+				{
+					amendment = Integer.parseInt(message);
+				} catch(Exception e)
+				{
+					return "Not a valid amendment #";
+				}
+				
+				Main.server.repealAmendment(jda, amendment);
+				return "Repealed amendment index " + amendment;
+			}
+			case (12):
 			{
 				try(Socket socket = new Socket())
 				{
@@ -152,12 +167,12 @@ public class PrivateHandler extends MessageHandler {
 					return "Could not access IP address: " + e.toString();
 				}
 			}
-			case (12):
+			case (13):
 			{
 				Main.server.clearCooldowns();
 				return "Cleared all cooldowns";
 			}
-			case (13):
+			case (14):
 			{
 				if(Main.inIDE)
 					return "in IDE! Why are you tryna update prod from a dev env??";
@@ -174,21 +189,21 @@ public class PrivateHandler extends MessageHandler {
 					return e.getLocalizedMessage();
 				}
 			}
-			case (14):
+			case (15):
 				Main.updateServerData();
 				Main.sendServerData();
 				return null;
-			case (15):
+			case (16):
 				Main.updateServerData();
 				Main.shutdown();
 				return null;
-			case (16):
+			case (17):
 			{
 				Main.updateServerData();
 				reboot();
 				return "Rebootin";
 			}
-			case (17):
+			case (18):
 				MessageHistory history = new MessageHistory(channel);
 				List<Message> messages2 = history.retrievePast(100).complete();
 				List<Message> toDelete = new ArrayList<Message>();
@@ -220,7 +235,7 @@ public class PrivateHandler extends MessageHandler {
 					toDelete.get(0).delete().queue();
 				}
 				return null;
-			case (18):
+			case (19):
 				channel.sendMessageEmbeds(getUsage()).queue();
 				return null;
 			default:
