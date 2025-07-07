@@ -237,18 +237,29 @@ public class Server {
 	
 	public ServerMember getMember(Member user)
 	{
+		return getMember(user.getIdLong());
+	}
+	
+	/**
+	 * Probably only wanna use this one internally to avoid passing the wrong value.
+	 * 
+	 * @param id Discord user ID
+	 * @return new {@link ServerMember} instance
+	 */
+	private ServerMember getMember(long id)
+	{
 		// Now that we have the server, search for member within server
 		for(ServerMember member : members)
 		{
 			// If the user already exists, move to front of list
-			if(member.getID() == user.getIdLong())
+			if(member.getID() == id)
 			{
 				return member;
 			}
 		}
 		
 		// If we couldn't find user / server, the ServerMember is new
-		ServerMember initMember = new ServerMember(user.getIdLong());
+		ServerMember initMember = new ServerMember(id);
 		members.add(initMember);
 		Main.updateServerData();
 		return initMember;
@@ -471,7 +482,7 @@ public class Server {
 				{
 					// Always the first slot, 0
 					// Because of the conditional we should be guaranteed to find a president
-					candidates.add(new Candidate(members.stream().filter(member -> member.getID() == presidentID).findFirst().orElseThrow(), 0, Main.server.getPresidentialSlogan()));
+					candidates.add(new Candidate(getMember(presidentID), 0, Main.server.getPresidentialSlogan()));
 				}
 				
 				// Create vote, add first reaction (President re-election)
