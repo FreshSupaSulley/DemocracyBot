@@ -20,10 +20,22 @@ public class ServerMember {
 	}
 	
 	/**
+	 * To create copies of server members, for candidates.
+	 * 
+	 * @param member server member
+	 */
+	protected ServerMember(ServerMember member)
+	{
+		this.userID = member.userID;
+		this.partyRole = member.partyRole;
+	}
+	
+	/**
 	 * Gets the political party this user is a member of.
 	 * 
 	 * @return the political party, or null if user is not apart of a party.
 	 */
+	@Nullable
 	public PoliticalParty getPoliticalParty()
 	{
 		return Main.server.getParty(partyRole);
@@ -45,7 +57,7 @@ public class ServerMember {
 	 * @param poll poll to check
 	 * @return true if the member can propose the poll, false otherwise
 	 */
-	public boolean canPropose(Poll poll)
+	public boolean canPropose(Poll<?> poll)
 	{
 		return Main.server.meetsCooldown(this, poll);
 	}
@@ -56,7 +68,7 @@ public class ServerMember {
 	 * @param poll poll to check
 	 * @return time remaining in milliseconds before the member can request again
 	 */
-	public long getMillisRemaining(Poll poll)
+	public long getMillisRemaining(Poll<?> poll)
 	{
 		return Main.server.getMillisRemaining(this, poll);
 	}

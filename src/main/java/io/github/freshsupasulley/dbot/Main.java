@@ -345,8 +345,9 @@ public class Main {
 		
 		log.info("President: " + (president != null ? president.getEffectiveName() : "does not exist"));
 		
-		// Reset file (named differently than serverData to avoid confusion with botData/serverData, which is only generated when testing dbot in the IDE)
-		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("resetData.txt");
+		// ~~Reset file (named differently than serverData to avoid confusion with botData/serverData, which is only generated when testing dbot in the IDE)~~
+		// ^ nah
+		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("serverData.txt");
 		boolean usingResetFile = resetFile != null;
 		
 		// Check for reset data as an internal resource

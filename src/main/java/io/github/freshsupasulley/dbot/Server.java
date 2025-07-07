@@ -467,12 +467,12 @@ public class Server {
 				Main.log.info("Opening up Presidential vote");
 				
 				// Add President as a re-election
-				// ... no. They need to rerun themselves + I'm lazy
-				// if(Main.server.hasPresident() && !Main.server.isLastTerm())
-				// {
-				// // Always the first slot, 0
-				// candidates.add(new Candidate(0, Main.server.getPresidentID(), Main.server.getPresidentialSlogan(), Main.THE_PRESIDENT.getId()));
-				// }
+				if(Main.server.hasPresident() && !Main.server.isLastTerm())
+				{
+					// Always the first slot, 0
+					// Because of the conditional we should be guaranteed to find a president
+					candidates.add(new Candidate(members.stream().filter(member -> member.getID() == presidentID).findFirst().orElseThrow(), 0, Main.server.getPresidentialSlogan()));
+				}
 				
 				// Create vote, add first reaction (President re-election)
 				presidentialVote = jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.VOTING_BOOTH).sendMessageEmbeds(buildPresidentialVote()).complete();
@@ -688,11 +688,13 @@ public class Server {
 		Main.server.candidates.stream().sorted((o1, o2) -> Integer.compare(o1.getSlot(), o2.getSlot())).forEach((candidate) ->
 		{
 			// no need to sanitize, it's handled in the EventHandler
-			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + candidate.getPoliticalParty().getRole() + ">) - *\"" + candidate.getSlogan() + "\"*");
+			// The only person who may not be in a political party would be the president, in which case the President role is used. Also helps to indicate re-elections in
+			// CAQ
+			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + Optional.ofNullable(candidate.getPoliticalParty()).map(party -> party.getRole()).orElse(Main.THE_PRESIDENT_ID) + ">) - *\"" + candidate.getSlogan() + "\"*");
 		});
 		
 		if(Main.server.getCandidates().isEmpty())
-			builder.append("\n*There are no active presidential candidates. Run for office with " + Main.getCommandReference("campaign") + ".");
+			builder.append("\n*There are no active presidential candidates. Run for office with " + Main.getCommandReference("campaign") + ".*");
 		
 		e.setImage("https://cdn.discordapp.com/app-icons/910579031391498330/c65afb3995baa1c31212e43f1f643e7e.png");
 		e.setDescription(builder.toString());

@@ -7,7 +7,7 @@ public class Candidate extends ServerMember {
 	
 	public Candidate(ServerMember parent, int slot, String slogan)
 	{
-		super(parent.getID());
+		super(parent);
 		
 		this.slot = slot;
 		this.slogan = slogan;
