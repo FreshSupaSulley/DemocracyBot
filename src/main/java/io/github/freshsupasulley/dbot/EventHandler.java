@@ -817,24 +817,33 @@ public class EventHandler extends GenericEventHandler {
 			case "slogan":
 			{
 				String content = MarkdownSanitizer.sanitize(event.getOption("slogan").getAsString());
+				Main.log.debug("Input slogan: {}", content);
 				
-				if(Main.server.isPresident(sender))
+				if(!Main.server.isElectionActive())
 				{
-					Main.server.setPresidentialSlogan(content);
-					event.reply("Updated your slogan, Mr. President" + Main.server.getPresidentialVote(jda) == null ? ". You will see it during the next election" : "").queue();
-					return;
-				}
-				
-				if(Main.server.getPresidentialVote(jda) == null)
-				{
+					Main.log.debug("No election is active");
+					
+					// Nick (I think) complaint. Wants to change slogan anytime if President
+					if(Main.server.isPresident(sender))
+					{
+						Main.log.debug("Updating the presidential slogan");
+						Main.server.setPresidentialSlogan(content);
+						event.reply("Updated your slogan, Mr. President. You will see it during the next election").queue();
+						return;
+					}
+					
 					event.reply("There is no active presidential election").queue();
 					return;
 				}
+
+				Main.log.debug("Finding the candidate");
+				
 				// Check if already campaigning
 				for(Candidate candidate : Main.server.getCandidates())
 				{
 					if(candidate.getID() == sender.getID())
 					{
+						Main.log.debug("Got him");
 						candidate.setSlogan(content);
 						Main.server.updatePresidentialVote(jda);
 						event.reply("Updated your slogan to \"" + content + "\"").queue();
