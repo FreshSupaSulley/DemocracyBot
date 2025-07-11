@@ -8,7 +8,7 @@ build
 gradle.properties
 
 # Weeve
-/libs
+/libs/*.jar
 
 # Generated on test runs
 /botData

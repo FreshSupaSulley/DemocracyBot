@@ -20,7 +20,7 @@ public class ImpeachPoll extends Poll<ImpeachPoll> {
 	}
 	
 	@Override
-	protected void performAction(JDA jda)
+	protected void pollPassed(JDA jda)
 	{
 		Main.server.impeachPresident(jda.getGuildById(Main.SERVER_ID));
 	}

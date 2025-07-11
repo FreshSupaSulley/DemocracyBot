@@ -100,7 +100,11 @@ public abstract class Poll<T extends Poll<T>> {
 		return numYes * 1f / (numYes + numNo) > ratio;
 	}
 	
-	protected abstract void performAction(JDA jda);
+	protected abstract void pollPassed(JDA jda);
+	
+	protected void pollFailed(JDA jda)
+	{
+	}
 	
 	/**
 	 * Counts all votes and runs the associated poll action if passed.
@@ -146,11 +150,11 @@ public abstract class Poll<T extends Poll<T>> {
 			// Perform actions
 			try
 			{
-				performAction(jda);
+				pollPassed(jda);
 				Main.updateServerData();
-			} catch(Throwable t)
+			} catch(Exception e)
 			{
-				Main.log.error("Error running action during passed poll", t);
+				Main.log.error("Error running action during passed poll", e);
 			}
 		}
 		else
@@ -159,6 +163,16 @@ public abstract class Poll<T extends Poll<T>> {
 			String failedMsg = "**" + question + "** failed to pass. Needs " + minParticipation + " voters and " + (int) (ratio * 100) + "% approval (Yes / No ratio: **" + numYes + "** / **" + numNo + "**)";
 			channel.sendMessage(failedMsg).complete();
 			Main.log.info(failedMsg);
+			
+			// Perform actions
+			try
+			{
+				pollFailed(jda);
+				Main.updateServerData();
+			} catch(Exception e)
+			{
+				Main.log.error("Error running action during failed poll", e);
+			}
 		}
 		
 		// Matches Server's checkMessageForPollResult function

@@ -29,7 +29,7 @@ public class RepealPoll extends Poll<RepealPoll> {
 	}
 	
 	@Override
-	protected void performAction(JDA jda)
+	protected void pollPassed(JDA jda)
 	{
 		Main.server.repealAmendment(jda, amendment - 1);
 	}

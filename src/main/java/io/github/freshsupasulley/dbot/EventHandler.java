@@ -735,6 +735,12 @@ public class EventHandler extends GenericEventHandler {
 					break;
 				}
 				
+				if(Main.server.isBlacklisted(member))
+				{
+					event.reply("This user failed naturalization and is permanently in exile").queue();
+					break;
+				}
+				
 				Main.server.beginPoll(event, new NaturalizePoll(jda.getTextChannelById(Main.VOTING_BOOTH), member));
 				break;
 			}

@@ -21,7 +21,7 @@ public class ProposePoll extends Poll<ProposePoll> {
 	}
 	
 	@Override
-	protected void performAction(JDA jda)
+	protected void pollPassed(JDA jda)
 	{
 		Main.server.addAmendment(jda, proposal);
 	}

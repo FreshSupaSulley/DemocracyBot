@@ -61,6 +61,7 @@ public class Server {
 	private List<ServerMember> members = new ArrayList<ServerMember>();
 	private Map<Long, PoliticalParty> parties = new HashMap<Long, PoliticalParty>();
 	private Set<Long> naturalizedCitizens = new HashSet<Long>(); // Set automatically prevents duplicates
+	private Set<Long> naturalizationBlacklist = new HashSet<Long>();
 	private long presidentID;
 	private String slogan;
 	private long termEndTime;
@@ -139,6 +140,11 @@ public class Server {
 	 */
 	public void naturalize(Member member)
 	{
+		if(isBlacklisted(member))
+		{
+			throw new IllegalStateException("This member is on the naturalization blacklist! This should've been checked before invoking this method");
+		}
+		
 		// If we didn't already have them naturalized
 		if(naturalizedCitizens.add(member.getIdLong()))
 		{
@@ -155,6 +161,28 @@ public class Server {
 		{
 			Main.log.error("Failed to apply citizen role to naturalize new citizen: {}", member, e);
 		});
+	}
+	
+	/**
+	 * Adds a server member to the naturalization blacklist, meaning they can't ever be naturalized.
+	 * 
+	 * @param memberID member ID to blacklist
+	 */
+	public void addToCitizenBlacklist(long memberID)
+	{
+		naturalizationBlacklist.add(memberID);
+		Main.updateServerData();
+	}
+	
+	/**
+	 * Checks if the member on the naturalization blacklist.
+	 * 
+	 * @param member member
+	 * @return true if the member is on the blacklist
+	 */
+	public boolean isBlacklisted(Member member)
+	{
+		return naturalizationBlacklist.contains(member.getIdLong());
 	}
 	
 	public boolean isElectionActive()

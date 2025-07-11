@@ -13,7 +13,7 @@ public class NaturalizePoll extends Poll<NaturalizePoll> {
 	public NaturalizePoll(TextChannel channel, Member member)
 	{
 		// 3 day cooldown
-		super(0.75f, 5, 259200000L, "Naturalize " + member.getEffectiveName() + "? They will be able to propose and participate in democracy", channel);
+		super(0.75f, 5, 259200000L, "Naturalize " + member.getEffectiveName() + "? They will be able to participate in democracy. If failed, they cannot be renaturalized.", channel);
 		
 		this.member = member.getIdLong();
 	}
@@ -25,7 +25,7 @@ public class NaturalizePoll extends Poll<NaturalizePoll> {
 	}
 	
 	@Override
-	protected void performAction(JDA jda)
+	protected void pollPassed(JDA jda)
 	{
 		Guild guild = jda.getGuildById(Main.SERVER_ID);
 		guild.retrieveMemberById(member).queue(result ->
@@ -35,5 +35,11 @@ public class NaturalizePoll extends Poll<NaturalizePoll> {
 		{
 			Main.log.error("Failed to find member to naturalize while running naturalization poll", e);
 		});
+	}
+	
+	@Override
+	protected void pollFailed(JDA jda)
+	{
+		Main.server.addToCitizenBlacklist(member);
 	}
 }
