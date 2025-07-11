@@ -24,7 +24,7 @@ jobs:
           cd weeve
           ./gradlew build
           cd ..
-          mkdir libs
+          mkdir -p libs
           cp weeve/build/libs/weeve.jar libs/weeve.jar
 
       - name: Create gradle.properties for tokens
