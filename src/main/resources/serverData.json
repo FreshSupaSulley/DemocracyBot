@@ -18,7 +18,16 @@
   "pollCooldownExpiryTimes": {},
   "members": [],
   "parties": {},
-  "naturalizedCitizens": [],
+  "naturalizedCitizens": [
+	268508920530731008,
+	276886864525262849,
+	267431503238135818,
+	269872388064280581,
+	296323749660196874,
+	314508361242640386,
+	266604586784129024,
+	722901879654449212
+  ],
   "naturalizationBlacklist": [],
   "presidentID": 0,
   "slogan": null,
