@@ -118,7 +118,7 @@ public abstract class Poll<T extends Poll<T>> {
 	public void endPoll(JDA jda)
 	{
 		// Refresh channel
-		channel = jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.VOTING_BOOTH);
+		channel = Main.server.getServer(jda).getTextChannelById(Main.server.getVotingBooth());
 		
 		Message pollMessage = channel.retrieveMessageById(messageID).onErrorMap(t ->
 		{

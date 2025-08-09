@@ -27,7 +27,7 @@ public class NaturalizePoll extends Poll<NaturalizePoll> {
 	@Override
 	protected void pollPassed(JDA jda)
 	{
-		Guild guild = jda.getGuildById(Main.SERVER_ID);
+		Guild guild = Main.server.getServer(jda);
 		guild.retrieveMemberById(member).queue(result ->
 		{
 			Main.server.naturalize(result);

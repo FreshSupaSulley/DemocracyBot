@@ -78,7 +78,7 @@ public class GenericEventHandler extends CustomListener {
 	public void onGuildMessageReceived(MessageReceivedEvent event)
 	{
 		// Only consider the webhook build successes
-		if(event.getChannel().getIdLong() != Main.GITHUB || event.getAuthor().getIdLong() != Main.GITHUB_WEBHOOK_ID)
+		if(event.getChannel().getIdLong() != Main.server.getGithub() || event.getAuthor().getIdLong() != Main.server.getGithubWebhookID())
 			return;
 		
 		// We have the priviledged intent for this

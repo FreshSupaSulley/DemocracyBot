@@ -64,7 +64,7 @@ public class MessageHandler {
 		EmbedBuilder e = new EmbedBuilder();
 		e.setTitle(Main.BOT_NAME + " Usage");
 		e.setColor(new Color(149, 177, 255)); // burple
-		e.setDescription(result.substring(0, result.length() - 1) + "\n\n*All votes are found in <#" + Main.VOTING_BOOTH + ">*");
+		e.setDescription(result.substring(0, result.length() - 1) + "\n\n*All votes are found in <#" + Main.server.getVotingBooth() + ">*");
 		helpEmbed = e.build();
 	}
 	

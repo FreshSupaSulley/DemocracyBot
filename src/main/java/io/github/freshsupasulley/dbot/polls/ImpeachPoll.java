@@ -9,7 +9,7 @@ public class ImpeachPoll extends Poll<ImpeachPoll> {
 	public ImpeachPoll(TextChannel channel, String reason)
 	{
 		// 1 week cooldown
-		super(0.75f, 5, 604800000L, "Impeach " + channel.getJDA().getGuildById(Main.SERVER_ID).retrieveMemberById(Main.server.getPresidentID()).complete().getUser().getName() + "? " + reason, channel);
+		super(0.75f, 5, 604800000L, "Impeach " + Main.server.getServer(channel.getJDA()).retrieveMemberById(Main.server.getPresidentID()).complete().getUser().getName() + "? " + reason, channel);
 	}
 	
 	// Don't allow 2 impeach polls
@@ -22,6 +22,6 @@ public class ImpeachPoll extends Poll<ImpeachPoll> {
 	@Override
 	protected void pollPassed(JDA jda)
 	{
-		Main.server.impeachPresident(jda.getGuildById(Main.SERVER_ID));
+		Main.server.impeachPresident(Main.server.getServer(jda));
 	}
 }

@@ -36,7 +36,7 @@ public class PrivateHandler extends MessageHandler {
 	
 	public PrivateHandler(JDA jda)
 	{
-		super(new String[] {"activity*Change what DBot is doing*(\"default\", \"competing\", \"listening\", \"streaming\", \"watching\", \"none\") + content", "enroll*Join the military for administrator access", "unenroll*Leave the military", "constitution*Change text in constitution", "channels*Get channel IDs", "say*Say a message in a channel*channel ID", "unbanAll*Unbans all members from Discordias", "role*Get role from ID", "edit*Edits a message*message ID + new text", "amendment*Force pass an amendment*text", "unamendment*Force remove an amendment (INDEX, NOT NUMBER)*text", "repeal*Repeals an amendment (INDEX, NOT NUMBER)*text", "ip*Retrieves local IP address", "cooldown*Clears all cooldowns of members", "update*Updates the bot from the latest release in the GitHub repo", "data*Returns server data", "shutdown*Forces shutdown of " + Main.BOT_NAME, "reboot*Reboots " + Main.BOT_NAME, "clear*Clears 100 " + Main.BOT_NAME + " messages (bots cannot delete your private messages)",
+		super(new String[] {"activity*Change what DBot is doing*(\"default\", \"competing\", \"listening\", \"streaming\", \"watching\", \"none\") + content", "constitution*Change text in constitution", "channels*Get channel IDs", "say*Say a message in a channel*channel ID", "unbanAll*Unbans all members from Discordias", "role*Get role from ID", "edit*Edits a message*message ID + new text", "amendment*Force pass an amendment*text", "unamendment*Force remove an amendment (INDEX, NOT NUMBER)*text", "repeal*Repeals an amendment (INDEX, NOT NUMBER)*text", "ip*Retrieves local IP address", "cooldown*Clears all cooldowns of members", "update*Updates the bot from the latest release in the GitHub repo", "data*Returns server data", "shutdown*Forces shutdown of " + Main.BOT_NAME, "reboot*Reboots " + Main.BOT_NAME, "clear*Clears 100 " + Main.BOT_NAME + " messages (bots cannot delete your private messages)",
 		});
 		
 		this.jda = jda;
@@ -49,16 +49,8 @@ public class PrivateHandler extends MessageHandler {
 			case (0):
 				return handleActivityRequest(message);
 			case (1):
-				Guild guild = jda.getGuildById(Main.SERVER_ID);
-				guild.addRoleToMember(guild.retrieveMemberById(Main.OWNER_ID).complete(), Main.THE_MILITARY).complete();
-				return null;
-			case (2):
-				Guild guild2 = jda.getGuildById(Main.SERVER_ID);
-				guild2.removeRoleFromMember(guild2.retrieveMemberById(Main.OWNER_ID).complete(), Main.THE_MILITARY).complete();
-				return null;
-			case (3):
-				Guild guild3 = jda.getGuildById(Main.SERVER_ID);
-				TextChannel constipation = guild3.getTextChannelById(Main.THE_CONSTIPATION);
+				Guild guild3 = Main.server.getServer(jda);
+				TextChannel constipation = guild3.getTextChannelById(Main.server.getConstipation());
 				List<Message> messages = constipation.getHistory().retrievePast(1).complete();
 				
 				if(messages.size() == 1)
@@ -67,18 +59,18 @@ public class PrivateHandler extends MessageHandler {
 					constipation.sendMessage(message).queue();
 				
 				return "Done.";
-			case (4):
-				Guild guild4 = jda.getGuildById(Main.SERVER_ID);
+			case (2):
+				Guild guild4 = Main.server.getServer(jda);
 				String result = "";
 				for(TextChannel sample : guild4.getTextChannels())
 				{
 					result += sample.getName() + " - " + sample.getId();
 				}
 				return result;
-			case (5):
+			case (3):
 				return handleSayRequest(message);
-			case (6):
-				Guild guild5 = jda.getGuildById(Main.SERVER_ID);
+			case (4):
+				Guild guild5 = Main.server.getServer(jda);
 				String output = "";
 				
 				for(Ban ban : guild5.retrieveBanList().complete())
@@ -90,17 +82,17 @@ public class PrivateHandler extends MessageHandler {
 				if(output.isEmpty())
 					return "No one is banned!";
 				return output.substring(0, output.length() - 1);
-			case (7):
-				Role role = jda.getGuildById(Main.SERVER_ID).getRoleById(message);
+			case (5):
+				Role role = Main.server.getServer(jda).getRoleById(message);
 				if(role == null)
 					return "No role found";
 				else
 					return role.getName() + " " + role.getId();
-			case (8):
+			case (6):
 				if(!message.contains(" "))
 					return "Incorrect format";
 				
-				Guild guild6 = jda.getGuildById(Main.SERVER_ID);
+				Guild guild6 = Main.server.getServer(jda);
 				long id = 0;
 				
 				try
@@ -123,12 +115,12 @@ public class PrivateHandler extends MessageHandler {
 					}
 				}
 				return "Could not find message ID with ID " + id;
-			case (9):
+			case (7):
 			{
 				Main.server.addAmendment(jda, message);
 				return "Passed " + message;
 			}
-			case (10):
+			case (8):
 			{
 				int amendment;
 				try
@@ -142,7 +134,7 @@ public class PrivateHandler extends MessageHandler {
 				return Main.server.removeAmendment(jda, amendment);
 			}
 			// Repeal
-			case (11):
+			case (9):
 			{
 				int amendment;
 				try
@@ -156,7 +148,7 @@ public class PrivateHandler extends MessageHandler {
 				Main.server.repealAmendment(jda, amendment);
 				return "Repealed amendment index " + amendment;
 			}
-			case (12):
+			case (10):
 			{
 				try(Socket socket = new Socket())
 				{
@@ -167,12 +159,12 @@ public class PrivateHandler extends MessageHandler {
 					return "Could not access IP address: " + e.toString();
 				}
 			}
-			case (13):
+			case (11):
 			{
 				Main.server.clearCooldowns();
 				return "Cleared all cooldowns";
 			}
-			case (14):
+			case (12):
 			{
 				if(Main.inIDE)
 					return "in IDE! Why are you tryna update prod from a dev env??";
@@ -189,21 +181,21 @@ public class PrivateHandler extends MessageHandler {
 					return e.getLocalizedMessage();
 				}
 			}
-			case (15):
+			case (13):
 				Main.updateServerData();
 				Main.sendServerData();
 				return null;
-			case (16):
+			case (14):
 				Main.updateServerData();
 				Main.shutdown();
 				return null;
-			case (17):
+			case (15):
 			{
 				Main.updateServerData();
 				reboot();
 				return "Rebootin";
 			}
-			case (18):
+			case (16):
 				MessageHistory history = new MessageHistory(channel);
 				List<Message> messages2 = history.retrievePast(100).complete();
 				List<Message> toDelete = new ArrayList<Message>();
@@ -235,7 +227,7 @@ public class PrivateHandler extends MessageHandler {
 					toDelete.get(0).delete().queue();
 				}
 				return null;
-			case (19):
+			case (17):
 				channel.sendMessageEmbeds(getUsage()).queue();
 				return null;
 			default:

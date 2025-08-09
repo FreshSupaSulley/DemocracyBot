@@ -35,7 +35,6 @@ import net.dv8tion.jda.api.entities.Activity.ActivityType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -57,7 +56,6 @@ public class Main {
 	
 	public static final String DEFAULT_PREFIX = "!", ERROR_MSG = "<@" + Main.OWNER_ID + "> hey dumbass your bot broke";
 	
-	// Ignore the tokens.txt file in .gitignore
 	private static String DEMOCRACY_BOT_TOKEN;
 	public static String GITHUB_ACCESS_TOKEN;
 	
@@ -73,28 +71,10 @@ public class Main {
 	public static final Logger log = (Logger) LoggerFactory.getLogger(Main.class);
 	
 	private static final File democracyDir = new File("botData");
-	private static final File serverData = new File(Main.democracyDir.getPath() + "/serverData.txt");
+	private static final File serverData = new File(Main.democracyDir.getPath() + "/serverData.json");
 	
-	// Member data absolute path on pi: /root/Desktop/botData/serverData.txt
+	// Member data absolute path on pi: /root/Desktop/botData/serverData.json
 	public static final boolean inIDE;
-	
-	// Server Data
-	public static long SERVER_ID = 1102048289202917441L;
-	public static long GITHUB = 1388536849978626108L, THE_CONSTIPATION = 1102051128067248169L,
-										AMENDMENTS = 1102051223277928509L,
-										COMMANDERS_AND_QUEEFS = 1303051774969512059L,
-										VOTING_BOOTH = 1102051068969504768L, VOTE_PROPOSAL = 1102051099394969750L,
-										TEST_CHANNEL = 1105627214587904010L;
-	public static long THE_WHITE_HOUSE_CATEGORY = 1102050716819918948L, MAGNA_FARTA_CATEGORY = 1102050764756635668L;
-	
-	public static long GITHUB_WEBHOOK_ID = 1388537076621770793L;
-	
-	// Roles
-	public static long THE_MILITARY_ID = 1102048289202917442L, THE_PRESIDENT_ID = 1102055622981206086L,
-										CITIZEN_ID = 1310459289999114240L;
-	
-	@Deprecated
-	public static Role THE_MILITARY, THE_PRESIDENT;
 	
 	// Debug booleans
 	private static boolean debug = true;
@@ -125,8 +105,7 @@ public class Main {
 		log.info((democracyDir.mkdirs() ? "Created BotData directories!" : "Did not need to create botData directories") + " - " + democracyDir.getAbsolutePath());
 		
 		// Uncaught errors are sent to DemocracyBot logs. This catches weeve errors too
-		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler()
-		{
+		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
 			
 			@Override
 			public void uncaughtException(Thread t, Throwable e)
@@ -140,22 +119,22 @@ public class Main {
 	
 	/**
 	 * Creates directories, files, and reads server data before program begins.
-	 * 
+	 *
 	 * @throws IOException
 	 * @throws LoginException
 	 * @throws InterruptedException
 	 */
 	public Main()
 	{
-		if(debug)
-		{
-			// Set all channels to the test channel
-			THE_CONSTIPATION = TEST_CHANNEL;
-			AMENDMENTS = TEST_CHANNEL;
-			COMMANDERS_AND_QUEEFS = TEST_CHANNEL;
-			VOTING_BOOTH = TEST_CHANNEL;
-			VOTE_PROPOSAL = TEST_CHANNEL;
-		}
+//		if(debug)
+//		{
+//			// Set all channels to the test channel
+//			THE_CONSTIPATION = TEST_CHANNEL;
+//			AMENDMENTS = TEST_CHANNEL;
+//			COMMANDERS_AND_QUEEFS = TEST_CHANNEL;
+//			VOTING_BOOTH = TEST_CHANNEL;
+//			VOTE_PROPOSAL = TEST_CHANNEL;
+//		}
 		
 		// JDA will reconnect after a very long period of downtime (I tested up to 3-4 hours)
 		// JDA will immediately fail if you try to create the bot when the internet is unavailable
@@ -185,9 +164,9 @@ public class Main {
 				{
 					e.printStackTrace();
 				}
-			} catch(Throwable t)
+			} catch(Exception e)
 			{
-				Main.log.error("Something went wrong booting JDA", t);
+				Main.log.error("Something went wrong booting JDA", e);
 				break;
 			}
 		}
@@ -228,25 +207,25 @@ public class Main {
 		
 		// Subcommand group
 		SubcommandData[] partyEditSubcommands = new SubcommandData[] {
-			new SubcommandData("name", "Change party name").addOptions(name),
-			new SubcommandData("color", "Change party color").addOptions(shallowClone(color).setRequired(true)),
-			new SubcommandData("ban", "Ban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
-			new SubcommandData("unban", "Unban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
-			new SubcommandData("invite-bot", "Invites a bot to the party").addOptions(new OptionData(OptionType.USER, "bot", "Bot to join", true)),
-			new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
+				new SubcommandData("name", "Change party name").addOptions(name),
+				new SubcommandData("color", "Change party color").addOptions(shallowClone(color).setRequired(true)),
+				new SubcommandData("ban", "Ban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
+				new SubcommandData("unban", "Unban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
+				new SubcommandData("invite-bot", "Invites a bot to the party").addOptions(new OptionData(OptionType.USER, "bot", "Bot to join", true)),
+				new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
 		};
 		
 		// Public slash commands
 		CommandData[] publicCommands = new CommandData[] {
-			Commands.slash("party", "Party commands").addSubcommands(partySubcommands).addSubcommandGroups(new SubcommandGroupData("edit", "Party editing commands").addSubcommands(partyEditSubcommands)),
-			Commands.slash("campaign", "Run for President").addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), // in case it changes
-			Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
-			Commands.slash("next-election", "Returns next election time"),
-			Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add (markdown will be escaped)", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
-			Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)),
-			Commands.slash("refer", "Sends the amendment in chat").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to refer to", true).setMinValue(1)),
-			Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
-			Commands.slash("naturalize", "Naturalize an immigrant").addOptions(new OptionData(OptionType.USER, "user", "The user to naturalize", true))
+				Commands.slash("party", "Party commands").addSubcommands(partySubcommands).addSubcommandGroups(new SubcommandGroupData("edit", "Party editing commands").addSubcommands(partyEditSubcommands)),
+				Commands.slash("campaign", "Run for President").addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), // in case it changes
+				Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
+				Commands.slash("next-election", "Returns next election time"),
+				Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add (markdown will be escaped)", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
+				Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)),
+				Commands.slash("refer", "Sends the amendment in chat").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to refer to", true).setMinValue(1)),
+				Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
+				Commands.slash("naturalize", "Naturalize an immigrant").addOptions(new OptionData(OptionType.USER, "user", "The user to naturalize", true))
 		};
 		
 		boolean updateCommands = false;
@@ -297,7 +276,7 @@ public class Main {
 	
 	/**
 	 * Clones an {@link OptionData} instance without copying everything.
-	 * 
+	 *
 	 * @param original data to copy
 	 * @return shallow clone
 	 */
@@ -310,54 +289,23 @@ public class Main {
 	
 	/**
 	 * Loads the server data.
-	 * 
+	 *
 	 * @param attempts number of tries it took to boot JDA
 	 * @return new {@linkplain CustomListener} instance
 	 * @throws IOException if something went wrong
 	 */
 	private CustomListener loadServerData(int attempts) throws IOException
 	{
-		Guild guild = jda.getGuildById(Main.SERVER_ID);
-		
-		if(viewStats)
-		{
-			System.out.println("*** Roles:");
-			guild.getRoles().forEach(role -> System.out.println(role.getName() + " " + role.getIdLong()));
-			System.out.println("*** Members:");
-			guild.loadMembers().get().forEach(member -> System.out.println(member.getEffectiveName() + " " + member.getIdLong()));
-			System.out.println("*** Channels:");
-			guild.getChannels().forEach(channel -> System.out.println(channel.getName() + " " + channel.getIdLong()));
-			System.exit(0);
-		}
-		
-		// Initialize roles
-		THE_MILITARY = guild.getRoleById(THE_MILITARY_ID);
-		THE_PRESIDENT = guild.getRoleById(THE_PRESIDENT_ID);
-		
-		// Get current president
-		Member president = null;
-		
-		// Get President
-		// Says you can't use .get but fuck you
-		List<Member> presidents = guild.findMembersWithRoles(THE_PRESIDENT).get();
-		
-		if(presidents.size() == 1)
-			president = presidents.get(0);
-		else if(presidents.size() > 1)
-			throw new IllegalStateException("More than 1 President exists!");
-		
-		log.info("President: " + (president != null ? president.getEffectiveName() : "does not exist"));
-		
 		// ~~Reset file (named differently than serverData to avoid confusion with botData/serverData, which is only generated when testing dbot in the IDE)~~
 		// ^ nah
-		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("serverData.txt");
+		InputStream resetFile = getClass().getClassLoader().getResourceAsStream("serverData.json");
 		boolean usingResetFile = resetFile != null;
 		
 		// Check for reset data as an internal resource
 		// At least one of these files MUST exist
 		if(!usingResetFile && !serverData.exists())
 		{
-			throw new IllegalStateException("Server file doesn't exist, and reset file wasn't provided. Make sure to provide a `serverData.txt` in src/main/resources when testing!");
+			throw new IllegalStateException("Server file doesn't exist, and reset file wasn't provided. Make sure to provide `serverData.json` in src/main/resources when testing!");
 		}
 		
 		// If we're using the reset file
@@ -425,11 +373,33 @@ public class Main {
 		{
 			throw new IllegalStateException("Server file seems to be blank as server == null");
 		}
-		// if(president == null)
-		// {
-		// DMain.sendToOperator("No President could be found");
-		// DMain.server.updatePresident(0);
-		// }
+		
+		Guild guild = Main.server.getServer(jda);
+		
+		if(viewStats)
+		{
+			System.out.println("*** Roles:");
+			guild.getRoles().forEach(role -> System.out.println(role.getName() + " " + role.getIdLong()));
+			System.out.println("*** Members:");
+			guild.loadMembers().get().forEach(member -> System.out.println(member.getEffectiveName() + " " + member.getIdLong()));
+			System.out.println("*** Channels:");
+			guild.getChannels().forEach(channel -> System.out.println(channel.getName() + " " + channel.getIdLong()));
+			System.exit(0);
+		}
+		
+		// Get current president
+		Member president = null;
+		
+		// Get President
+		// Says you can't use .get but fuck you
+		List<Member> presidents = guild.findMembersWithRoles(guild.getRoleById(Main.server.getThePresident())).get();
+		
+		if(presidents.size() == 1)
+			president = presidents.get(0);
+		else if(presidents.size() > 1)
+			throw new IllegalStateException("More than 1 President exists!");
+		
+		log.info("President: " + (president != null ? president.getEffectiveName() : "does not exist"));
 		
 		updateServerData();
 		privateChannel.sendMessage(Main.BOT_NAME + " is online (reset file == **" + (usingResetFile) + "**, attempts == **" + attempts + "**) running Java version " + System.getProperty("java.version")).complete();
@@ -437,7 +407,8 @@ public class Main {
 	}
 	
 	/**
-	 * Updates the local server data file. Do this after any important changes to {@linkplain Server} variables. Locks the file during writing.
+	 * Updates the local server data file. Do this after any important changes to {@linkplain Server} variables. Locks
+	 * the file during writing.
 	 */
 	public static void updateServerData()
 	{
@@ -471,7 +442,7 @@ public class Main {
 	
 	/**
 	 * Loads the server data file as a string.
-	 * 
+	 *
 	 * @return server data, or null if failed
 	 */
 	public static String readServerData()
@@ -520,9 +491,10 @@ public class Main {
 	
 	/**
 	 * Finds the command by the full command name and returns the markdown needed to reference it in messages.
-	 * 
+	 *
 	 * @param fullCommandName {@linkplain ICommandReference#getFullCommandName()} of command
-	 * @return markdown of the command, calculated by {@code "</" + result.getFullCommandName() + ":" + result.getId() + ">"}
+	 * @return markdown of the command, calculated by
+	 * {@code "</" + result.getFullCommandName() + ":" + result.getId() + ">"}
 	 */
 	public static String getCommandReference(String fullCommandName)
 	{
@@ -566,8 +538,7 @@ public class Main {
 		
 		if(!inIDE)
 		{
-			Thread runnable = new Thread()
-			{
+			Thread runnable = new Thread() {
 				
 				@Override
 				public void run()
@@ -595,6 +566,7 @@ public class Main {
 		
 		DEMOCRACY_BOT_TOKEN = properties.getProperty("democracy");
 		GITHUB_ACCESS_TOKEN = properties.getProperty("github_access_token");
+		
 		new Main();
 	}
 }

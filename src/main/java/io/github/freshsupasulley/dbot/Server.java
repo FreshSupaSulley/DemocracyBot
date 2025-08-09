@@ -50,6 +50,21 @@ public class Server {
 	/** Update CAQ once per day */
 	private static final long CAQ_UPDATE_TIME = 86400000;
 	
+	// Server Data
+	public long serverID;
+	
+	// Channels
+	private long github, constipation, amendments, commandersAndQueefs, votingBooth, testChannel;
+	
+	// Categories
+	public long whiteHouse, magnaFarta;
+	
+	// Updating webhook
+	public long githubWebhookID;
+	
+	// Roles
+	public long thePresident, citizen;
+	
 	// Everything has to be initialized in case it doesn't get deserialized and a new server obj is created
 	// Serialize
 	private int presidentialCount = 0;
@@ -84,6 +99,76 @@ public class Server {
 	private transient Message presidentialVote;
 	private transient long lastCAQ = System.currentTimeMillis();
 	
+	public Guild getServer(JDA jda)
+	{
+		return Optional.ofNullable(jda.getGuildById(serverID)).orElseThrow(() -> new NullPointerException(jda.getSelfUser().getName() + " is not a member of this server (id: " + serverID + ")"));
+	}
+	
+	public long getGithub()
+	{
+		return github;
+	}
+	
+	public long getConstipation()
+	{
+		return constipation;
+	}
+	
+	public long getCommandersAndQueefs()
+	{
+		return commandersAndQueefs;
+	}
+	
+	public long getAmendmentsID()
+	{
+		return amendments;
+	}
+	
+	public long getVotingBooth()
+	{
+		return votingBooth;
+	}
+	
+	public long getTestChannel()
+	{
+		return testChannel;
+	}
+	
+	public long getWhiteHouse()
+	{
+		return whiteHouse;
+	}
+	
+	public long getMagnaFarta()
+	{
+		return magnaFarta;
+	}
+	
+	public long getGithubWebhookID()
+	{
+		return githubWebhookID;
+	}
+	
+	public long getThePresident()
+	{
+		return thePresident;
+	}
+	
+	public long getCitizen()
+	{
+		return citizen;
+	}
+	
+	// Only deserializing will create new instances
+	private Server()
+	{
+	}
+	
+	public int getTotalAmendments()
+	{
+		return amendmentIDs.size();
+	}
+	
 	public Message getPresidentialVote(JDA jda)
 	{
 		if(!isElectionActive())
@@ -94,7 +179,7 @@ public class Server {
 			return presidentialVote;
 		
 		// Otherwise retrieve it
-		return jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.VOTING_BOOTH).retrieveMessageById(presidentialVoteMessageID).onErrorMap(error ->
+		return getServer(jda).getTextChannelById(getVotingBooth()).retrieveMessageById(presidentialVoteMessageID).onErrorMap(error ->
 		{
 			Main.log.error("Huh? Tried to fetch presidential vote but fail checks failed", error);
 			return null;
@@ -112,7 +197,7 @@ public class Server {
 	public boolean isNaturalized(Member member)
 	{
 		// If they have the citizen role
-		if(member.getRoles().stream().anyMatch(role -> role.getIdLong() == Main.CITIZEN_ID))
+		if(member.getRoles().stream().anyMatch(role -> role.getIdLong() == getCitizen()))
 		{
 			// Also ensure they're in naturalized set
 			if(naturalizedCitizens.add(member.getIdLong()))
@@ -153,8 +238,8 @@ public class Server {
 		
 		// Add the role (doesn't do anything besides lets people know they're naturalized)
 		// If they already have it, this does nothing (safe)
-		Guild guild = member.getJDA().getGuildById(Main.SERVER_ID);
-		guild.addRoleToMember(member, guild.getRoleById(Main.CITIZEN_ID)).queue(success ->
+		Guild guild = getServer(member.getJDA());
+		guild.addRoleToMember(member, guild.getRoleById(getCitizen())).queue(success ->
 		{
 			Main.log.info("Added citizen role to member");
 		}, e ->
@@ -259,7 +344,7 @@ public class Server {
 	 */
 	public void clearCooldowns()
 	{
-		Main.server.pollCooldownExpiryTimes.clear();
+		pollCooldownExpiryTimes.clear();
 		Main.updateServerData();
 	}
 	
@@ -368,12 +453,12 @@ public class Server {
 		if(hasPresident() && id == getPresidentID())
 		{
 			Main.sendToOperator("The President left the server!");
-			impeachPresident(jda.getGuildById(Main.SERVER_ID));
+			impeachPresident(getServer(jda));
 		}
 		
 		// Remove member from candidates
 		// If there are any candidates, it implies a vote is active
-		for(Iterator<Candidate> iterator = Main.server.getCandidates().iterator(); iterator.hasNext();)
+		for(Iterator<Candidate> iterator = getCandidates().iterator(); iterator.hasNext();)
 		{
 			Candidate member = iterator.next();
 			
@@ -385,7 +470,7 @@ public class Server {
 				Main.log.info("Removing candidate from running");
 				
 				// Remove the reaction that belonged to it
-				getPresidentialVote(jda).getReaction(Emoji.fromUnicode(Main.server.slotToReaction(member.getSlot()))).removeReaction().queue();
+				getPresidentialVote(jda).getReaction(Emoji.fromUnicode(slotToReaction(member.getSlot()))).removeReaction().queue();
 				updatePresidentialVote(jda);
 				break;
 			}
@@ -407,7 +492,7 @@ public class Server {
 				// If we're the leader of a party
 				if(party != null && party.getLeaderID() == id)
 				{
-					deletePartyAndChannels(party, jda.getGuildById(Main.SERVER_ID));
+					deletePartyAndChannels(party, getServer(jda));
 				}
 				
 				break;
@@ -467,11 +552,6 @@ public class Server {
 		return Math.max(0, termEndTime - System.currentTimeMillis());
 	}
 	
-	public int getAmendments()
-	{
-		return amendmentIDs.size();
-	}
-	
 	public String getPresidentialSlogan()
 	{
 		return slogan;
@@ -498,7 +578,7 @@ public class Server {
 		presidentialVote = getPresidentialVote(jda);
 		
 		// If we're voting for President
-		if(presidentialVote != null || Main.server.millisRemainingInTerm() < Server.PRESIDENTIAL_VOTE_TIME)
+		if(presidentialVote != null || millisRemainingInTerm() < Server.PRESIDENTIAL_VOTE_TIME)
 		{
 			// If a poll needs to be created
 			if(presidentialVote == null)
@@ -506,15 +586,15 @@ public class Server {
 				Main.log.info("Opening up Presidential vote");
 				
 				// Add President as a re-election
-				if(Main.server.hasPresident() && !Main.server.isLastTerm())
+				if(hasPresident() && !isLastTerm())
 				{
 					// Always the first slot, 0
 					// Because of the conditional we should be guaranteed to find a president
-					candidates.add(new Candidate(getMember(presidentID), 0, Main.server.getPresidentialSlogan()));
+					candidates.add(new Candidate(getMember(presidentID), 0, getPresidentialSlogan()));
 				}
 				
 				// Create vote, add first reaction (President re-election)
-				presidentialVote = jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.VOTING_BOOTH).sendMessageEmbeds(buildPresidentialVote()).complete();
+				presidentialVote = getServer(jda).getTextChannelById(getVotingBooth()).sendMessageEmbeds(buildPresidentialVote()).complete();
 				presidentialVoteMessageID = presidentialVote.getIdLong();
 				
 				if(!candidates.isEmpty())
@@ -537,7 +617,7 @@ public class Server {
 						int[] votes = new int[10];
 						
 						// Update message to get reactions
-						presidentialVote = jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.VOTING_BOOTH).retrieveMessageById(presidentialVoteMessageID).complete();
+						presidentialVote = getServer(jda).getTextChannelById(getVotingBooth()).retrieveMessageById(presidentialVoteMessageID).complete();
 						
 						for(MessageReaction r : presidentialVote.getReactions())
 						{
@@ -587,12 +667,14 @@ public class Server {
 						// President is elected
 						candidates.clear();
 						Main.log.info(nextPresident.getID() + " won");
-						Guild guild = jda.getGuildById(Main.SERVER_ID);
+						Guild guild = getServer(jda);
 						
 						// Remove President roll
-						if(Main.server.hasPresident())
+						Role role = guild.getRoleById(getThePresident());
+						
+						if(hasPresident())
 						{
-							guild.removeRoleFromMember(guild.retrieveMemberById(Main.server.getPresidentID()).complete(), Main.THE_PRESIDENT).complete();
+							guild.removeRoleFromMember(guild.retrieveMemberById(getPresidentID()).complete(), role).complete();
 						}
 						
 						// Delete Presidential vote
@@ -616,23 +698,23 @@ public class Server {
 						termEndTime = System.currentTimeMillis() + TERM_LENGTH;
 						
 						// This gets scooped up and deleted by checkMessageForPollResult below
-						guild.getTextChannelById(Main.VOTING_BOOTH).sendMessage("Welcome <@" + nextPresident.getID() + "> to The White House!").queue();// .complete().delete().queueAfter(1, TimeUnit.HOURS);
+						guild.getTextChannelById(getVotingBooth()).sendMessage("Welcome <@" + nextPresident.getID() + "> to The White House!").queue();// .complete().delete().queueAfter(1, TimeUnit.HOURS);
 						
 						Member nextPresidentMember = guild.retrieveMemberById(nextPresident.getID()).complete();
-						guild.addRoleToMember(nextPresidentMember, Main.THE_PRESIDENT).complete();
+						guild.addRoleToMember(nextPresidentMember, role).complete();
 						
 						// New president
 						this.presidentialCount++;
 						
 						// Add to commanders and queefs
-						Role safeParty = Optional.ofNullable(guild.getRoleById(nextPresident.getPoliticalParty().getRole())).orElse(Main.THE_PRESIDENT); // I am PRAYING that the role exists because of the "don't leave if candidate" check
+						Role safeParty = Optional.ofNullable(guild.getRoleById(nextPresident.getPoliticalParty().getRole())).orElse(role); // I am PRAYING that the role exists because of the "don't leave if candidate" check
 						EmbedBuilder e = new EmbedBuilder();
-						e.setTitle(ordinal(Main.server.getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.escape(nextPresidentMember.getUser().getEffectiveName()) + "**");
+						e.setTitle(ordinal(getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.escape(nextPresidentMember.getUser().getEffectiveName()) + "**");
 						e.setColor(safeParty.getColor());
 						e.setDescription("<@" + nextPresidentMember.getId() + ">" + " of **" + MarkdownSanitizer.escape(safeParty.getName()) + "**\n\n*\"" + slogan + "\"*");
 						e.setImage(nextPresidentMember.getEffectiveAvatarUrl());
-						e.setFooter("Served " + getUSEnglishDateFormat(Main.server.getTermEndTime() - Server.TERM_LENGTH) + " - " + getUSEnglishDateFormat(Main.server.getTermEndTime()), jda.getSelfUser().getEffectiveAvatarUrl());
-						jda.getGuildById(Main.SERVER_ID).getTextChannelById(Main.COMMANDERS_AND_QUEEFS).sendMessageEmbeds(e.build()).queue(success ->
+						e.setFooter("Served " + getUSEnglishDateFormat(getTermEndTime() - Server.TERM_LENGTH) + " - " + getUSEnglishDateFormat(getTermEndTime()), jda.getSelfUser().getEffectiveAvatarUrl());
+						getServer(jda).getTextChannelById(getCommandersAndQueefs()).sendMessageEmbeds(e.build()).queue(success ->
 						{
 							caqEntries.put(success.getId(), nextPresidentMember.getId());
 							
@@ -659,10 +741,10 @@ public class Server {
 			return;
 		}
 		
-		Guild guild = jda.getGuildById(Main.SERVER_ID);
+		Guild guild = getServer(jda);
 		
 		// Edge condition idc about is this can cause memory leaks. I'll worry about this in the year 10000
-		guild.getTextChannelById(Main.COMMANDERS_AND_QUEEFS).getIterableHistory().forEach(message ->
+		guild.getTextChannelById(getCommandersAndQueefs()).getIterableHistory().forEach(message ->
 		{
 			MessageEmbed embed = message.getEmbeds().get(0);
 			EmbedBuilder builder = new EmbedBuilder(embed);
@@ -674,7 +756,7 @@ public class Server {
 			
 			// if(user != null)
 			// {
-			// builder.setTitle(ordinal(DMain.server.getPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.sanitize(user.getEffectiveName()) + "**");
+			// builder.setTitle(ordinal(DgetPresidentialCount()) + " President of Discordias, **" + MarkdownSanitizer.sanitize(user.getEffectiveName()) + "**");
 			// }
 			
 			// Update image in case user changes pfp, or user is magically deleted
@@ -724,15 +806,15 @@ public class Server {
 		StringBuilder builder = new StringBuilder("@everyone it's time. By the power of the people and the Magna Farta, we will elect our next monthly President that represents the core of this nation's beliefs and thereby representing the people. Cast your vote below:\n");
 		
 		// Sort candidates by their slot
-		Main.server.candidates.stream().sorted((o1, o2) -> Integer.compare(o1.getSlot(), o2.getSlot())).forEach((candidate) ->
+		candidates.stream().sorted((o1, o2) -> Integer.compare(o1.getSlot(), o2.getSlot())).forEach((candidate) ->
 		{
 			// no need to sanitize, it's handled in the EventHandler
 			// The only person who may not be in a political party would be the president, in which case the President role is used. Also helps to indicate re-elections in
 			// CAQ
-			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + Optional.ofNullable(candidate.getPoliticalParty()).map(party -> party.getRole()).orElse(Main.THE_PRESIDENT_ID) + ">) - *\"" + candidate.getSlogan() + "\"*");
+			builder.append("\n**#" + (candidate.getSlot() + 1) + ": <@" + candidate.getID() + ">** (<@&" + Optional.ofNullable(candidate.getPoliticalParty()).map(party -> party.getRole()).orElse(getThePresident()) + ">) - *\"" + candidate.getSlogan() + "\"*");
 		});
 		
-		if(Main.server.getCandidates().isEmpty())
+		if(getCandidates().isEmpty())
 			builder.append("\n*There are no active presidential candidates. Run for office with " + Main.getCommandReference("campaign") + ".*");
 		
 		e.setImage("https://cdn.discordapp.com/app-icons/910579031391498330/c65afb3995baa1c31212e43f1f643e7e.png");
@@ -749,7 +831,7 @@ public class Server {
 		Main.log.info("Impeached President");
 		
 		// Change records for historical accuracy. Latest message in CAQ is the current president
-		TextChannel channel = guild.getJDA().getGuildById(Main.SERVER_ID).getTextChannelById(Main.COMMANDERS_AND_QUEEFS);
+		TextChannel channel = guild.getTextChannelById(getCommandersAndQueefs());
 		channel.retrieveMessageById(channel.getLatestMessageId()).submit().thenCompose(message ->
 		{
 			MessageEmbed embed = message.getEmbeds().get(0);
@@ -764,8 +846,10 @@ public class Server {
 		lastTerm = false;
 		Main.updateServerData();
 		
+		Role role = guild.getRoleById(getPresidentID());
+		
 		// Remove presidential role
-		guild.retrieveMemberById(Main.server.getPresidentID()).submit().thenApply(member -> guild.removeRoleFromMember(member, Main.THE_PRESIDENT));
+		guild.retrieveMemberById(getPresidentID()).submit().thenApply(member -> guild.removeRoleFromMember(member, role));
 	}
 	
 	/**
@@ -776,7 +860,7 @@ public class Server {
 	 */
 	public void addAmendment(JDA jda, String content)
 	{
-		jda.getTextChannelById(Main.AMENDMENTS).sendMessage("**Amendment #" + (getAmendments() + 1) + "** - " + MarkdownSanitizer.escape(content)).queue(success ->
+		jda.getTextChannelById(getAmendmentsID()).sendMessage("**Amendment #" + (amendmentIDs.size() + 1) + "** - " + MarkdownSanitizer.escape(content)).queue(success ->
 		{
 			Main.log.info("Added amendment {}", content);
 			amendmentIDs.add(success.getId());
@@ -790,7 +874,7 @@ public class Server {
 	
 	public void repealAmendment(JDA jda, int index)
 	{
-		Message message = jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete();
+		Message message = jda.getTextChannelById(getAmendmentsID()).retrieveMessageById(amendmentIDs.get(index)).complete();
 		String raw = message.getContentRaw();
 		
 		String newContent = raw.startsWith("~~") && raw.endsWith("~~") ? raw.substring(2, raw.length() - 2) : "~~" + message.getContentRaw() + "~~";
@@ -816,7 +900,7 @@ public class Server {
 		if(!amendmentCache.containsKey(index) || System.currentTimeMillis() > entry.getValue())
 		{
 			Main.log.info("Amendment is not in cache, fetching amendment index {}", index);
-			String amendment = jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete().getContentRaw();
+			String amendment = jda.getTextChannelById(getAmendmentsID()).retrieveMessageById(amendmentIDs.get(index)).complete().getContentRaw();
 			amendmentCache.put(index, new SimpleEntry<>(amendment, System.currentTimeMillis() + AMENDMENT_CACHE_TIME));
 		}
 		
@@ -840,7 +924,7 @@ public class Server {
 			// Decrement to indices
 			index--;
 			// Delete OG message
-			jda.getTextChannelById(Main.AMENDMENTS).retrieveMessageById(amendmentIDs.get(index)).complete().delete().queue();
+			jda.getTextChannelById(getAmendmentsID()).retrieveMessageById(amendmentIDs.get(index)).complete().delete().queue();
 			amendmentCache.remove(index);
 			// Remove from data
 			return "Deleted " + amendmentIDs.remove(index);
@@ -889,7 +973,7 @@ public class Server {
 	 */
 	public void checkMessageForPollResult(Message message)
 	{
-		if(message.getChannel().getIdLong() != Main.VOTING_BOOTH)
+		if(message.getChannel().getIdLong() != getVotingBooth())
 			return;
 		
 		// ALL messages beyond this point will be deleted after an hour

@@ -15,16 +15,18 @@ dependencies {
     // Gson
     implementation 'com.google.code.gson:gson:2.10.1'
     // JDA
-    implementation 'net.dv8tion:JDA:5.2.1'
+    implementation 'net.dv8tion:JDA:5.6.1'
     
     testImplementation libs.junit.jupiter
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
-    }
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+//    toolchain {
+//        languageVersion = JavaLanguageVersion.of(11)
+//    }
 }
 
 application {
