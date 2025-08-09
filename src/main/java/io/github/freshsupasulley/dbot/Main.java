@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,7 @@ import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import io.github.freshsupasulley.dbot.polls.Poll;
 import io.github.freshsupasulley.dbot.utils.ErrorAppender;
 import io.github.freshsupasulley.dbot.utils.JsonUtils;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA.Status;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -35,6 +37,8 @@ import net.dv8tion.jda.api.entities.Activity.ActivityType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -50,6 +54,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.FileUpload;
+import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import net.dv8tion.jda.internal.JDAImpl;
 
 public class Main {
@@ -105,7 +110,8 @@ public class Main {
 		log.info((democracyDir.mkdirs() ? "Created BotData directories!" : "Did not need to create botData directories") + " - " + democracyDir.getAbsolutePath());
 		
 		// Uncaught errors are sent to DemocracyBot logs. This catches weeve errors too
-		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler()
+		{
 			
 			@Override
 			public void uncaughtException(Thread t, Throwable e)
@@ -126,15 +132,15 @@ public class Main {
 	 */
 	public Main()
 	{
-//		if(debug)
-//		{
-//			// Set all channels to the test channel
-//			THE_CONSTIPATION = TEST_CHANNEL;
-//			AMENDMENTS = TEST_CHANNEL;
-//			COMMANDERS_AND_QUEEFS = TEST_CHANNEL;
-//			VOTING_BOOTH = TEST_CHANNEL;
-//			VOTE_PROPOSAL = TEST_CHANNEL;
-//		}
+		// if(debug)
+		// {
+		// // Set all channels to the test channel
+		// THE_CONSTIPATION = TEST_CHANNEL;
+		// AMENDMENTS = TEST_CHANNEL;
+		// COMMANDERS_AND_QUEEFS = TEST_CHANNEL;
+		// VOTING_BOOTH = TEST_CHANNEL;
+		// VOTE_PROPOSAL = TEST_CHANNEL;
+		// }
 		
 		// JDA will reconnect after a very long period of downtime (I tested up to 3-4 hours)
 		// JDA will immediately fail if you try to create the bot when the internet is unavailable
@@ -206,26 +212,13 @@ public class Main {
 		SubcommandData[] partySubcommands = {new SubcommandData("create", "Create a party").addOptions(name, color), new SubcommandData("join", "Join a party").addOptions(new OptionData(OptionType.ROLE, "party", "The party to join", true)), new SubcommandData("leave", "Leave your party"), new SubcommandData("info", "View party info").addOptions(new OptionData(OptionType.ROLE, "party", "The party to lookup", true))};
 		
 		// Subcommand group
-		SubcommandData[] partyEditSubcommands = new SubcommandData[] {
-				new SubcommandData("name", "Change party name").addOptions(name),
-				new SubcommandData("color", "Change party color").addOptions(shallowClone(color).setRequired(true)),
-				new SubcommandData("ban", "Ban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
-				new SubcommandData("unban", "Unban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)),
-				new SubcommandData("invite-bot", "Invites a bot to the party").addOptions(new OptionData(OptionType.USER, "bot", "Bot to join", true)),
-				new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
+		SubcommandData[] partyEditSubcommands = new SubcommandData[] {new SubcommandData("name", "Change party name").addOptions(name), new SubcommandData("color", "Change party color").addOptions(shallowClone(color).setRequired(true)), new SubcommandData("ban", "Ban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)), new SubcommandData("unban", "Unban a member").addOptions(new OptionData(OptionType.USER, "user", "User to ban", true)), new SubcommandData("invite-bot", "Invites a bot to the party").addOptions(new OptionData(OptionType.USER, "bot", "Bot to join", true)), new SubcommandData("transfer", "Elect a new party leader").addOptions(new OptionData(OptionType.USER, "user", "User to transfer the party to", true)),
 		};
 		
 		// Public slash commands
-		CommandData[] publicCommands = new CommandData[] {
-				Commands.slash("party", "Party commands").addSubcommands(partySubcommands).addSubcommandGroups(new SubcommandGroupData("edit", "Party editing commands").addSubcommands(partyEditSubcommands)),
-				Commands.slash("campaign", "Run for President").addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), // in case it changes
-				Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))),
-				Commands.slash("next-election", "Returns next election time"),
-				Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add (markdown will be escaped)", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
-				Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)),
-				Commands.slash("refer", "Sends the amendment in chat").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to refer to", true).setMinValue(1)),
-				Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)),
-				Commands.slash("naturalize", "Naturalize an immigrant").addOptions(new OptionData(OptionType.USER, "user", "The user to naturalize", true))
+		CommandData[] publicCommands = new CommandData[] {Commands.slash("party", "Party commands").addSubcommands(partySubcommands).addSubcommandGroups(new SubcommandGroupData("edit", "Party editing commands").addSubcommands(partyEditSubcommands)), Commands.slash("campaign", "Run for President").addOptions(new OptionData(OptionType.STRING, "slogan", "Your campaign slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), // in case it changes
+											Commands.slash("slogan", "Change your slogan").addOptions(new OptionData(OptionType.STRING, "slogan", "Your new slogan", true).setMaxLength(Math.min(200, OptionData.MAX_STRING_OPTION_LENGTH))), Commands.slash("next-election", "Returns next election time"), Commands.slash("propose", "Propose an amendment").addOptions(new OptionData(OptionType.STRING, "amendment", "The amendment to add (markdown will be escaped)", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), // Takeaway some characters for prefix
+											Commands.slash("repeal", "Repeal / unrepeal an amendment").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to repeal", true).setMinValue(1)), Commands.slash("refer", "Sends the amendment in chat").addOptions(new OptionData(OptionType.INTEGER, "amendment-number", "The amendment number to refer to", true).setMinValue(1)), Commands.slash("impeach", "Impeach the President").addOptions(new OptionData(OptionType.STRING, "reason", "Why impeachment is deserved", true).setMaxLength(MessagePoll.MAX_QUESTION_TEXT_LENGTH - Poll.POLL_QUESTION_PREFIX)), Commands.slash("naturalize", "Naturalize an immigrant").addOptions(new OptionData(OptionType.USER, "user", "The user to naturalize", true))
 		};
 		
 		boolean updateCommands = false;
@@ -260,16 +253,6 @@ public class Main {
 			sendToOperator("Can't boot: " + t.getLocalizedMessage());
 			listener = new GenericEventHandler(jda);
 		}
-		
-		// Hot fix CAQ template
-		// Guild guild = jda.getGuildById(DMain.SERVER_ID);
-		// Message hi = guild.getTextChannelById(1303051774969512059L).retrieveMessageById(1332187594968272918L).complete();
-		// MessageEmbed embed = hi.getEmbeds().get(0);
-		// EmbedBuilder builder2 = new EmbedBuilder(embed);
-		// builder2.setDescription("<@" + 269872388064280581L + ">" + " of **" + MarkdownSanitizer.sanitize("circle of the wanker 7") + "**\n\n*\"" + "I promise to the
-		// people of this wonderful server that I will do everything in my power to make it worse. Much worse." + "\"*");
-		// hi.editMessageEmbeds(builder2.build()).complete();
-		// System.exit(1);
 		
 		jda.addEventListener(listener);
 	}
@@ -407,8 +390,7 @@ public class Main {
 	}
 	
 	/**
-	 * Updates the local server data file. Do this after any important changes to {@linkplain Server} variables. Locks
-	 * the file during writing.
+	 * Updates the local server data file. Do this after any important changes to {@linkplain Server} variables. Locks the file during writing.
 	 */
 	public static void updateServerData()
 	{
@@ -493,8 +475,7 @@ public class Main {
 	 * Finds the command by the full command name and returns the markdown needed to reference it in messages.
 	 *
 	 * @param fullCommandName {@linkplain ICommandReference#getFullCommandName()} of command
-	 * @return markdown of the command, calculated by
-	 * {@code "</" + result.getFullCommandName() + ":" + result.getId() + ">"}
+	 * @return markdown of the command, calculated by {@code "</" + result.getFullCommandName() + ":" + result.getId() + ">"}
 	 */
 	public static String getCommandReference(String fullCommandName)
 	{
@@ -538,7 +519,8 @@ public class Main {
 		
 		if(!inIDE)
 		{
-			Thread runnable = new Thread() {
+			Thread runnable = new Thread()
+			{
 				
 				@Override
 				public void run()
