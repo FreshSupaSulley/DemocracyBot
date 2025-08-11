@@ -3,7 +3,8 @@
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
-		"register": "node src/register.ts",
+		"register": "tsc --outdir temp src/commands.ts && node temp/commands.js && rm -r temp",
+		"ngrok": "ngrok http 8787",
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
@@ -16,5 +17,12 @@
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.28.1"
+	},
+	"dependencies": {
+		"discord-api-types": "^0.38.18",
+		"discord-interactions": "^4.3.0",
+		"dotenv": "^17.2.1",
+		"itty-router": "^5.0.21",
+		"ngrok": "^5.0.0-beta.2"
 	}
 }
