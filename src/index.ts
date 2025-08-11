@@ -10,9 +10,12 @@
  *
  * Learn more at https://developers.cloudflare.com/workers/
  */
-
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		const url = new URL(request.url);
+		if(url.pathname == '/setup') {
+			console.log("set ts up");
+		}
 		return new Response('Hello World!');
 	},
 } satisfies ExportedHandler<Env>;
