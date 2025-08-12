@@ -1,20 +1,18 @@
 import { APIApplicationCommandInteraction, InteractionResponseType } from 'discord-api-types/v10';
-import { Command } from './command';
-import { InteractionResponseFlags } from 'discord-interactions';
-import { getExactTime, isPresidentialVoteActive, millisRemainingInTerm, PRESIDENTIAL_VOTE_TIME } from '../utils';
+import { BaseCommand } from './command';
+import { PRESIDENTIAL_VOTE_TIME } from '../utils';
 
-export const command: Command = {
-	data: { name: 'next-election', options: [], description: 'Returns next election time', type: 1 },
-	handle: async (interaction: APIApplicationCommandInteraction, data) => {
+export default class NextElection extends BaseCommand {
+	data = { name: 'next-election', options: [], description: 'Returns next election time', type: 1 };
+
+	async handle(interaction: APIApplicationCommandInteraction): Promise<any> {
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
-				content: isPresidentialVoteActive(data)
-					? `The current election will end at **${getExactTime(Date.now() + (await millisRemainingInTerm(env)))} EST**.`
-					: `The next election opens on **${getExactTime(Date.now() + millisRemainingInTerm(env) - PRESIDENTIAL_VOTE_TIME)} EST**.`,
+				content: this.isPresidentialVoteActive()
+					? `The current election will end at **${this.getExactTime(Date.now() + this.millisRemainingInTerm())} EST**.`
+					: `The next election opens on **${this.getExactTime(Date.now() + this.millisRemainingInTerm() - PRESIDENTIAL_VOTE_TIME)} EST**.`,
 			},
 		};
-	},
-};
-
-export default command;
+	}
+}

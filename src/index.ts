@@ -3,7 +3,7 @@
 import { AutoRouter, json } from 'itty-router';
 import { InteractionResponseType, InteractionType, verifyKey } from 'discord-interactions';
 import { ApplicationCommandOptionType } from 'discord-api-types/v10';
-import { Command } from './commands/command';
+import { BaseCommand } from './commands/command';
 import ServerData from './types';
 
 const router = AutoRouter();
@@ -37,14 +37,26 @@ router.post('/', async (request, env) => {
 		// Find the command at the subfolder
 		try {
 			const commandModule = await import(`./commands/${fullCommandName}.ts`);
-			const command: Command = commandModule.default;
+			const command: BaseCommand = commandModule.default;
 
-			if (typeof command.handle !== 'function') {
-				throw new Error(`No valid handle() exported for ${fullCommandName}`);
+			if (typeof command !== 'function') {
+				throw new Error(`No valid default export class found in ${fullCommandName}`);
 			}
 
-			// Pass in requested serverData into the command
-			const response = await command.handle(interaction, JSON.parse(await env.DBOT.get("data")) as ServerData);
+			const rawData = await env.DBOT.get('data');
+			if (!rawData) throw new Error('No server data found in KV');
+
+			// Instantiate the command class with data
+			const CommandClass = commandModule.default as CommandConstructor;
+			const commandInstance = new CommandClass(rawData);
+
+			// Check for handle method
+			if (typeof commandInstance.handle !== 'function') {
+				throw new Error(`No valid handle() method found in ${fullCommandName}`);
+			}
+
+			// Run the command
+			const response = await commandInstance.handle(interaction);
 			return json(response);
 		} catch (e) {
 			console.error('Something went wrong responding to slash command', e);
@@ -60,6 +72,8 @@ router.post('/', async (request, env) => {
 	console.error('Unknown Type');
 	return json({ error: 'Unknown Type' }, { status: 400 });
 });
+
+type CommandConstructor = new (data: ServerData) => BaseCommand;
 
 function getFullCommandName(data: any): string {
 	let type = data.options?.[0].type;
