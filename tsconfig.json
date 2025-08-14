@@ -1,5 +1,8 @@
 {
 	"compilerOptions": {
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+
 		/* Visit https://aka.ms/tsconfig.json to read more about this file */
 
 		/* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
@@ -36,10 +39,7 @@
 
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
-		"types": [
-			"node",
-			"./worker-configuration.d.ts"
-		]
+		"types": ["node", "./worker-configuration.d.ts"]
 	},
 	"exclude": ["test"],
 	"include": ["worker-configuration.d.ts", "src/**/*.ts", "src/commands.ts"]

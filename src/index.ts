@@ -5,6 +5,11 @@ import { InteractionResponseType, InteractionType, verifyKey } from 'discord-int
 import { ApplicationCommandOptionType } from 'discord-api-types/v10';
 import { BaseCommand } from './commands/command';
 import ServerData from './types';
+import { State } from './state';
+import { plainToInstance } from 'class-transformer';
+
+// What we use to access any server data / env vars / anything requiring a state
+export let globalState: State = new State({}, {} as ServerData);
 
 const router = AutoRouter();
 
@@ -14,6 +19,10 @@ router.get('/', async (request, env) => {
 	// console.log(await env.DBOT.list());
 	// console.log(await env.DBOT.get("data"))
 	return new Response(`good job champ`);
+});
+
+router.get('/data', async (request, env) => {
+	return new Response(env.ENV === 'DEV' ? await env.DBOT.get('data') : 'nope');
 });
 
 // Forwards interactions for handling in their appropriate files
@@ -32,6 +41,12 @@ router.post('/', async (request, env) => {
 	}
 
 	if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+		// We lazily put all the server data into one KV as a string so we need to parse it back as JSON
+		const rawData = plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data')));
+		if (!rawData) throw new Error('No server data found in KV');
+
+		// Ensure the state is initialized
+		globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
 		const fullCommandName = getFullCommandName(interaction.data);
 		console.log('Received', fullCommandName);
 		// Find the command at the subfolder
@@ -43,20 +58,10 @@ router.post('/', async (request, env) => {
 				throw new Error(`No valid default export class found in ${fullCommandName}`);
 			}
 
-			const rawData = await env.DBOT.get('data');
-			if (!rawData) throw new Error('No server data found in KV');
-
 			// Instantiate the command class with data
-			const CommandClass = commandModule.default as CommandConstructor;
-			const commandInstance = new CommandClass(rawData);
-
-			// Check for handle method
-			if (typeof commandInstance.handle !== 'function') {
-				throw new Error(`No valid handle() method found in ${fullCommandName}`);
-			}
-
+			const CommandClass = commandModule.default as new () => BaseCommand;
 			// Run the command
-			const response = await commandInstance.handle(interaction);
+			const response = await new CommandClass().handle(interaction);
 			return json(response);
 		} catch (e) {
 			console.error('Something went wrong responding to slash command', e);
@@ -66,14 +71,19 @@ router.post('/', async (request, env) => {
 					content: `<@${env.OWNER_ID}> hey dumbass your bot broke`,
 				},
 			});
+		} finally {
+			// Check if it changed
+			// ALSO check if the order changed?? Idk if it does
+			if (rawData !== globalState.serverData) {
+				console.log('Server data changed!');
+				// env.DBOT.set('data', globalState.serverData);
+			}
 		}
 	}
 
 	console.error('Unknown Type');
 	return json({ error: 'Unknown Type' }, { status: 400 });
 });
-
-type CommandConstructor = new (data: ServerData) => BaseCommand;
 
 function getFullCommandName(data: any): string {
 	let type = data.options?.[0].type;

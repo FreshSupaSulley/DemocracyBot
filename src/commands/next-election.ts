@@ -2,10 +2,9 @@ import { APIApplicationCommandInteraction, InteractionResponseType } from 'disco
 import { BaseCommand } from './command';
 import { PRESIDENTIAL_VOTE_TIME } from '../utils';
 
-export default class NextElection extends BaseCommand {
-	data = { name: 'next-election', options: [], description: 'Returns next election time', type: 1 };
-
+export default class extends BaseCommand {
 	async handle(interaction: APIApplicationCommandInteraction): Promise<any> {
+		console.log(interaction);
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {

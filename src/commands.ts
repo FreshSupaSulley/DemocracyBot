@@ -201,4 +201,4 @@ const ALL_COMMANDS = [
 
 // `npm run register` will add the commands to the bot
 // This is calling the bulk overwrite endpoint: https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
-api(`applications/${process.env.APP_ID}/commands`, { method: 'PUT', body: ALL_COMMANDS });
+api(process.env, `applications/${process.env.APP_ID}/commands`, { method: 'PUT', body: ALL_COMMANDS });
