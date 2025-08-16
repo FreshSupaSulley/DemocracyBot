@@ -1,21 +1,14 @@
-import {
-	APIBaseInteraction,
-	APIInteractionResponseChannelMessageWithSource,
-	InteractionResponseType,
-	MessageFlags,
-	RESTPatchAPIChannelMessageJSONBody,
-} from 'discord-api-types/v10';
+import { MessageFlags, RESTPatchAPIChannelMessageJSONBody } from 'discord-api-types/v10';
 import { AMENDMENT_CACHE_TIME, api } from '../utils';
-import { BasePoll } from './poll';
-import { escapeMarkdown } from '@discordjs/formatters';
 import { globalState } from '..';
+import { Amendment } from '../types';
+import BasePoll from './poll';
 
-export default class RepealPoll extends BasePoll<RepealPoll> {
-	type = "Repeal";
+export default class RepealPoll extends BasePoll {
 	amendment: number;
 
 	constructor(amendment: number, amendmentText: string) {
-		super(0.5, 3, 43200000, 'Repeal ' + escapeMarkdown(amendmentText));
+		super(0.5, 3, 43200000, 'Repeal ' + amendmentText);
 		this.amendment = amendment;
 	}
 
@@ -39,38 +32,7 @@ export default class RepealPoll extends BasePoll<RepealPoll> {
 			} as RESTPatchAPIChannelMessageJSONBody,
 		}).then(() => {
 			// Update amendment cache
-			globalState.amendmentCache.set(this.amendment - 1, {
-				text: newAmendment,
-				expiry: Date.now() + AMENDMENT_CACHE_TIME,
-			});
+			globalState.serverData.amendmentCache.set(this.amendment - 1, new Amendment(newAmendment, Date.now() + AMENDMENT_CACHE_TIME));
 		});
-	}
-
-	async handle(interaction: APIBaseInteraction<any, any>): Promise<any> {
-		const number = interaction.data.options[0].value;
-		// Bounds check
-		if (number < 1 || number > globalState.getTotalAmendments()) {
-			return {
-				type: InteractionResponseType.ChannelMessageWithSource,
-				data: {
-					flags: MessageFlags.Ephemeral,
-					content: `Enter a number between 1 - ${globalState.getTotalAmendments()}`,
-				},
-			} as APIInteractionResponseChannelMessageWithSource;
-		}
-		// Number to 0-based index
-		let raw = await globalState.getAmendmentText(number - 1);
-		const repealed = raw.startsWith('~~') && raw.endsWith('~~');
-
-		if (repealed) {
-			raw += ' this amendment is repealed!';
-		}
-
-		return {
-			type: InteractionResponseType.ChannelMessageWithSource,
-			data: {
-				content: 'Poll added! i think',
-			},
-		};
 	}
 }

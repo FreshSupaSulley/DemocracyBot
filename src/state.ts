@@ -1,22 +1,23 @@
 import {
 	APIBaseInteraction,
+	APIBaseMessage,
+	APIGuildMember,
 	APIInteractionResponseChannelMessageWithSource,
 	APIMessage,
+	APIUser,
 	InteractionResponseType,
 	MessageFlags,
 } from 'discord-api-types/v10';
-import ServerData from './types';
-import { BasePoll } from './polls/poll';
+import ServerData, { Amendment, ServerMember } from './types';
 import { AMENDMENT_CACHE_TIME, api } from './utils';
 import { PoliticalParty } from './political-party';
-import { ServerMember } from './server-member';
+import { escapeMarkdown } from '@discordjs/formatters';
+import BasePoll from './polls/poll';
 
 // Because CF workers can die at any point
 export class State {
 	env: any;
 	serverData: ServerData;
-	// These are gonna have to get moved to serverData. You know why (this assumes there's a state lol)
-	amendmentCache: Map<number, { text: string; expiry: number }> = new Map();
 
 	constructor(env: any, serverData: ServerData) {
 		this.env = env;
@@ -27,7 +28,6 @@ export class State {
 		// our commands for this bot are ALWAYS guild commands so no need to fret
 		let id = interaction.member?.user.id!;
 		for (let member of this.serverData.members) {
-			console.log("CHECKING", (member as ServerMember).getID());
 			if (member.getID() == id) {
 				return member;
 			}
@@ -46,21 +46,19 @@ export class State {
 		return this.serverData.parties.find((value) => value.role == partyID);
 	}
 
-	getMillisRemaining(member: ServerMember, poll: BasePoll<any>): number {
+	getMillisRemaining(member: ServerMember, poll: BasePoll): number {
 		const memberId = member.getID();
 		const cooldowns = this.serverData.pollCooldownExpiryTimes.get(memberId) ?? new Map<string, number>();
-		const pollType = poll.constructor.name;
-		const expiry = cooldowns.get(pollType) ?? 0;
+		const expiry = cooldowns.get(poll.constructor.name) ?? 0;
 		return Math.max(0, expiry - Date.now());
 	}
 
-	meetsCooldown(member: ServerMember, poll: BasePoll<any>): boolean {
+	meetsCooldown(member: ServerMember, poll: BasePoll): boolean {
 		// I need this for testing (sike I'm just a tyrant)
 		if (member.getID() == this.env.OWNER_ID) return true;
 		// Get or create the cooldown map for this member
 		const memberId = member.getID();
 		const cooldowns = this.serverData.pollCooldownExpiryTimes.get(memberId) ?? new Map<string, number>();
-		this.serverData.pollCooldownExpiryTimes.set(memberId, cooldowns);
 
 		const pollType = poll.constructor.name;
 		const now = Date.now();
@@ -68,13 +66,13 @@ export class State {
 
 		if (now >= expiryTime) {
 			cooldowns.set(pollType, now + poll.getVotingCooldown());
-			return true;
+			this.serverData.pollCooldownExpiryTimes.set(memberId, cooldowns);
 		}
 
 		return false;
 	}
 
-	async beginPoll(interaction: APIBaseInteraction<any, any>, poll: BasePoll<any>) {
+	async beginPoll(interaction: APIBaseInteraction<any, any>, poll: BasePoll) {
 		// Ensure a duplicate poll doesn't exist
 		for (const sample of this.serverData.polls) {
 			if (poll.isDuplicate(sample)) {
@@ -103,7 +101,7 @@ export class State {
 			} as APIInteractionResponseChannelMessageWithSource;
 		}
 
-		await poll.firePoll();
+		return poll.firePoll();
 	}
 
 	isPresidentialVoteActive(): boolean {
@@ -126,26 +124,84 @@ export class State {
 	}
 
 	getTotalAmendments() {
-		console.log("HERE", this.serverData)
 		return this.serverData.amendmentIDs.length;
 	}
 
 	async getAmendmentText(index: number) {
 		// Check if it's in cache and not expired
-		const cached = this.amendmentCache.get(index);
+		const cached: Amendment | undefined = this.serverData.amendmentCache.get(index);
 		const now = Date.now();
 		if (!cached || now > cached.expiry) {
-			console.log(`Amendment is not in cache, fetching amendment index ${index}`);
+			console.log(`Fetching amendment index ${index}`);
 			const message = (await api(`channels/${this.serverData.amendments}/messages/${this.serverData.amendmentIDs[index]}`)) as APIMessage;
 			const content = message.content;
 			// Store in cache
-			this.amendmentCache.set(index, {
-				text: content,
-				expiry: now + AMENDMENT_CACHE_TIME,
-			});
+			this.serverData.amendmentCache.set(index, new Amendment(content, now + AMENDMENT_CACHE_TIME));
 		}
 
 		// Return cached text
-		return this.amendmentCache.get(index)!.text;
+		return this.serverData.amendmentCache.get(index)!.text;
+	}
+
+	isNaturalized(member: APIGuildMember, user: APIUser) {
+		// If they have the citizen role
+		if (member.roles.some((role) => role == this.serverData.citizen)) {
+			// Also ensure they're in naturalized set
+			if (!this.serverData.naturalizedCitizens.includes(user.id)) {
+				this.serverData.naturalizedCitizens.push(user.id);
+				console.log(`${member} is a citizen but wasn't in the naturalization list`);
+			}
+			return true;
+		}
+		// If they're in the set but don't have the role
+		// no need for else here but whatever
+		else if (this.serverData.naturalizedCitizens.includes(user.id)) {
+			this.naturalize(user.id);
+			return true;
+		}
+
+		return false;
+	}
+
+	naturalize(userID: string) {
+		if (this.isBlacklisted(userID)) {
+			throw new Error("This member is on the naturalization blacklist! This should've been checked before invoking this method");
+		}
+
+		// If we didn't already have them naturalized
+		if (!this.serverData.naturalizedCitizens.includes(userID)) {
+			this.serverData.naturalizedCitizens.push(userID);
+		}
+
+		// Adds the role to the user
+		// ideally the outside code will check if they already have this role (it probably does)
+		return api(`/guilds/${this.serverData.serverID}/members/${userID}/roles/${this.serverData.citizen}`);
+	}
+
+	isBlacklisted(userID: string) {
+		return this.serverData.naturalizationBlacklist.includes(userID);
+	}
+
+	addToCitizenBlacklist(userID: string) {
+		if (this.serverData.naturalizationBlacklist.includes(userID)) {
+			throw new Error('User is already on the naturalization blacklist');
+		}
+		this.serverData.naturalizationBlacklist.push(userID);
+	}
+
+	addAmendment(content: string) {
+		api(`/channels/${this.serverData.amendments}/messages`, {
+			method: 'POST',
+			body: {
+				content: `**Amendment #${this.getTotalAmendments() + 1}** - ${escapeMarkdown(content)}`,
+			},
+		}).then((success) => {
+			console.log(`Added amendment ${content}`);
+			this.serverData.amendmentIDs.push((success as APIBaseMessage).id);
+			this.serverData.amendmentCache.set(
+				this.serverData.amendmentIDs.length - 1,
+				new Amendment(content, Date.now() + AMENDMENT_CACHE_TIME)
+			);
+		});
 	}
 }

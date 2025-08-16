@@ -3,10 +3,9 @@
 import { AutoRouter, json } from 'itty-router';
 import { InteractionResponseType, InteractionType, verifyKey } from 'discord-interactions';
 import { ApplicationCommandOptionType } from 'discord-api-types/v10';
-import { BaseCommand } from './commands/command';
-import ServerData from './types';
+import ServerData, { BaseCommand } from './types';
 import { State } from './state';
-import { plainToInstance } from 'class-transformer';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 
 // What we use to access any server data / env vars / anything requiring a state
 export let globalState: State = new State({}, {} as ServerData);
@@ -14,15 +13,22 @@ export let globalState: State = new State({}, {} as ServerData);
 const router = AutoRouter();
 
 router.get('/', async (request, env) => {
-	// const json: ServerData = require('./serverData.json');
-	// env.DBOT.put("data", JSON.stringify(json));
-	// console.log(await env.DBOT.list());
-	// console.log(await env.DBOT.get("data"))
+	const json: ServerData = require('./serverData.json');
+	console.log(await env.DBOT.list());
+	console.log(await env.DBOT.get('data'));
+	env.DBOT.put('data', JSON.stringify(json));
 	return new Response(`good job champ`);
 });
 
 router.get('/data', async (request, env) => {
-	return new Response(env.ENV === 'DEV' ? await env.DBOT.get('data') : 'nope');
+	const rawData = await env.DBOT.get('data');
+	console.log(rawData);
+	try {
+		plainToInstance(ServerData, JSON.parse(rawData));
+	} catch(e) {
+		console.error("NO", e);
+	}
+	return new Response(env.ENV === 'DEV' ? JSON.stringify(plainToInstance(ServerData, JSON.parse(rawData))) : 'nope');
 });
 
 // Forwards interactions for handling in their appropriate files
@@ -49,6 +55,7 @@ router.post('/', async (request, env) => {
 		globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
 		const fullCommandName = getFullCommandName(interaction.data);
 		console.log('Received', fullCommandName);
+
 		// Find the command at the subfolder
 		try {
 			const commandModule = await import(`./commands/${fullCommandName}.ts`);
@@ -72,13 +79,16 @@ router.post('/', async (request, env) => {
 				},
 			});
 		} finally {
+			// THIS CODE IN THIS BLOCK CAN NEVER FAIL OTHERWISE THE ENTIRE COMMAND FAILS
+			// ^ because the return in the try will be abandoned if it fails
 			// Check if it changed
-			// ALSO check if the order changed?? Idk if it does
-			if (rawData !== globalState.serverData) {
-				console.log('Server data changed!');
-				// env.DBOT.set('data', globalState.serverData);
+			const newDataRaw = JSON.stringify(instanceToPlain(globalState.serverData));
+			if (JSON.stringify(instanceToPlain(rawData)) !== newDataRaw) {
+				console.log('Server data changed!', newDataRaw);
+				env.DBOT.put('data', newDataRaw);
 			}
 		}
+		// If you add a finally block, make sure it cannot throw errors! Otherwise it'll mean the result won't return
 	}
 
 	console.error('Unknown Type');

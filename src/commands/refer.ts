@@ -4,8 +4,8 @@ import {
 	InteractionResponseType,
 	MessageFlags,
 } from 'discord-api-types/v10';
-import { BaseCommand } from './command';
 import { globalState } from '..';
+import { BaseCommand } from '../types';
 
 export default class extends BaseCommand {
 	async handle(interaction: APIBaseInteraction<any, any>): Promise<any> {

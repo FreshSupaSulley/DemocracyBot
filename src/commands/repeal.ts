@@ -3,12 +3,10 @@ import {
 	APIInteractionResponseChannelMessageWithSource,
 	InteractionResponseType,
 	MessageFlags,
-	RESTPatchAPIChannelMessageJSONBody,
 } from 'discord-api-types/v10';
-import { BaseCommand } from './command';
-import { api } from '../utils';
 import RepealPoll from '../polls/repeal-poll';
 import { globalState } from '..';
+import { BaseCommand } from '../types';
 
 export default class extends BaseCommand {
 	async handle(interaction: APIBaseInteraction<any, any>): Promise<any> {
@@ -24,13 +22,6 @@ export default class extends BaseCommand {
 			} as APIInteractionResponseChannelMessageWithSource;
 		}
 		const text = await globalState.getAmendmentText(number - 1);
-		return globalState.beginPoll(interaction, new RepealPoll(number, text)).then(() => {
-			return {
-				type: InteractionResponseType.ChannelMessageWithSource,
-				data: {
-					content: 'Poll added! i think',
-				},
-			};
-		});
+		return globalState.beginPoll(interaction, new RepealPoll(number, text));
 	}
 }
