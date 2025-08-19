@@ -1,6 +1,4 @@
 import { api } from './utils';
-// Required for `npm run register` because we're running this outside of wrangler
-import 'dotenv/config';
 
 const ALL_COMMANDS = [
 	{
@@ -40,6 +38,12 @@ const ALL_COMMANDS = [
 					},
 				],
 				description: 'Join a party',
+				type: 1,
+			},
+			{
+				name: 'leave',
+				options: [],
+				description: 'Leave your party',
 				type: 1,
 			},
 			{
@@ -117,20 +121,6 @@ const ALL_COMMANDS = [
 						type: 1,
 					},
 					{
-						name: 'invite-bot',
-						options: [
-							{
-								autocomplete: false,
-								name: 'bot',
-								description: 'Bot to join',
-								type: 6,
-								required: true,
-							},
-						],
-						description: 'Invites a bot to the party',
-						type: 1,
-					},
-					{
 						name: 'transfer',
 						options: [
 							{
@@ -199,6 +189,7 @@ const ALL_COMMANDS = [
 	},
 ];
 
-// `npm run register` will add the commands to the bot
 // This is calling the bulk overwrite endpoint: https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
-api(process.env, `applications/${process.env.APP_ID}/commands`, { method: 'PUT', body: ALL_COMMANDS });
+export default function register(env: any) {
+	return api(`applications/${env.APP_ID}/commands`, { method: 'PUT', body: ALL_COMMANDS });
+}

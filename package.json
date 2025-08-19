@@ -1,9 +1,8 @@
 {
-	"name": "my-first-worker",
+	"name": "dbot",
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
-		"register": "tsc --outdir temp src/commands.ts && node temp/commands.js && rm -r temp",
 		"ngrok": "ngrok http 8787",
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",

@@ -2,43 +2,99 @@
 // https://github.com/discord/cloudflare-sample-app/blob/main/src/server.js
 import { AutoRouter, json } from 'itty-router';
 import { InteractionResponseType, InteractionType, verifyKey } from 'discord-interactions';
-import { ApplicationCommandOptionType } from 'discord-api-types/v10';
+import { APIChannel, APIDMChannel, APIMessage, ApplicationCommandOptionType, MessageType } from 'discord-api-types/v10';
 import ServerData, { BaseCommand } from './types';
 import { State } from './state';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
+import register from './commands';
+import { api } from './utils';
 
 // What we use to access any server data / env vars / anything requiring a state
 export let globalState: State = new State({}, {} as ServerData);
 
 const router = AutoRouter();
 
+// Overrides dev server data
 router.get('/', async (request, env) => {
+	if (env.ENV !== 'DEV') return new Response('nope');
 	const json: ServerData = require('./serverData.json');
-	console.log(await env.DBOT.list());
-	console.log(await env.DBOT.get('data'));
 	env.DBOT.put('data', JSON.stringify(json));
 	return new Response(`good job champ`);
 });
 
+// Grabbing the server data
 router.get('/data', async (request, env) => {
+	// meh who cares if the world can see it
+	// if (env.ENV !== 'DEV') return new Response('nope');
 	const rawData = await env.DBOT.get('data');
 	console.log(rawData);
 	try {
 		plainToInstance(ServerData, JSON.parse(rawData));
-	} catch(e) {
-		console.error("NO", e);
+	} catch (e) {
+		console.error('NO', e);
 	}
-	return new Response(env.ENV === 'DEV' ? JSON.stringify(plainToInstance(ServerData, JSON.parse(rawData))) : 'nope');
+	return new Response(JSON.stringify(plainToInstance(ServerData, JSON.parse(rawData))));
 });
+
+// Registering slash commands
+router.get('/register', async (request, env) => {
+	if (env.ENV !== 'DEV') return new Response('nope');
+	globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
+	const response = await register(env);
+	return new Response(JSON.stringify(response));
+});
+
+// Our tick method
+async function tick(env: any) {
+	globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
+	errorWrapper(env, () => globalState.tick());
+}
+
+async function handleSlashCommand(env: any, interaction: any) {
+	const response = await errorWrapper(env, async () => {
+		const fullCommandName = getFullCommandName(interaction.data);
+		console.log('Received', fullCommandName);
+
+		// Find the command at the subfolder
+		const commandModule = await import(`./commands/${fullCommandName}.ts`);
+		const command: BaseCommand = commandModule.default;
+
+		if (typeof command !== 'function') {
+			throw new Error(`No valid default export class found in ${fullCommandName}`);
+		}
+
+		// Instantiate the command class with data
+		const CommandClass = commandModule.default as new () => BaseCommand;
+		// Run the command
+		const sender = globalState.getMember(interaction);
+		const response = await new CommandClass().handle(interaction, sender);
+		if (!response) {
+			throw new Error(`${fullCommandName} command didn't return a response`);
+		}
+		return json(response);
+	});
+	// If an error occurred
+	if (!response) {
+		return json({
+			type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+			data: {
+				content: `<@${env.OWNER_ID}> hey dumbass your bot broke`,
+			},
+		});
+	}
+	return response;
+}
 
 // Forwards interactions for handling in their appropriate files
 router.post('/', async (request, env) => {
 	const { isValid, interaction } = await server.verifyDiscordRequest(request, env);
 	if (!isValid || !interaction) {
+		console.log('Ts bad');
 		return new Response('Bad request signature', { status: 401 });
 	}
 
 	if (interaction.type === InteractionType.PING) {
+		console.log('THIS IS A PING!');
 		// The `PING` message is used during the initial webhook handshake, and is
 		// required to configure the webhook in the developer portal.
 		return json({
@@ -47,48 +103,7 @@ router.post('/', async (request, env) => {
 	}
 
 	if (interaction.type === InteractionType.APPLICATION_COMMAND) {
-		// We lazily put all the server data into one KV as a string so we need to parse it back as JSON
-		const rawData = plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data')));
-		if (!rawData) throw new Error('No server data found in KV');
-
-		// Ensure the state is initialized
-		globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
-		const fullCommandName = getFullCommandName(interaction.data);
-		console.log('Received', fullCommandName);
-
-		// Find the command at the subfolder
-		try {
-			const commandModule = await import(`./commands/${fullCommandName}.ts`);
-			const command: BaseCommand = commandModule.default;
-
-			if (typeof command !== 'function') {
-				throw new Error(`No valid default export class found in ${fullCommandName}`);
-			}
-
-			// Instantiate the command class with data
-			const CommandClass = commandModule.default as new () => BaseCommand;
-			// Run the command
-			const response = await new CommandClass().handle(interaction);
-			return json(response);
-		} catch (e) {
-			console.error('Something went wrong responding to slash command', e);
-			return json({
-				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-				data: {
-					content: `<@${env.OWNER_ID}> hey dumbass your bot broke`,
-				},
-			});
-		} finally {
-			// THIS CODE IN THIS BLOCK CAN NEVER FAIL OTHERWISE THE ENTIRE COMMAND FAILS
-			// ^ because the return in the try will be abandoned if it fails
-			// Check if it changed
-			const newDataRaw = JSON.stringify(instanceToPlain(globalState.serverData));
-			if (JSON.stringify(instanceToPlain(rawData)) !== newDataRaw) {
-				console.log('Server data changed!', newDataRaw);
-				env.DBOT.put('data', newDataRaw);
-			}
-		}
-		// If you add a finally block, make sure it cannot throw errors! Otherwise it'll mean the result won't return
+		return await handleSlashCommand(env, interaction);
 	}
 
 	console.error('Unknown Type');
@@ -98,8 +113,11 @@ router.post('/', async (request, env) => {
 function getFullCommandName(data: any): string {
 	let type = data.options?.[0].type;
 	if (type == ApplicationCommandOptionType.SubcommandGroup || type == ApplicationCommandOptionType.Subcommand) {
-		console.log(data.options);
-		return `${data.name}/` + getFullCommandName(data.options[0]);
+		// options is an empty array when its part of a subcommand group
+		if (data.options[0].options.length != 0) {
+			return `${data.name}/${getFullCommandName(data.options[0])}`;
+		}
+		return `${data.name}/${data.options[0].name}`;
 	}
 	return data.name;
 }
@@ -117,9 +135,58 @@ async function verifyDiscordRequest(request: any, env: any) {
 	return { interaction: JSON.parse(body), isValid: true };
 }
 
+async function errorWrapper(env: any, fn: () => Promise<any>) {
+	let rawData;
+	try {
+		rawData = plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data')));
+		if (!rawData) throw new Error('No server data found in KV');
+
+		// Ensure the state is initialized
+		globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
+
+		// Now run the function
+		return await fn();
+	} catch (e) {
+		console.error('Something went wrong:', e);
+
+		// DM to me
+		await api(`/users/@me/channels`, {
+			method: 'POST',
+			body: {
+				recipient_id: env.OWNER_ID,
+			},
+		})
+			.then((response: APIDMChannel) => {
+				return api(`channels/${response.id}/messages`, {
+					method: 'POST',
+					body: {
+						content: `An error occurred:\n\`\`\`${e instanceof Error ? e.stack : e}\`\`\``,
+					},
+				});
+			})
+			.catch((e) => {
+				console.error('Failed to send error to owner:', e);
+			});
+	} finally {
+		// THIS CODE IN THIS BLOCK CAN NEVER FAIL OTHERWISE THE ENTIRE COMMAND FAILS
+		// ^ because the return in the try will be abandoned if it fails
+		// Check if it changed
+		const newDataRaw = JSON.stringify(instanceToPlain(globalState.serverData));
+		if (!!rawData && JSON.stringify(instanceToPlain(rawData)) !== newDataRaw) {
+			console.log('Server data changed!', newDataRaw);
+			env.DBOT.put('data', newDataRaw);
+		}
+	}
+}
+
+// Combines it all into one export
 const server = {
 	verifyDiscordRequest,
 	fetch: router.fetch,
+	// For our ticking
+	async scheduled(_event: ScheduledEvent, env: any, ctx: ExecutionContext) {
+		ctx.waitUntil(tick(env));
+	},
 };
 
 export default server;

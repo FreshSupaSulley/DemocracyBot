@@ -7,6 +7,7 @@ export default class NaturalizePoll extends BasePoll {
 
 	constructor(user: APIUser) {
 		super(
+			'naturalize',
 			0.75,
 			5,
 			259200000,

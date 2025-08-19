@@ -8,7 +8,7 @@ export default class RepealPoll extends BasePoll {
 	amendment: number;
 
 	constructor(amendment: number, amendmentText: string) {
-		super(0.5, 3, 43200000, 'Repeal ' + amendmentText);
+		super('repeal', 0.5, 3, 43200000, 'Repeal ' + amendmentText);
 		this.amendment = amendment;
 	}
 

@@ -4,8 +4,7 @@ import { globalState } from '..';
 import { api } from '../utils';
 
 export default abstract class BasePoll {
-	// Subclasses are required to fill this
-	type!: string;
+	type: string;
 
 	// These get filled on firePoll()
 	messageID?: string;
@@ -16,11 +15,17 @@ export default abstract class BasePoll {
 	votingCooldown: number;
 	question: string;
 
-	constructor(ratio: number, minParticipation: number, votingCooldown: number, question: string) {
+	constructor(type: string, ratio: number, minParticipation: number, votingCooldown: number, question: string) {
+		this.type = type;
 		this.ratio = ratio;
 		this.minParticipation = minParticipation;
 		this.votingCooldown = votingCooldown;
 		this.question = question;
+	}
+
+	// Every poll (for now) can only have 1 day of voting time
+	public getVoteTime(): number {
+		return 8.64e7;
 	}
 
 	public getVotingCooldown(): number {
@@ -37,7 +42,7 @@ export default abstract class BasePoll {
 		// Create the poll object
 		const poll: APIPoll = {
 			allow_multiselect: false,
-			expiry: new Date(Date.now() + 864e5).toISOString(),
+			expiry: new Date(Date.now() + this.getVoteTime()).toISOString(),
 			question: {
 				text: this.question,
 			},

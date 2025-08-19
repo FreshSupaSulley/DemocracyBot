@@ -1,5 +1,5 @@
 import { plainToClass, Transform, Type } from 'class-transformer';
-import { APIBaseInteraction, APIPoll, PollLayoutType, RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
+import { APIBaseInteraction, APIPoll, MessageFlags, PollLayoutType, RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
 import { InteractionResponseType } from 'discord-interactions';
 import { globalState } from '.';
 import { PoliticalParty } from './political-party';
@@ -8,6 +8,7 @@ import NaturalizePoll from './polls/naturalize-poll';
 import ProposePoll from './polls/propose-poll';
 import RepealPoll from './polls/repeal-poll';
 import BasePoll from './polls/poll';
+import ImpeachPoll from './polls/impeach-poll';
 
 // Required
 import 'reflect-metadata';
@@ -25,25 +26,28 @@ export default class ServerData {
 	// Webhook for updating
 	githubWebhookID!: string;
 	// Roles
-	thePresident!: string;
+	thePresidentRole!: string;
 	citizen!: string;
 
 	presidentialCount!: number;
 	amendmentIDs: string[] = [];
-	caqEntries: { [messageID: string]: string } = {};
+
+	@Type(() => CAQEntry)
+	caqEntries: CAQEntry[] = [];
 
 	// looks like this isn't required, AND including it actually crashes shit...
 	// idk how this functions without this tbh
-	// @Type(() => BasePoll, {
-	// 	discriminator: {
-	// 		property: 'type',
-	// 		subTypes: [
-	// 			{ name: 'repeal', value: RepealPoll },
-	// 			{ name: 'propose', value: ProposePoll },
-	// 			{ name: 'naturalize', value: NaturalizePoll },
-	// 		],
-	// 	},
-	// })
+	@Type(() => BasePoll, {
+		discriminator: {
+			property: 'type',
+			subTypes: [
+				{ name: 'repeal', value: RepealPoll },
+				{ name: 'propose', value: ProposePoll },
+				{ name: 'naturalize', value: NaturalizePoll },
+				{ name: 'impeach', value: ImpeachPoll },
+			],
+		},
+	})
 	polls: BasePoll[] = [];
 	// Ensures people can't spam polls
 	// UserID -> { [poll!: string]!: number; }
@@ -70,14 +74,16 @@ export default class ServerData {
 	@Type(() => ServerMember)
 	members: ServerMember[] = [];
 
+	@Type(() => PoliticalParty)
 	parties: PoliticalParty[] = [];
 	naturalizedCitizens: string[] = [];
 	naturalizationBlacklist: string[] = [];
-	presidentID!: number;
-	slogan!: string;
-	termEndTime!: number;
-	lastTerm!: boolean;
-	presidentialVoteMessageID!: number;
+	presidentID: string = '0';
+	slogan: string = '';
+	termEndTime: number = 0;
+	lastTerm: boolean = false;
+	presidentialVoteMessageID: string = '0';
+	presidentialVoteTimeCreated: number = 0;
 	candidates: Candidate[] = [];
 
 	// dumb shit fix I found on gh
@@ -90,10 +96,49 @@ export default class ServerData {
 		{ toClassOnly: true }
 	)
 	amendmentCache: Map<number, Amendment> = new Map();
+	lastCAQTime: number = 0;
+	lastCAQMember: number = 0;
+}
+
+export class CAQEntry {
+	user: string;
+	messageID: string;
+
+	constructor(user: string, messageID: string) {
+		this.user = user;
+		this.messageID = messageID;
+	}
 }
 
 export abstract class BaseCommand {
-	abstract handle(interaction: APIBaseInteraction<any, any>): Promise<any>;
+	abstract handle(interaction: APIBaseInteraction<any, any>, sender: ServerMember): Promise<any>;
+}
+
+export abstract class PartyEditCommand extends BaseCommand {
+	async handle(interaction: APIBaseInteraction<any, any>, sender: ServerMember) {
+		const party = sender.getPoliticalParty();
+		if (!party) {
+			return {
+				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+				data: {
+					flags: MessageFlags.Ephemeral,
+					content: `You aren't in a party`,
+				},
+			};
+		}
+		if (sender.getID() != party.getLeaderID()) {
+			return {
+				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+				data: {
+					flags: MessageFlags.Ephemeral,
+					content: `You aren't the party leader (<@${party.getLeaderID()}> is)`,
+				},
+			};
+		}
+		// We passed the checks. Pass it to command handler
+		return this.handleInternal(interaction, sender, party);
+	}
+	abstract handleInternal(interaction: APIBaseInteraction<any, any>, sender: ServerMember, party: PoliticalParty): Promise<any>;
 }
 
 export class ServerMember {
@@ -110,7 +155,7 @@ export class ServerMember {
 	}
 
 	public setPoliticalParty(party?: PoliticalParty | null): void {
-		this.partyRole = party ? party.getRole() : null;
+		this.partyRole = party ? party.getRoleID() : null;
 	}
 
 	public canPropose(poll: BasePoll): boolean {

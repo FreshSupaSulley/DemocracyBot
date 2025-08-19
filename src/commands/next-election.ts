@@ -5,7 +5,6 @@ import { globalState } from '..';
 
 export default class extends BaseCommand {
 	async handle(interaction: APIApplicationCommandInteraction): Promise<any> {
-		console.log(interaction);
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
