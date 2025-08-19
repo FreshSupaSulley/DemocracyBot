@@ -127,6 +127,7 @@ public class EventHandler extends GenericEventHandler {
 	@Override
 	public void onGuildMessageReceived(MessageReceivedEvent event)
 	{
+		if(event.getGuild().getIdLong() != Main.server.serverID) return;
 		super.onGuildMessageReceived(event);
 		Main.server.checkMessageForPollResult(event.getMessage());
 	}
@@ -654,7 +655,8 @@ public class EventHandler extends GenericEventHandler {
 								return;
 							}
 							
-							List<ServerMember> members = Main.server.getPartyMembers(Main.server.getParty(role.getIdLong()));
+							PoliticalParty party = Main.server.getParty(role.getIdLong());
+							List<ServerMember> members = Main.server.getPartyMembers(party);
 							StringBuilder description = new StringBuilder("**Party members** (" + members.size() + " total):");
 							
 							for(int i = 0; i < Math.min(15, members.size()); i++)
@@ -665,7 +667,6 @@ public class EventHandler extends GenericEventHandler {
 							if(members.size() > 15)
 								description.append("\n... and ").append(members.size() - 15).append(" more");
 							
-							PoliticalParty party = sender.getPoliticalParty();
 							List<Long> blacklist = new ArrayList<Long>(party.getBlacklist());
 							
 							// If we have banned members
@@ -694,7 +695,7 @@ public class EventHandler extends GenericEventHandler {
 								String leaderName = leader != null ? leader.getEffectiveName() : "Unknown";
 								
 								builder.setFooter("Led by " + MarkdownSanitizer.escape(leaderName), leader.getEffectiveAvatarUrl());
-								event.replyEmbeds(builder.build()).queue();
+								event.replyEmbeds(builder.build()).setAllowedMentions(Set.of()).queue();
 							}, e ->
 							{
 								Main.log.error("Failed to get party info", e);
@@ -767,7 +768,7 @@ public class EventHandler extends GenericEventHandler {
 				if(!Main.server.isElectionActive())
 				{
 					float daysRemaining = Main.server.millisRemainingInTerm() / 8.64e+7f;
-					event.reply("Polls for the **" + Server.ordinal(Main.server.getPresidentialCount() + 1) + " Presidential Election** open **" + getExactTime(System.currentTimeMillis() + Main.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST**. The President has " + (int) (daysRemaining) + " day" + ((int) daysRemaining != 1 ? "s" : "") + " and " + (int) (daysRemaining % 1 * 24) + " hours left in office. You will be notified in <#" + Main.server.getVotingBooth()+ "> when the election begins.").queue();
+					event.reply("Polls for the **" + Server.ordinal(Main.server.getPresidentialCount() + 1) + " Presidential Election** open **" + getExactTime(System.currentTimeMillis() + Main.server.millisRemainingInTerm() - Server.PRESIDENTIAL_VOTE_TIME) + " EST**. The President has " + (int) (daysRemaining) + " day" + ((int) daysRemaining != 1 ? "s" : "") + " and " + (int) (daysRemaining % 1 * 24) + " hours left in office. You will be notified in <#" + Main.server.getVotingBooth() + "> when the election begins.").queue();
 				}
 				else if(Main.server.getCandidates().size() == 10)
 				{
@@ -840,7 +841,7 @@ public class EventHandler extends GenericEventHandler {
 					event.reply("There is no active presidential election").queue();
 					return;
 				}
-
+				
 				Main.log.debug("Finding the candidate");
 				
 				// Check if already campaigning
@@ -1040,6 +1041,7 @@ public class EventHandler extends GenericEventHandler {
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event)
 	{
+		if(event.getGuild().getIdLong() != Main.server.serverID) return;
 		// Handle any errors
 		try
 		{
@@ -1055,6 +1057,7 @@ public class EventHandler extends GenericEventHandler {
 	@Override
 	public void onGuildMemberJoin(GuildMemberJoinEvent event)
 	{
+		if(event.getGuild().getIdLong() != Main.server.serverID) return;
 		// This will add back the citizen role if they were naturalized
 		Main.log.info("{} joined the server. Naturalized: {}", event.getUser(), Main.server.isNaturalized(event.getMember()));
 	}
@@ -1062,6 +1065,7 @@ public class EventHandler extends GenericEventHandler {
 	@Override
 	public void onGuildMemberRemove(GuildMemberRemoveEvent event)
 	{
+		if(event.getGuild().getIdLong() != Main.server.serverID) return;
 		Main.server.removeMember(event.getJDA(), event.getUser().getIdLong());
 		Main.log.info("{} ({}) left the server ", event.getUser().getEffectiveName(), event.getUser().getId());
 	}

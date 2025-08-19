@@ -53,7 +53,7 @@
 	</appender>
 	
 	<!-- TRACE, DEBUG, INFO, WARN, ERROR -->
-	<root level="info">
+	<root level="all">
 		<appender-ref ref="STDOUT" />
 		<appender-ref ref="errorAppender" />
 	</root>

@@ -1012,7 +1012,7 @@ public class Server {
 				}
 			}
 			
-			// We don't need 2 differnet "poll ended" messages. We're deleting ths poll result message but dbot sends a more detailed summary
+			// We don't need 2 different "poll ended" messages. We're deleting ths poll result message but dbot sends a more detailed summary
 			message.delete().queue();
 		}
 		// If this message isn't the presidential election AND it's not a voting poll, but if it is, don't delete it if not expired
