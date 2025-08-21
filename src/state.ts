@@ -410,9 +410,8 @@ export class State {
 
 		// If we should check for poll results
 		if (Date.now() - this.serverData.lastPollResultTime >= CHECK_POLL_RESULT_TIME) {
-			// Fetch all messages we can in voting booth (this gets 50 message by default (way more than enough))
-			const messages: APIMessage[] = await api(`channels/${this.serverData.votingBooth}/messages?limit=5`);
-			console.log(`Got back ${messages.length} messages`);
+			// Fetch the max number of polls + 1 for election
+			const messages: APIMessage[] = await api(`channels/${this.serverData.votingBooth}/messages?limit=${MAX_POLLS + 1}`);
 			for (const message of messages) {
 				await this.checkMessageForPollResult(message);
 			}
