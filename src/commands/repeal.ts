@@ -21,7 +21,6 @@ export default class extends BaseCommand {
 				},
 			} as APIInteractionResponseChannelMessageWithSource;
 		}
-		const text = await globalState.getAmendmentText(number - 1);
-		return globalState.beginPoll(interaction, new RepealPoll(number, text));
+		return globalState.beginPoll(interaction, new RepealPoll(number));
 	}
 }

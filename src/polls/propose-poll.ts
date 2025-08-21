@@ -1,15 +1,20 @@
 import { escapeMarkdown } from '@discordjs/formatters';
 import { globalState } from '..';
 import BasePoll from './poll';
+import { InteractionResponseType } from 'discord-interactions';
 
 export default class ProposePoll extends BasePoll {
 	proposal: string;
 
 	constructor(proposal: string) {
 		// Embed titles don't support markdown
-		// so we'll show the markdown here but it will be escaped when added
-		super('propose', 0.5, 5, 43200000, 'New amendment: ' + proposal);
-		this.proposal = proposal;
+		super('propose', 0.5, 5, 43200000);
+		this.proposal = escapeMarkdown(proposal);
+	}
+
+	firePoll() {
+		this.question = 'New amendment: ' + escapeMarkdown(this.proposal);
+		return super.firePoll();
 	}
 
 	isDuplicate(sample: ProposePoll): boolean {
@@ -17,6 +22,6 @@ export default class ProposePoll extends BasePoll {
 	}
 
 	async pollPassed() {
-		globalState.addAmendment(escapeMarkdown(this.proposal));
+		return globalState.addAmendment(this.proposal);
 	}
 }

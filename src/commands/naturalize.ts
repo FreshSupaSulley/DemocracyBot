@@ -40,6 +40,6 @@ export default class extends BaseCommand {
 			};
 		}
 
-		return globalState.beginPoll(interaction, new NaturalizePoll(user));
+		return globalState.beginPoll(interaction, new NaturalizePoll(user.id, user));
 	}
 }

@@ -17,18 +17,20 @@ import 'es6-shim';
 export default class ServerData {
 	serverID!: string;
 	// Channels
-	constipation!: string;
-	amendments!: string;
-	commandersAndQueefs!: string;
-	votingBooth!: string;
-	voteProposal!: string;
+	constipationChannel!: string;
+	amendmentsChannel!: string;
+	commandersAndQueefsChannel!: string;
+	votingBoothChannel!: string;
+	voteProposalChannel!: string;
 	testChannel!: string;
 	// Roles
 	thePresidentRole!: string;
 	citizen!: string;
 
 	presidentialCount!: number;
-	amendmentIDs: string[] = [];
+
+	@Type(() => Amendment)
+	amendments: Amendment[] = [];
 
 	@Type(() => CAQEntry)
 	caqEntries: CAQEntry[] = [];
@@ -86,21 +88,9 @@ export default class ServerData {
 	@Type(() => Candidate)
 	candidates: Candidate[] = [];
 
-	// dumb shit fix I found on gh
-	@Transform(
-		(value) => {
-			let map = new Map<number, Amendment>();
-			for (let entry of Object.entries(value.value)) map.set(Number(entry[0]), plainToClass(Amendment, entry[1]));
-			return map;
-		},
-		{ toClassOnly: true }
-	)
-	amendmentCache: Map<number, Amendment> = new Map();
-
 	// Ticking
-	lastCAQTime: number = 0;
 	lastCAQMember: number = 0;
-	lastPollResultTime: number = 0;
+	deleteMessagesChannel: string = "0";
 }
 
 export class CAQEntry {
@@ -202,12 +192,14 @@ export class Candidate extends ServerMember {
 }
 
 export class Amendment {
-	text!: string;
-	expiry!: number;
+	id: string;
+	content: string;
+	repealed?: boolean;
 
-	constructor(text: string, expiry: number) {
-		this.text = text;
-		this.expiry = expiry;
+	constructor(id: string, text: string, repealed?: boolean) {
+		this.id = id;
+		this.content = text;
+		this.repealed = repealed;
 	}
 }
 

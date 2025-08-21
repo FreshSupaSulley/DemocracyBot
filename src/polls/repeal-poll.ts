@@ -1,15 +1,22 @@
 import { MessageFlags, RESTPatchAPIChannelMessageJSONBody } from 'discord-api-types/v10';
-import { AMENDMENT_CACHE_TIME, api } from '../utils';
+import { api } from '../utils';
 import { globalState } from '..';
-import { Amendment } from '../types';
 import BasePoll from './poll';
+import { escapeMarkdown } from '@discordjs/formatters';
 
 export default class RepealPoll extends BasePoll {
+	// This is the amendment number, NOT its 0-based index
 	amendment: number;
 
-	constructor(amendment: number, amendmentText: string) {
-		super('repeal', 0.5, 3, 43200000, 'Repeal ' + amendmentText);
+	constructor(amendment: number) {
+		// We have to escape the markdown here (embeds dont render markdown in the title)
+		super('repeal', 0.5, 3, 43200000);
 		this.amendment = amendment;
+	}
+
+	async firePoll() {
+		this.question = `Repeal ${escapeMarkdown(globalState.getAmendmentText(this.amendment))}`;
+		return super.firePoll();
 	}
 
 	isDuplicate(sample: RepealPoll): boolean {
@@ -17,22 +24,23 @@ export default class RepealPoll extends BasePoll {
 	}
 
 	async pollPassed() {
+		// Update server data
+		let amendment = globalState.serverData.amendments[this.amendment - 1];
+		// Flip repealed flag
+		amendment.repealed = !amendment.repealed;
+		// Assign to OG slot (... do I need to do this?)
+		globalState.serverData.amendments[this.amendment - 1] = amendment;
 		// Get the amendment to edit
-		const raw = await globalState.getAmendmentText(this.amendment - 1);
-		const repealed = raw.startsWith('~~') && raw.endsWith('~~');
-		const newAmendment = repealed ? raw.substring(2, raw.length - 2) : '~~' + raw + '~~';
+		const raw = amendment.content;
 		// Edit the message
-		return api(`channels/${globalState.serverData.amendments}/messages/${globalState.serverData.amendmentIDs[this.amendment - 1]}`, {
+		return api(`channels/${globalState.serverData.amendments}/messages/${amendment.id}`, {
 			method: 'PATCH',
 			body: {
-				// if it's already repealed, remove the squiggles. Otherwise add them
-				content: newAmendment,
+				// This adds the squiggles for strikethrough if it's repealed
+				content: globalState.getAmendmentText(this.amendment),
 				// if repealed, don't let gifs and shit stay in the amendment
-				flags: repealed ? MessageFlags.SuppressEmbeds : undefined,
+				flags: amendment.repealed ? MessageFlags.SuppressEmbeds : undefined,
 			} as RESTPatchAPIChannelMessageJSONBody,
-		}).then(() => {
-			// Update amendment cache
-			globalState.serverData.amendmentCache.set(this.amendment - 1, new Amendment(newAmendment, Date.now() + AMENDMENT_CACHE_TIME));
 		});
 	}
 }

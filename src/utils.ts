@@ -8,6 +8,7 @@ export interface APIOptions {
 export async function api(endpoint: string, options: APIOptions = { method: 'GET' }): Promise<any> {
 	// append endpoint to root API URL
 	const url = 'https://discord.com/api/v10/' + endpoint;
+	console.log('Hitting ', url);
 	// Stringify payloads
 	if (options.body) options.body = JSON.stringify(options.body);
 
@@ -70,7 +71,6 @@ export const TERM_LENGTH = 2592000000;
 export const PRESIDENTIAL_VOTE_TIME = 259200000;
 export const CHECK_POLL_RESULT_TIME = 900000; // 15 mins
 export const CAQ_UPDATE_TIME = 86400000; // one day
-export const AMENDMENT_CACHE_TIME = 86400000; // one day
 export const MAX_POLLS = 10;
 export const BAD_COLOR_RESPONSE = 'Unknown color name or invalid [hex color code](<https://rgbcolorcode.com>)';
 

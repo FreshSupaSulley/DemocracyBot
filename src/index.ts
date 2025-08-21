@@ -18,8 +18,9 @@ const router = AutoRouter();
 router.get('/', async (request, env) => {
 	if (env.ENV !== 'DEV') return new Response('nope');
 	const json: ServerData = require('./serverData.json');
-	env.DBOT.put('data', JSON.stringify(json));
-	return new Response(`good job champ`);
+	// The await here is important (too big of shit will cut off the writing process)
+	await env.DBOT.put('data', JSON.stringify(json));
+	return new Response(JSON.stringify(json));
 });
 
 // Grabbing the server data
@@ -27,11 +28,10 @@ router.get('/data', async (request, env) => {
 	// meh who cares if the world can see it
 	// if (env.ENV !== 'DEV') return new Response('nope');
 	const rawData = await env.DBOT.get('data');
-	console.log(rawData);
 	try {
 		plainToInstance(ServerData, JSON.parse(rawData));
 	} catch (e) {
-		console.error('NO', e);
+		console.error(e);
 	}
 	return new Response(JSON.stringify(plainToInstance(ServerData, JSON.parse(rawData))));
 });
@@ -158,7 +158,7 @@ async function errorWrapper(env: any, fn: () => Promise<any>) {
 		console.error('Something went wrong:', e);
 
 		// DM to me
-		await api(`/users/@me/channels`, {
+		await api(`users/@me/channels`, {
 			method: 'POST',
 			body: {
 				recipient_id: env.OWNER_ID,

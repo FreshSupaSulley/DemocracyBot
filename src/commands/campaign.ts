@@ -45,7 +45,7 @@ export default class extends BaseCommand {
 						Date.now() + globalState.millisRemainingInTerm() - PRESIDENTIAL_VOTE_TIME
 					)} EST**. The President has ${daysRemaining} day${daysRemaining != 1 ? 's' : ''} and ${
 						(daysRemaining % 1) * 24
-					} hours left in office. You will be notified in <#${globalState.serverData.votingBooth}> when the election begins`,
+					} hours left in office. You will be notified in <#${globalState.serverData.votingBoothChannel}> when the election begins`,
 				},
 			};
 		}
@@ -85,7 +85,7 @@ export default class extends BaseCommand {
 
 		// We're good now! Add the candidate
 		globalState.serverData.candidates.push(new Candidate(sender.getID(), sender.getPartyID(), globalState.getNextCandidateSlot(), slogan));
-		const urlPrefix = `/channels/${globalState.serverData.votingBooth}/messages/${globalState.serverData.presidentialVoteMessageID}/reactions/`;
+		const urlPrefix = `channels/${globalState.serverData.votingBoothChannel}/messages/${globalState.serverData.presidentialVoteMessageID}/reactions/`;
 
 		for (let i = 0; i < globalState.serverData.candidates.length; i++) {
 			if (i != 9) {
@@ -99,7 +99,7 @@ export default class extends BaseCommand {
 			}
 		}
 
-		await api(`channels/${globalState.serverData.votingBooth}/messages`, {
+		await api(`channels/${globalState.serverData.votingBoothChannel}/messages`, {
 			method: 'PATCH',
 			body: await globalState.buildPresidentialVote(),
 		});
@@ -107,7 +107,7 @@ export default class extends BaseCommand {
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
-				content: `You are now campaigning! Check the Presidential Voting poll in <#${globalState.serverData.votingBooth}>`,
+				content: `You are now campaigning! Check the Presidential Voting poll in <#${globalState.serverData.votingBoothChannel}>`,
 			},
 		};
 	}

@@ -13,14 +13,14 @@ export default abstract class BasePoll {
 	ratio: number;
 	minParticipation: number;
 	votingCooldown: number;
-	question: string;
+	// This is used in the result but not usually filled in the constructor
+	question!: string;
 
-	constructor(type: string, ratio: number, minParticipation: number, votingCooldown: number, question: string) {
+	constructor(type: string, ratio: number, minParticipation: number, votingCooldown: number) {
 		this.type = type;
 		this.ratio = ratio;
 		this.minParticipation = minParticipation;
 		this.votingCooldown = votingCooldown;
-		this.question = question;
 	}
 
 	public getExpiryTime(): number {
@@ -75,7 +75,7 @@ export default abstract class BasePoll {
 			],
 		};
 		// Fire the poll
-		return api(`/channels/${globalState.serverData.votingBooth}/messages`, {
+		return api(`channels/${globalState.serverData.votingBoothChannel}/messages`, {
 			method: 'POST',
 			body: {
 				poll: poll,
@@ -125,7 +125,7 @@ export default abstract class BasePoll {
 			await this.pollFailed();
 		}
 		// Send the poll result in a garbage channel
-		await api(`/channels/${globalState.serverData.voteProposal}/messages`, {
+		await api(`channels/${globalState.serverData.voteProposalChannel}/messages`, {
 			method: 'POST',
 			body: {
 				content: response,

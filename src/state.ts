@@ -13,19 +13,10 @@ import {
 	MessageType,
 } from 'discord-api-types/v10';
 import ServerData, { Amendment, Candidate, CAQEntry, ServerMember } from './types';
-import {
-	AMENDMENT_CACHE_TIME,
-	api,
-	CAQ_UPDATE_TIME,
-	CHECK_POLL_RESULT_TIME,
-	MAX_POLLS,
-	PRESIDENTIAL_VOTE_TIME,
-	TERM_LENGTH,
-} from './utils';
+import { api, CAQ_UPDATE_TIME, CHECK_POLL_RESULT_TIME, MAX_POLLS, PRESIDENTIAL_VOTE_TIME, TERM_LENGTH } from './utils';
 import { PoliticalParty } from './political-party';
 import { escapeMarkdown } from '@discordjs/formatters';
 import BasePoll from './polls/poll';
-import { globalState } from '.';
 
 // Because CF workers can die at any point
 export class State {
@@ -183,7 +174,7 @@ export class State {
 
 		await this.updateCAQ(this.serverData.caqEntries.length - 1, (embed) => {
 			// Take advantage of our transformer to modify the footer
-			embed.footer!.text = `${embed.footer!.text.substring(embed.footer!.text.indexOf('-') + 2)} impeached ${globalState.getUSTime(
+			embed.footer!.text = `${embed.footer!.text.substring(embed.footer!.text.indexOf('-') + 2)} impeached ${this.getUSTime(
 				Date.now(),
 				false
 			)}`;
@@ -223,7 +214,7 @@ export class State {
 		}
 		this.serverData.polls.splice(index, 1);
 		// Now delete the poll message
-		await api(`channels/${this.serverData.votingBooth}/messages/${poll.messageID}`, {
+		await api(`channels/${this.serverData.votingBoothChannel}/messages/${poll.messageID}`, {
 			method: 'DELETE',
 		});
 	}
@@ -247,23 +238,7 @@ export class State {
 	}
 
 	getTotalAmendments() {
-		return this.serverData.amendmentIDs.length;
-	}
-
-	async getAmendmentText(index: number) {
-		// Check if it's in cache and not expired
-		const cached: Amendment | undefined = this.serverData.amendmentCache.get(index);
-		const now = Date.now();
-		if (!cached || now > cached.expiry) {
-			console.log(`Fetching amendment index ${index}`);
-			const message = (await api(`channels/${this.serverData.amendments}/messages/${this.serverData.amendmentIDs[index]}`)) as APIMessage;
-			const content = message.content;
-			// Store in cache
-			this.serverData.amendmentCache.set(index, new Amendment(content, now + AMENDMENT_CACHE_TIME));
-		}
-
-		// Return cached text
-		return this.serverData.amendmentCache.get(index)!.text;
+		return this.serverData.amendments.length;
 	}
 
 	isNaturalized(member: APIGuildMember, user: APIUser) {
@@ -318,20 +293,33 @@ export class State {
 		this.serverData.naturalizationBlacklist.push(userID);
 	}
 
-	addAmendment(content: string) {
-		api(`channels/${this.serverData.amendments}/messages`, {
+	/**
+	 * Adds a new amendment.
+	 * @param content markdown-escaped amendment text
+	 * @returns promise
+	 */
+	async addAmendment(content: string) {
+		return api(`channels/${this.serverData.amendments}/messages`, {
 			method: 'POST',
 			body: {
-				content: `**Amendment #${this.getTotalAmendments() + 1}** - ${escapeMarkdown(content)}`,
+				// Markdown is assumed to be escaped at this point
+				content: `**Amendment #${this.getTotalAmendments() + 1}** - ${content}`,
 			},
 		}).then((success) => {
 			console.log(`Added amendment ${content}`);
-			this.serverData.amendmentIDs.push((success as APIBaseMessage).id);
-			this.serverData.amendmentCache.set(
-				this.serverData.amendmentIDs.length - 1,
-				new Amendment(content, Date.now() + AMENDMENT_CACHE_TIME)
-			);
+			this.serverData.amendments.push(new Amendment((success as APIBaseMessage).id, content));
 		});
+	}
+
+	/**
+	 * Gets the final text of the amendment.
+	 * @param number amendment number, **NOT** its 0-based index
+	 * @returns text of the amendment, strikethroughed if it's repealed
+	 */
+	getAmendmentText(number: number) {
+		const amendment = this.serverData.amendments[number - 1];
+		const plug = amendment.repealed ? '~~' : '';
+		return `${plug}${amendment.content}${plug}`;
 	}
 
 	hasPresident(): boolean {
@@ -399,22 +387,45 @@ export class State {
 	}
 
 	async tick() {
+		// Check if we need to delete DMs from /clean-up
+		if (this.serverData.deleteMessagesChannel !== '0') {
+			this.serverData.deleteMessagesChannel = '0';
+			// Lets grab 50 ig
+			const count = 50; // range was 1-100 last i checked
+			const messages: APIMessage[] = await api(`channels/${this.serverData.deleteMessagesChannel}/messages?limit=${count}`);
+			console.log(`Deleting ${messages.length} message(s)`);
+			for (const message of messages) {
+				// We can't delete user messages
+				// for some reason .bot isn't defined?
+				if (message.author.id === this.env.OWNER_ID) continue;
+				await api(`channels/${this.serverData.deleteMessagesChannel}/messages/${message.id}`, {
+					method: 'DELETE',
+				}).catch((e) => {
+					console.error('Failed to delete message:', message);
+					console.error('Error:', e);
+				});
+			}
+		}
+		// Check if the President is gone
+		try {
+			await this.getPresidentDiscordMember();
+		} catch (e) {
+			console.error('The President is gone!!');
+			await this.impeach();
+		}
+
 		// If we should update CAQ (there has to be at least one)
-		if (this.serverData.caqEntries.length > 0 && Date.now() - this.serverData.lastCAQTime >= CAQ_UPDATE_TIME) {
-			this.serverData.lastCAQTime = Date.now();
+		if (this.serverData.caqEntries.length > 0) {
 			// Wrap around when necessary
 			this.serverData.lastCAQMember = (this.serverData.lastCAQMember + 1) % this.serverData.caqEntries.length;
 			console.log('Updating CAQ with ID:', this.serverData.lastCAQMember);
 			await this.updateCAQ(this.serverData.lastCAQMember);
 		}
 
-		// If we should check for poll results
-		if (Date.now() - this.serverData.lastPollResultTime >= CHECK_POLL_RESULT_TIME) {
-			// Fetch the max number of polls + 1 for election
-			const messages: APIMessage[] = await api(`channels/${this.serverData.votingBooth}/messages?limit=${MAX_POLLS + 1}`);
-			for (const message of messages) {
-				await this.checkMessageForPollResult(message);
-			}
+		// Fetch the max number of polls + 1 for election
+		const messages: APIMessage[] = await api(`channels/${this.serverData.votingBoothChannel}/messages?limit=${MAX_POLLS + 1}`);
+		for (const message of messages) {
+			await this.checkMessageForPollResult(message);
 		}
 
 		// If we're voting for President
@@ -431,7 +442,7 @@ export class State {
 				}
 
 				// Create vote
-				const response = await api(`channels/${this.serverData.votingBooth}/messages`, {
+				const response = await api(`channels/${this.serverData.votingBoothChannel}/messages`, {
 					method: 'POST',
 					body: await this.buildPresidentialVote(),
 				});
@@ -442,9 +453,9 @@ export class State {
 				if (this.serverData.candidates.length > 0) {
 					console.log('Adding first reaction');
 					await api(
-						`channels/${this.serverData.votingBooth}/messages/${this.serverData.presidentialVoteMessageID}/reactions/${this.unicodeToEmoji(
-							'U+31U+fe0fU+20e3'
-						)}/@me`,
+						`channels/${this.serverData.votingBoothChannel}/messages/${
+							this.serverData.presidentialVoteMessageID
+						}/reactions/${this.unicodeToEmoji('U+31U+fe0fU+20e3')}/@me`,
 						{
 							method: 'PUT',
 						}
@@ -465,7 +476,7 @@ export class State {
 
 						// Update message to get reactions
 						const presidentialVote = (await api(
-							`channels/${this.serverData.votingBooth}/messages/${this.serverData.presidentialVoteMessageID}`
+							`channels/${this.serverData.votingBoothChannel}/messages/${this.serverData.presidentialVoteMessageID}`
 						)) as APIMessage;
 
 						for (const r of presidentialVote.reactions!) {
@@ -535,7 +546,7 @@ export class State {
 						}
 
 						// Delete Presidential vote
-						await api(`channels/${this.serverData.votingBooth}/messages/${this.serverData.presidentialVoteMessageID}`, {
+						await api(`channels/${this.serverData.votingBoothChannel}/messages/${this.serverData.presidentialVoteMessageID}`, {
 							method: 'DELETE',
 						});
 
@@ -554,7 +565,7 @@ export class State {
 						this.serverData.termEndTime = Date.now() + TERM_LENGTH;
 
 						// This used to be sent in voting booth but now we're putting it in a garbage channel
-						await api(`channels/${this.serverData.voteProposal}/messages`, {
+						await api(`channels/${this.serverData.voteProposalChannel}/messages`, {
 							method: 'POST',
 							body: {
 								content: `Welcome <@${nextPresident.getID()}> to The White House!`,
@@ -571,7 +582,7 @@ export class State {
 						const apiRole = (await api(`guilds/${this.serverData.serverID}/roles/${this.serverData.thePresidentRole}`)) as APIRole;
 
 						// Add to commanders and queefs
-						const response = (await api(`channels/${this.serverData.commandersAndQueefs}/messages`, {
+						const response = (await api(`channels/${this.serverData.commandersAndQueefsChannel}/messages`, {
 							method: 'POST',
 							body: {
 								embeds: [
@@ -607,10 +618,10 @@ export class State {
 	}
 
 	async checkMessageForPollResult(message: APIMessage) {
-		console.debug('Checking message for poll result:', message);
+		console.log('Checking message for poll result:', message);
 
 		// This message is assumed to be in voting booth
-		if (message.channel_id !== this.serverData.votingBooth) {
+		if (message.channel_id !== this.serverData.votingBoothChannel) {
 			throw new Error("Tried to check message for a poll result, but it's not in voting booth");
 		}
 
@@ -626,7 +637,7 @@ export class State {
 			if (pollIndex !== -1) {
 				console.log('Received poll end message');
 				// End the poll!
-				await this.serverData.polls[pollIndex].endPoll(await api(`channels/${this.serverData.votingBooth}/messages/${pollID}`));
+				await this.serverData.polls[pollIndex].endPoll(await api(`channels/${this.serverData.votingBoothChannel}/messages/${pollID}`));
 				this.serverData.polls.splice(pollIndex, 1);
 			}
 		} else if (
@@ -651,7 +662,7 @@ export class State {
 			throw new Error(`Index ${index} is out of bounds for CAQ entries length ${this.serverData.caqEntries.length}`);
 
 		const entry = this.serverData.caqEntries[index];
-		const url = `channels/${this.serverData.commandersAndQueefs}/messages/${entry.messageID}`;
+		const url = `channels/${this.serverData.commandersAndQueefsChannel}/messages/${entry.messageID}`;
 		// We need both the CAQ messsage object AND the discord user
 		const caqMessage = await api(url);
 		const [message_2, member] = await Promise.all([caqMessage, this.getDiscordMember(entry.user)]);

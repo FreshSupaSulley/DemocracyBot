@@ -1,4 +1,3 @@
-import { APIGuildMember, MessageFlags } from 'discord-api-types/v10';
 import { globalState } from '..';
 import BasePoll from './poll';
 import { InteractionResponseType } from 'discord-interactions';
@@ -16,14 +15,13 @@ export default class ImpeachPoll extends BasePoll {
 		try {
 			const president = await globalState.getPresidentDiscordMember();
 			this.question = `Impeach ${president.user.username}? ${this.reason}`;
-			return await super.firePoll();
+			return super.firePoll();
 		} catch (e) {
 			console.error('Unable to find president! They must be gone', e);
-			await globalState.impeach();
 			return {
 				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
 				data: {
-					content: `Looks like the President left the server anyways. Congrats!`,
+					content: `Looks like the President left the server anyways, congrats! A new election will open soon.`,
 				},
 			};
 		}
