@@ -28,6 +28,8 @@ First, add BOT_TOKEN, APP_ID, and APP_PUBLIC_KEY to your `.env` just for testing
 
 ### Running
 
+npm scripts may show error logs if your user doesn't have perms to read/write local files that wrangler needs to get to. Use `sudo` if any commands fail from permission errors (or try chmod idk).
+
 1. `npm run ngrok`
 2. Pass the ngrok URL into the bot's **Interactions Endpoint URL**
 3. In another terminal window, `npm run dev`.
