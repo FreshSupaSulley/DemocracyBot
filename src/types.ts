@@ -17,14 +17,12 @@ import 'es6-shim';
 export default class ServerData {
 	serverID!: string;
 	// Channels
-	github!: string;
 	constipation!: string;
 	amendments!: string;
 	commandersAndQueefs!: string;
 	votingBooth!: string;
+	voteProposal!: string;
 	testChannel!: string;
-	// Webhook for updating
-	githubWebhookID!: string;
 	// Roles
 	thePresidentRole!: string;
 	citizen!: string;
@@ -84,6 +82,8 @@ export default class ServerData {
 	lastTerm: boolean = false;
 	presidentialVoteMessageID: string = '0';
 	presidentialVoteTimeCreated: number = 0;
+
+	@Type(() => Candidate)
 	candidates: Candidate[] = [];
 
 	// dumb shit fix I found on gh
@@ -96,8 +96,11 @@ export default class ServerData {
 		{ toClassOnly: true }
 	)
 	amendmentCache: Map<number, Amendment> = new Map();
+
+	// Ticking
 	lastCAQTime: number = 0;
 	lastCAQMember: number = 0;
+	lastPollResultTime: number = 0;
 }
 
 export class CAQEntry {
@@ -179,8 +182,8 @@ export class Candidate extends ServerMember {
 	slot: number;
 	slogan: string;
 
-	constructor(parent: ServerMember, slot: number, slogan: string) {
-		super(parent.getID(), parent.getPartyID());
+	constructor(id: string, party: string | null, slot: number, slogan: string) {
+		super(id, party);
 		this.slot = slot;
 		this.slogan = slogan;
 	}

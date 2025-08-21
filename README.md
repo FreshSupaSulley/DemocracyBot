@@ -4,13 +4,14 @@
 
 ## Development
 
-### Setup
-First, add BOT_TOKEN, APP_ID, and APP_PUBLIC_KEY to your `.env`. Then run `npm run register` to register the bot's slash commands.
-
-### Development
 1. `npm run ngrok`
 2. Pass the ngrok URL into the bot's **Interactions Endpoint URL**
-3. In a second terminal: `npm run dev`
+3. In another console, `npx wrangler dev --test-scheduled` or just `npm run dev`
+
+You can then test slash commands and test scheduled events with `curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"`.
+
+### Setup
+First, add BOT_TOKEN, APP_ID, and APP_PUBLIC_KEY to your `.env`. Then run `npm run register` to register the bot's slash commands.
 
 All slash commands will then be sent to your local machine as POST requests.
 

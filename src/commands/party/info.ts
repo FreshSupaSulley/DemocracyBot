@@ -36,29 +36,20 @@ export default class extends BaseCommand {
 			}
 		}
 
+		description += `\n\nLed by <@${party.getLeaderID()}>`;
 		// Get the leader user object
 		// ig this should be cached but atp im so done
-		return globalState.getDiscordMember(party.getLeaderID()).then((leader) => {
-			return {
-				type: InteractionResponseType.ChannelMessageWithSource,
-				data: {
-					embeds: [
-						{
-							color: role.color,
-							footer: {
-								// Ripped from JDA
-								// https://cdn.discordapp.com/avatars/268508920530731008/87b3e5878fd88569c1d3f4bbe86c0fb5.png
-								// ... but the default avatar code was ripped from discord.js
-								// This is just using the global user avatar and I'm not bothering to implement nitro per-guild bs
-								icon_url: globalState.getSafeAvatar(leader.user),
-								text: `Led by ${leader.user.username}`,
-							},
-							description: description,
-							title: role.name,
-						},
-					],
-				},
-			};
-		});
+		return {
+			type: InteractionResponseType.ChannelMessageWithSource,
+			data: {
+				embeds: [
+					{
+						color: role.color,
+						description: description,
+						title: role.name,
+					},
+				],
+			},
+		};
 	}
 }

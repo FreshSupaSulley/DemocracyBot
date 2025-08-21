@@ -1,3 +1,4 @@
+import { APIApplicationCommand, ApplicationIntegrationType, InteractionContextType } from 'discord-api-types/v10';
 import { api } from './utils';
 
 const ALL_COMMANDS = [
@@ -156,6 +157,13 @@ const ALL_COMMANDS = [
 	},
 	{ name: 'next-election', options: [], description: 'Returns next election time', type: 1 },
 	{
+		name: 'clean-up',
+		options: [],
+		description: 'Deletes bot messages',
+		type: 1,
+		contexts: [InteractionContextType.BotDM], // only accessible in DMs
+	},
+	{
 		name: 'propose',
 		options: [
 			{ name: 'amendment', description: 'The amendment to add (markdown will be escaped)', type: 3, required: true, max_length: 250 },
@@ -187,7 +195,7 @@ const ALL_COMMANDS = [
 		description: 'Naturalize an immigrant',
 		type: 1,
 	},
-];
+] as APIApplicationCommand[];
 
 // This is calling the bulk overwrite endpoint: https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
 export default function register(env: any) {

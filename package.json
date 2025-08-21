@@ -5,8 +5,7 @@
 	"scripts": {
 		"ngrok": "ngrok http 8787",
 		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
+		"dev": "wrangler dev --test-scheduled",
 		"test": "vitest",
 		"cf-typegen": "wrangler types"
 	},

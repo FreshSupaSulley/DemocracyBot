@@ -10,10 +10,18 @@ import {
 	APIUser,
 	InteractionResponseType,
 	MessageFlags,
-	RESTPostAPIChannelMessageJSONBody,
+	MessageType,
 } from 'discord-api-types/v10';
 import ServerData, { Amendment, Candidate, CAQEntry, ServerMember } from './types';
-import { AMENDMENT_CACHE_TIME, api, CAQ_UPDATE_TIME, PRESIDENTIAL_VOTE_TIME, TERM_LENGTH } from './utils';
+import {
+	AMENDMENT_CACHE_TIME,
+	api,
+	CAQ_UPDATE_TIME,
+	CHECK_POLL_RESULT_TIME,
+	MAX_POLLS,
+	PRESIDENTIAL_VOTE_TIME,
+	TERM_LENGTH,
+} from './utils';
 import { PoliticalParty } from './political-party';
 import { escapeMarkdown } from '@discordjs/formatters';
 import BasePoll from './polls/poll';
@@ -113,6 +121,17 @@ export class State {
 	}
 
 	beginPoll(interaction: APIBaseInteraction<any, any>, poll: BasePoll) {
+		// Because we're not going to try to retrieve too many Discord messages to check for completed polls
+		if (this.serverData.polls.length > MAX_POLLS) {
+			return {
+				type: InteractionResponseType.ChannelMessageWithSource,
+				data: {
+					flags: MessageFlags.Ephemeral,
+					content: `Too many polls are active (max of ${MAX_POLLS})`,
+				},
+			} as APIInteractionResponseChannelMessageWithSource;
+		}
+
 		// Ensure a duplicate poll doesn't exist
 		for (const sample of this.serverData.polls) {
 			// Check if these polls are the same subclass first
@@ -142,11 +161,13 @@ export class State {
 			} as APIInteractionResponseChannelMessageWithSource;
 		}
 
+		// Yay! Remove their cooldown from the map
+		this.serverData.pollCooldownExpiryTimes.delete(member.getID());
 		return poll.firePoll();
 	}
 
 	isPresidentialVoteActive(): boolean {
-		return !!this.serverData.presidentialVoteMessageID;
+		return this.serverData.presidentialVoteMessageID !== '0';
 	}
 
 	async getDiscordMember(userID: string): Promise<APIGuildMember> {
@@ -162,37 +183,67 @@ export class State {
 
 		await this.updateCAQ(this.serverData.caqEntries.length - 1, (embed) => {
 			// Take advantage of our transformer to modify the footer
-			embed.footer!.text = `${embed.footer!.text.substring(embed.footer!.text.indexOf('-') + 2)} impeached ${globalState.getExactTime(
-				Date.now()
+			embed.footer!.text = `${embed.footer!.text.substring(embed.footer!.text.indexOf('-') + 2)} impeached ${globalState.getUSTime(
+				Date.now(),
+				false
 			)}`;
 			return embed;
 		});
 
 		// Remove presidential role
+		// safely handle the error too
 		await api(`guilds/${this.serverData.serverID}/members/${this.serverData.presidentID}/roles/${this.serverData.thePresidentRole}`, {
 			method: 'DELETE',
+		}).catch((e) => {
+			console.error("Failed to remove president's role (maybe he left the server):", e);
 		});
+
+		// Remove impeachment poll if active (there should only be one but this handles multiple, god forbid)
+		for (const poll of this.serverData.polls.filter((poll) => poll.type === 'impeach')) {
+			await this.forceDeletePoll(poll);
+		}
 
 		// Reset data
 		this.serverData.presidentID = '0';
-		this.serverData.termEndTime = Date.now();
+		this.serverData.termEndTime = Date.now() + PRESIDENTIAL_VOTE_TIME; // lets be precise and add the vote time here too
 		this.serverData.slogan = ''; // doesn't do anything but i like to keep things clean
 		this.serverData.lastTerm = false;
+	}
+
+	/**
+	 * Deletes the poll object from the server data and the poll message.
+	 * @param poll poll to remove
+	 * @throws if the poll wasn't found
+	 */
+	async forceDeletePoll(poll: BasePoll) {
+		// First delete it from the server data
+		const index = this.serverData.polls.findIndex((sample) => sample.messageID === poll.messageID);
+		if (index === -1) {
+			throw new Error(`Unable to find poll in server data: ${JSON.stringify(poll)}`);
+		}
+		this.serverData.polls.splice(index, 1);
+		// Now delete the poll message
+		await api(`channels/${this.serverData.votingBooth}/messages/${poll.messageID}`, {
+			method: 'DELETE',
+		});
 	}
 
 	millisRemainingInTerm(): number {
 		return Math.max(0, this.serverData.termEndTime - Date.now());
 	}
 
-	getExactTime(time: number) {
-		return new Date(time).toLocaleString('en-US', {
+	getUSTime(time: number, printHours: boolean = true) {
+		const options: Intl.DateTimeFormatOptions = {
 			month: '2-digit',
 			day: '2-digit',
 			year: 'numeric',
-			hour: 'numeric',
-			minute: '2-digit',
-			hour12: true,
-		});
+		};
+		if (printHours) {
+			options.hour = 'numeric';
+			options.minute = '2-digit';
+			options.hour12 = true;
+		}
+		return new Date(time).toLocaleString('en-US', options);
 	}
 
 	getTotalAmendments() {
@@ -306,7 +357,7 @@ export class State {
 		return `${i}${suffixes[i % 10]}`;
 	}
 
-	buildPresidentialVote() {
+	async buildPresidentialVote() {
 		let description =
 			"@everyone it's time. By the power of the people and the Magna Farta, we will elect our next monthly President that represents the core of this nation's beliefs and thereby representing the people. Cast your vote below:\n";
 		this.serverData.candidates.forEach((candidate) => {
@@ -319,31 +370,23 @@ export class State {
 			description += '\n*There are no active presidential candidates. Run for office with /campaign.*';
 		}
 
-		return api(`channels/${this.serverData.votingBooth}/messages`, {
-			method: 'POST',
-			body: {
-				embeds: [
-					{
-						title: `${this.ordinal(this.getPresidentialCount() + 1)} Presidential Election`,
-						description,
-						image: 'https://cdn.discordapp.com/app-icons/910579031391498330/c65afb3995baa1c31212e43f1f643e7e.png',
-						color: 16711680, // red
-						footer: {
-							text: `Vote will be decided in ${
-								PRESIDENTIAL_VOTE_TIME / 3.6e6
-							} hours. Thank you for being an active participant in our perfect society.`,
-						},
+		return {
+			embeds: [
+				{
+					title: `${this.ordinal(this.getPresidentialCount() + 1)} Presidential Election`,
+					description,
+					image: {
+						url: 'https://cdn.discordapp.com/app-icons/910579031391498330/c65afb3995baa1c31212e43f1f643e7e.png',
 					},
-				],
-			},
-		});
-	}
-
-	updatePresidentialVote() {
-		return api(`channels/${this.serverData.votingBooth}/messages/${this.serverData.presidentialVoteMessageID}`, {
-			method: 'PATCH',
-			body: this.buildPresidentialVote(),
-		});
+					color: 16711680, // red
+					footer: {
+						text: `Vote will be decided in ${
+							PRESIDENTIAL_VOTE_TIME / 3.6e6
+						} hours. Thank you for being an active participant in our perfect society.`,
+					},
+				} as APIEmbed,
+			],
+		};
 	}
 
 	unicodeToEmoji(unicodeStr: string) {
@@ -356,13 +399,23 @@ export class State {
 	}
 
 	async tick() {
-		// If we should update CAQ
-		if (Date.now() - this.serverData.lastCAQTime >= CAQ_UPDATE_TIME) {
+		// If we should update CAQ (there has to be at least one)
+		if (this.serverData.caqEntries.length > 0 && Date.now() - this.serverData.lastCAQTime >= CAQ_UPDATE_TIME) {
 			this.serverData.lastCAQTime = Date.now();
 			// Wrap around when necessary
 			this.serverData.lastCAQMember = (this.serverData.lastCAQMember + 1) % this.serverData.caqEntries.length;
-			console.debug('Updating CAQ with ID:', this.serverData.lastCAQMember);
-			this.updateCAQ(this.serverData.lastCAQMember);
+			console.log('Updating CAQ with ID:', this.serverData.lastCAQMember);
+			await this.updateCAQ(this.serverData.lastCAQMember);
+		}
+
+		// If we should check for poll results
+		if (Date.now() - this.serverData.lastPollResultTime >= CHECK_POLL_RESULT_TIME) {
+			// Fetch all messages we can in voting booth (this gets 50 message by default (way more than enough))
+			const messages: APIMessage[] = await api(`channels/${this.serverData.votingBooth}/messages?limit=5`);
+			console.log(`Got back ${messages.length} messages`);
+			for (const message of messages) {
+				await this.checkMessageForPollResult(message);
+			}
 		}
 
 		// If we're voting for President
@@ -374,15 +427,21 @@ export class State {
 				if (this.hasPresident() && !this.isLastTerm()) {
 					// Always the first slot, 0
 					// Because of the conditional we should be guaranteed to find a president
-					this.serverData.candidates.push(new Candidate(this.getMemberByID(this.serverData.presidentID), 0, this.serverData.slogan));
+					const candidate = this.getMemberByID(this.serverData.presidentID);
+					this.serverData.candidates.push(new Candidate(candidate.getID(), candidate.getPartyID(), 0, this.serverData.slogan));
 				}
 
 				// Create vote
-				const response = (await api(`channels/${this.serverData.votingBooth}/messages`)) as APIMessage;
+				const response = await api(`channels/${this.serverData.votingBooth}/messages`, {
+					method: 'POST',
+					body: await this.buildPresidentialVote(),
+				});
+
 				this.serverData.presidentialVoteMessageID = response.id;
 				this.serverData.presidentialVoteTimeCreated = Date.now();
 				// Add first reaction (President re-election)
 				if (this.serverData.candidates.length > 0) {
+					console.log('Adding first reaction');
 					await api(
 						`channels/${this.serverData.votingBooth}/messages/${this.serverData.presidentialVoteMessageID}/reactions/${this.unicodeToEmoji(
 							'U+31U+fe0fU+20e3'
@@ -395,6 +454,7 @@ export class State {
 			}
 			// Tick vote if already created
 			else {
+				console.log('Vote already created');
 				// If the election is over
 				if (Date.now() - this.serverData.presidentialVoteTimeCreated > PRESIDENTIAL_VOTE_TIME) {
 					// Each tick when we can decide the winner, keep checking if we have new candidates
@@ -426,14 +486,31 @@ export class State {
 						console.log('Counting presidential votes');
 
 						// For each candidate, add the top ones to the array
-						for (let i = 0; i < this.serverData.candidates.length; i++) {
+						for (let i = this.serverData.candidates.length - 1; i >= 0; i--) {
 							const candidate = this.serverData.candidates[i];
-							console.log(candidate.getID(), votes[i]);
+
+							const inServer = await this.getDiscordMember(candidate.getID())
+								.then(() => true)
+								.catch((e) => {
+									console.error(`This candidate (${candidate.getID()}) might've left the server:`, e);
+									return false;
+								});
+
+							if (!inServer) {
+								// This will work because we're iterating backwards
+								this.serverData.candidates.splice(i, 1);
+								continue;
+							}
+
+							console.log('Candidate:', candidate.getID(), ', votes:', votes[i]);
 
 							if (votes[i] == maxVotes) {
 								console.log('Adding {} to the tied candidates array', candidate.getID());
 								tiedCandidates.push(candidate);
 							}
+						}
+
+						if (this.serverData.candidates.length == 0) {
 						}
 
 						// Determine if there's a tie. By logic, there must be at least 1
@@ -477,8 +554,8 @@ export class State {
 						this.serverData.slogan = nextPresident.getSlogan();
 						this.serverData.termEndTime = Date.now() + TERM_LENGTH;
 
-						// This gets scooped up and deleted by checkMessageForPollResult below
-						await api(`channels/${this.serverData.votingBooth}/messages`, {
+						// This used to be sent in voting booth but now we're putting it in a garbage channel
+						await api(`channels/${this.serverData.voteProposal}/messages`, {
 							method: 'POST',
 							body: {
 								content: `Welcome <@${nextPresident.getID()}> to The White House!`,
@@ -492,10 +569,10 @@ export class State {
 
 						this.serverData.presidentialCount++;
 						const apiMember = await this.getDiscordMember(nextPresident.getID());
-						const apiRole = (await api(`guilds/${this.serverData.serverID}/roles/${nextPresident.getID()}`)) as APIRole;
+						const apiRole = (await api(`guilds/${this.serverData.serverID}/roles/${this.serverData.thePresidentRole}`)) as APIRole;
 
 						// Add to commanders and queefs
-						const response = (await api(`channels/${this.serverData.votingBooth}/messages`, {
+						const response = (await api(`channels/${this.serverData.commandersAndQueefs}/messages`, {
 							method: 'POST',
 							body: {
 								embeds: [
@@ -503,16 +580,17 @@ export class State {
 										title: `${this.ordinal(this.getPresidentialCount() + 1)} President of Discordias, **${escapeMarkdown(
 											apiMember.user.username
 										)}**`,
-										description: `<@${nextPresident.getID()}> of **${escapeMarkdown(
+										description: `<@${nextPresident.getID()}> of <@&${escapeMarkdown(
 											nextPresident.getPoliticalParty()?.getRoleID() || this.serverData.thePresidentRole
-										)}**\n\n*"${nextPresident.slogan}"\"*"`,
+										)}>\n\n*"${nextPresident.slogan}"*`,
 										image: {
 											url: this.getSafeAvatar(apiMember.user),
 										},
 										color: apiRole.color,
 										footer: {
-											text: `Served ${this.getExactTime(this.serverData.termEndTime - TERM_LENGTH)} - ${this.getExactTime(
-												this.serverData.termEndTime
+											text: `Served ${this.getUSTime(this.serverData.termEndTime - TERM_LENGTH, false)} - ${this.getUSTime(
+												this.serverData.termEndTime,
+												false
 											)}`,
 											icon_url: `https://cdn.discordapp.com/app-icons/910579031391498330/c65afb3995baa1c31212e43f1f643e7e.png`,
 										},
@@ -526,6 +604,44 @@ export class State {
 					}
 				}
 			}
+		}
+	}
+
+	async checkMessageForPollResult(message: APIMessage) {
+		// This message is assumed to be in voting booth
+		if (message.channel_id !== this.serverData.votingBooth) {
+			throw new Error("Tried to check message for a poll result, but it's not in voting booth");
+		}
+
+		let deleteMessage = false;
+
+		if (message.type == MessageType.PollResult) {
+			// We're going to delete this anyways
+			deleteMessage = true;
+			const pollID = message.message_reference?.message_id;
+			// Now retrieve the original message
+			const pollIndex = this.serverData.polls.findIndex((poll) => poll.messageID == pollID);
+			// If this active poll matches the message
+			if (pollIndex !== -1) {
+				console.log('Received poll end message');
+				// End the poll!
+				await this.serverData.polls[pollIndex].endPoll(await api(`channels/${this.serverData.votingBooth}/messages/${pollID}`));
+				this.serverData.polls.splice(pollIndex, 1);
+			}
+		} else if (
+			message.id !== this.serverData.presidentialVoteMessageID &&
+			(!message.poll || new Date(message.poll.expiry).getTime() <= Date.now())
+		) {
+			// ^ do NOT delete if its the presidential vote
+			// AND don't delete if it's a poll
+			deleteMessage = true;
+		}
+
+		if (deleteMessage) {
+			console.log(`Deleting non-poll result message of type:`, message.type);
+			await api(`channels/${message.channel_id}/messages/${message.id}`, {
+				method: 'DELETE',
+			});
 		}
 	}
 

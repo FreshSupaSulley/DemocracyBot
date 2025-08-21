@@ -2,7 +2,7 @@
 // https://github.com/discord/cloudflare-sample-app/blob/main/src/server.js
 import { AutoRouter, json } from 'itty-router';
 import { InteractionResponseType, InteractionType, verifyKey } from 'discord-interactions';
-import { APIChannel, APIDMChannel, APIMessage, ApplicationCommandOptionType, MessageType } from 'discord-api-types/v10';
+import { APIBaseInteraction, APIDMChannel, ApplicationCommandOptionType, MessageFlags } from 'discord-api-types/v10';
 import ServerData, { BaseCommand } from './types';
 import { State } from './state';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
@@ -46,12 +46,22 @@ router.get('/register', async (request, env) => {
 
 // Our tick method
 async function tick(env: any) {
-	globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
-	errorWrapper(env, () => globalState.tick());
+	await errorWrapper(env, () => globalState.tick());
 }
 
-async function handleSlashCommand(env: any, interaction: any) {
+async function handleSlashCommand(env: any, interaction: APIBaseInteraction<any, any>) {
 	const response = await errorWrapper(env, async () => {
+		// Ensure we're only going to respond to the new server
+		if (interaction.guild && interaction.guild.id !== globalState.serverData.serverID) {
+			return json({
+				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+				data: {
+					flags: MessageFlags.Ephemeral,
+					content: `wrong server bimbo`,
+				},
+			});
+		}
+
 		const fullCommandName = getFullCommandName(interaction.data);
 		console.log('Received', fullCommandName);
 
@@ -89,12 +99,10 @@ async function handleSlashCommand(env: any, interaction: any) {
 router.post('/', async (request, env) => {
 	const { isValid, interaction } = await server.verifyDiscordRequest(request, env);
 	if (!isValid || !interaction) {
-		console.log('Ts bad');
 		return new Response('Bad request signature', { status: 401 });
 	}
 
 	if (interaction.type === InteractionType.PING) {
-		console.log('THIS IS A PING!');
 		// The `PING` message is used during the initial webhook handshake, and is
 		// required to configure the webhook in the developer portal.
 		return json({
@@ -106,7 +114,7 @@ router.post('/', async (request, env) => {
 		return await handleSlashCommand(env, interaction);
 	}
 
-	console.error('Unknown Type');
+	console.error('Unknown post');
 	return json({ error: 'Unknown Type' }, { status: 400 });
 });
 
@@ -172,9 +180,11 @@ async function errorWrapper(env: any, fn: () => Promise<any>) {
 		// ^ because the return in the try will be abandoned if it fails
 		// Check if it changed
 		const newDataRaw = JSON.stringify(instanceToPlain(globalState.serverData));
-		if (!!rawData && JSON.stringify(instanceToPlain(rawData)) !== newDataRaw) {
-			console.log('Server data changed!', newDataRaw);
-			env.DBOT.put('data', newDataRaw);
+		const oldData = JSON.stringify(instanceToPlain(rawData));
+		if (!!oldData && oldData !== newDataRaw) {
+			console.log('Server data changed! Old:', oldData);
+			console.log('New:', newDataRaw);
+			await env.DBOT.put('data', newDataRaw);
 		}
 	}
 }

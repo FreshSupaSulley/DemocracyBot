@@ -7,6 +7,20 @@ import { escapeMarkdown } from '@discordjs/formatters';
 export default class extends BaseCommand {
 	async handle(interaction: APIBaseInteraction<any, any>, sender: ServerMember): Promise<any> {
 		const slogan = escapeMarkdown(interaction.data.options[0].value).replace(/[\n\r\t]/g, ''); // remove fancy line chars
+
+		// Check if already campaigning
+		for (const sample of globalState.serverData.candidates) {
+			if (sample.getID() == sender.getID()) {
+				return {
+					type: InteractionResponseType.ChannelMessageWithSource,
+					data: {
+						flags: MessageFlags.Ephemeral,
+						content: `You're already campaigning!`,
+					},
+				};
+			}
+		}
+
 		if (globalState.serverData.presidentID == sender.getID()) {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
@@ -27,7 +41,7 @@ export default class extends BaseCommand {
 					flags: MessageFlags.Ephemeral,
 					content: `Polls for the **${globalState.ordinal(
 						globalState.getPresidentialCount() + 1
-					)} Presidential Election** open **${globalState.getExactTime(
+					)} Presidential Election** open **${globalState.getUSTime(
 						Date.now() + globalState.millisRemainingInTerm() - PRESIDENTIAL_VOTE_TIME
 					)} EST**. The President has ${daysRemaining} day${daysRemaining != 1 ? 's' : ''} and ${
 						(daysRemaining % 1) * 24
@@ -57,19 +71,6 @@ export default class extends BaseCommand {
 			};
 		}
 
-		// Check if already campaigning
-		for (const sample of globalState.serverData.candidates) {
-			if (sample.getID() == sender.getID()) {
-				return {
-					type: InteractionResponseType.ChannelMessageWithSource,
-					data: {
-						flags: MessageFlags.Ephemeral,
-						content: `You're already campaigning!`,
-					},
-				};
-			}
-		}
-
 		const party = sender.getPoliticalParty();
 
 		if (!party) {
@@ -83,7 +84,7 @@ export default class extends BaseCommand {
 		}
 
 		// We're good now! Add the candidate
-		globalState.serverData.candidates.push(new Candidate(sender, globalState.getNextCandidateSlot(), slogan));
+		globalState.serverData.candidates.push(new Candidate(sender.getID(), sender.getPartyID(), globalState.getNextCandidateSlot(), slogan));
 		const urlPrefix = `/channels/${globalState.serverData.votingBooth}/messages/${globalState.serverData.presidentialVoteMessageID}/reactions/`;
 
 		for (let i = 0; i < globalState.serverData.candidates.length; i++) {
@@ -98,7 +99,10 @@ export default class extends BaseCommand {
 			}
 		}
 
-		globalState.updatePresidentialVote();
+		await api(`channels/${globalState.serverData.votingBooth}/messages`, {
+			method: 'PATCH',
+			body: await globalState.buildPresidentialVote(),
+		});
 
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,

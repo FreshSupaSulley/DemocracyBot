@@ -10,31 +10,68 @@ export async function api(endpoint: string, options: APIOptions = { method: 'GET
 	const url = 'https://discord.com/api/v10/' + endpoint;
 	// Stringify payloads
 	if (options.body) options.body = JSON.stringify(options.body);
-	// Use fetch to make requests
-	const res = await fetch(url, {
-		headers: {
-			Authorization: `Bot ${globalState.env.BOT_TOKEN}`,
-			'Content-Type': 'application/json; charset=UTF-8',
-		},
-		...options,
-	});
-	// throw API errors
-	if (!res.ok) {
-		const data = await res.json();
-		console.log(res.status);
-		throw new Error(JSON.stringify(data));
-	}
-	// Don't try to parse JSON if it's just a 204
-	if (res.status == 204) return null;
-	// return original response
-	return res.json();
+
+	// Define a helper function for making the request and handling 429 retries
+	const makeRequest = async (): Promise<any> => {
+		const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 5000));
+
+		const res = await Promise.race([
+			fetch(url, {
+				headers: {
+					Authorization: `Bot ${globalState.env.BOT_TOKEN}`,
+					'Content-Type': 'application/json; charset=UTF-8',
+				},
+				...options,
+			}),
+			timeoutPromise,
+		]);
+
+		// If status is 429, handle the retry logic
+		if (res.status === 429) {
+			const retryAfter = res.headers.get('X-RateLimit-Reset-After') || '1'; // Default to 1 second if header is missing
+			const globalRateLimit = res.headers.get('X-RateLimit-Global'); // Check if global rate limit
+			const resetAfter = parseFloat(retryAfter) * 1000; // Convert to milliseconds
+
+			// If it's a global rate limit, delay the retry
+			if (globalRateLimit) {
+				console.warn(`Global rate limit hit, retrying in ${resetAfter / 1000} seconds...`);
+			} else {
+				console.warn(`Rate limit hit, retrying in ${resetAfter / 1000} seconds...`);
+			}
+
+			// Wait for the reset time before retrying
+			await new Promise((resolve) => setTimeout(resolve, resetAfter));
+
+			// Retry the request after the delay
+			return makeRequest();
+		}
+
+		// If the response is not OK, throw an error with the details
+		if (!res.ok) {
+			const data = await res.json();
+			console.error(`Failed on ${url}: ${res.status}`);
+			console.error(`Content:`, options);
+			throw new Error(JSON.stringify(data));
+		}
+
+		// Don't try to parse JSON if it's just a 204 No Content
+		if (res.status === 204) return null;
+
+		// Return original response data if no issues
+		return res.json();
+	};
+
+	// Make the request and return the result
+	return makeRequest();
 }
 
 // BEGIN DBOT SPECIFIC HELPER FUNCTIONS
 export const TERM_LENGTH = 2592000000;
 export const PRESIDENTIAL_VOTE_TIME = 259200000;
+export const CHECK_POLL_RESULT_TIME = 900000; // 15 mins
 export const CAQ_UPDATE_TIME = 86400000;
 export const AMENDMENT_CACHE_TIME = 86400000; // one day
+export const MAX_POLLS = 10;
 export const BAD_COLOR_RESPONSE = 'Unknown color name or invalid [hex color code](<https://rgbcolorcode.com>)';
 
 // chatgpt dump of common colors
