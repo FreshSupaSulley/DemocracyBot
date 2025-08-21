@@ -607,6 +607,8 @@ export class State {
 	}
 
 	async checkMessageForPollResult(message: APIMessage) {
+		console.debug('Checking message for poll result:', message);
+
 		// This message is assumed to be in voting booth
 		if (message.channel_id !== this.serverData.votingBooth) {
 			throw new Error("Tried to check message for a poll result, but it's not in voting booth");

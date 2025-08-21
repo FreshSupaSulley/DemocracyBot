@@ -100,16 +100,16 @@ export default abstract class BasePoll {
 		return (numYes * 1) / (numYes + numNo) > this.ratio;
 	}
 
+	/**
+	 * Runs actions depending on the result of the poll. Does **NOT** delete the poll message.
+	 * @param message original poll as {@link APIMessage}
+	 */
 	async endPoll(message: APIMessage) {
 		const poll = message.poll!;
 		// If no one votes, the answers can be undefined
 		const numYes = poll.results?.answer_counts[1]?.count ?? 0;
 		const numNo = poll.results?.answer_counts[2]?.count ?? 0;
 		console.log(`To decide: Yes = ${numYes}, No = ${numNo}`);
-		// Delete the message
-		await api(`channels/${message.channel_id}/messages/${message.id}`, {
-			method: 'DELETE',
-		});
 		let response;
 		// If we passed
 		if (this.passesPoll(numYes, numNo)) {
