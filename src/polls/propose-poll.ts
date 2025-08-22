@@ -1,7 +1,6 @@
 import { escapeMarkdown } from '@discordjs/formatters';
 import { globalState } from '..';
 import BasePoll from './poll';
-import { InteractionResponseType } from 'discord-interactions';
 
 export default class ProposePoll extends BasePoll {
 	proposal: string;
@@ -9,7 +8,7 @@ export default class ProposePoll extends BasePoll {
 	constructor(proposal: string) {
 		// Embed titles don't support markdown
 		super('propose', 0.5, 5, 43200000);
-		this.proposal = escapeMarkdown(proposal);
+		this.proposal = proposal;
 	}
 
 	firePoll() {

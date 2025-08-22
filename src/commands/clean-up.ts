@@ -26,7 +26,7 @@ export default class extends BaseCommand {
 			};
 		}
 
-		globalState.serverData.deleteMessagesChannel = interaction.id;
+		globalState.serverData.deleteMessagesChannel = interaction.channel!.id;
 
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,

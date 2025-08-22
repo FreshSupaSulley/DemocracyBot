@@ -1,8 +1,7 @@
 import { globalState } from '..';
 import { APIUser } from 'discord-api-types/v10';
 import BasePoll from './poll';
-import { InteractionResponseType } from 'discord-interactions';
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude } from 'class-transformer';
 
 export default class NaturalizePoll extends BasePoll {
 	userID: string;

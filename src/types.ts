@@ -49,26 +49,6 @@ export default class ServerData {
 		},
 	})
 	polls: BasePoll[] = [];
-	// Ensures people can't spam polls
-	// UserID -> { [poll!: string]!: number; }
-	@Transform(
-		({ value }) => {
-			// Transform plain object -> Map<string, Map<string, number>>
-			if (value instanceof Map) return value;
-
-			const outerMap = new Map<string, Map<string, number>>();
-			for (const [outerKey, innerObj] of Object.entries(value)) {
-				const innerMap = new Map<string, number>();
-				for (const [innerKey, num] of Object.entries(innerObj as object)) {
-					innerMap.set(innerKey, Number(num));
-				}
-				outerMap.set(outerKey, innerMap);
-			}
-			return outerMap;
-		},
-		{ toClassOnly: true }
-	)
-	pollCooldownExpiryTimes: Map<string, Map<string, number>> = new Map();
 
 	// this might be required though??
 	@Type(() => ServerMember)
@@ -90,7 +70,17 @@ export default class ServerData {
 
 	// Ticking
 	lastCAQMember: number = 0;
-	deleteMessagesChannel: string = "0";
+	deleteMessagesChannel: string = '0';
+}
+
+export class ExpiryTime {
+	pollType: string;
+	expiryTime: number;
+
+	constructor(pollType: string, expiryTime: number) {
+		this.pollType = pollType;
+		this.expiryTime = expiryTime;
+	}
 }
 
 export class CAQEntry {
@@ -137,10 +127,13 @@ export abstract class PartyEditCommand extends BaseCommand {
 export class ServerMember {
 	private userID: string;
 	private partyRole: string | null = null;
+	@Type(() => ExpiryTime)
+	private cooldowns: ExpiryTime[];
 
-	constructor(userID: string, partyRole: string | null = null) {
+	constructor(userID: string, partyRole: string | null = null, cooldowns: ExpiryTime[]) {
 		this.userID = userID;
 		this.partyRole = partyRole;
+		this.cooldowns = cooldowns;
 	}
 
 	public getPoliticalParty(): PoliticalParty | undefined {
@@ -152,11 +145,34 @@ export class ServerMember {
 	}
 
 	public canPropose(poll: BasePoll): boolean {
-		return globalState.meetsCooldown(this, poll);
+		const pollType = poll.constructor.name;
+		const now = Date.now();
+		// Find the cooldown for the specific poll type
+		const cooldown = this.cooldowns.find((sample) => sample.pollType === pollType);
+		// If there's an active cooldown, check if it has expired
+		if (cooldown) {
+			if (now < cooldown.expiryTime) {
+				// Still within the cooldown period
+				return false;
+			}
+			// If the cooldown has expired, allow proposing
+			return true;
+		}
+		// If no cooldown exists, create one and allow proposing
+		const newCooldown = new ExpiryTime(pollType, now + poll.getVotingCooldown());
+		this.cooldowns.push(newCooldown);
+		return true;
 	}
 
+	/**
+	 * Gets the number of milliseconds left in this user's cooldown for this particular poll type.
+	 * @param poll poll (type) to check
+	 * @returns number of milliseconds before the member can propose again
+	 */
 	public getMillisRemaining(poll: BasePoll): number {
-		return globalState.getMillisRemaining(this, poll);
+		const cooldown = this.cooldowns.find((sample) => sample.pollType == poll.constructor.name);
+		const expiry = cooldown?.expiryTime!;
+		return Math.max(0, expiry - Date.now());
 	}
 
 	public getID(): string {
@@ -173,7 +189,7 @@ export class Candidate extends ServerMember {
 	slogan: string;
 
 	constructor(id: string, party: string | null, slot: number, slogan: string) {
-		super(id, party);
+		super(id, party, []);
 		this.slot = slot;
 		this.slogan = slogan;
 	}

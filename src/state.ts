@@ -12,7 +12,7 @@ import {
 	MessageFlags,
 	MessageType,
 } from 'discord-api-types/v10';
-import ServerData, { Amendment, Candidate, CAQEntry, ServerMember } from './types';
+import ServerData, { Amendment, Candidate, CAQEntry, ExpiryTime, ServerMember } from './types';
 import { api, CAQ_UPDATE_TIME, CHECK_POLL_RESULT_TIME, MAX_POLLS, PRESIDENTIAL_VOTE_TIME, TERM_LENGTH } from './utils';
 import { PoliticalParty } from './political-party';
 import { escapeMarkdown } from '@discordjs/formatters';
@@ -41,7 +41,7 @@ export class State {
 			}
 		}
 		// If we couldn't find user / server, the ServerMember is new
-		const initMember = new ServerMember(id);
+		const initMember = new ServerMember(id, null, []);
 		this.serverData.members.push(initMember);
 		return initMember;
 	}
@@ -85,32 +85,6 @@ export class State {
 		return this.serverData.candidates.some((sample) => sample.getID() == member.getID());
 	}
 
-	getMillisRemaining(member: ServerMember, poll: BasePoll): number {
-		const memberId = member.getID();
-		const cooldowns = this.serverData.pollCooldownExpiryTimes.get(memberId) ?? new Map<string, number>();
-		const expiry = cooldowns.get(poll.constructor.name) ?? 0;
-		return Math.max(0, expiry - Date.now());
-	}
-
-	meetsCooldown(member: ServerMember, poll: BasePoll): boolean {
-		// I need this for testing (sike I'm just a tyrant)
-		if (member.getID() == this.env.OWNER_ID) return true;
-		// Get or create the cooldown map for this member
-		const memberId = member.getID();
-		const cooldowns = this.serverData.pollCooldownExpiryTimes.get(memberId) ?? new Map<string, number>();
-
-		const pollType = poll.constructor.name;
-		const now = Date.now();
-		const expiryTime = cooldowns.get(pollType) ?? 0;
-
-		if (now >= expiryTime) {
-			cooldowns.set(pollType, now + poll.getVotingCooldown());
-			this.serverData.pollCooldownExpiryTimes.set(memberId, cooldowns);
-		}
-
-		return false;
-	}
-
 	beginPoll(interaction: APIBaseInteraction<any, any>, poll: BasePoll) {
 		// Because we're not going to try to retrieve too many Discord messages to check for completed polls
 		if (this.serverData.polls.length > MAX_POLLS) {
@@ -140,7 +114,7 @@ export class State {
 		// Ensure no one is spamming the poll
 		const member = this.getMember(interaction);
 		if (!member.canPropose(poll)) {
-			const millisLeft = ((member.getMillisRemaining(poll) / 3600000) * 100) / 100;
+			const millisLeft = Math.round((member.getMillisRemaining(poll) / 3600000) * 100) / 100;
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
@@ -152,8 +126,6 @@ export class State {
 			} as APIInteractionResponseChannelMessageWithSource;
 		}
 
-		// Yay! Remove their cooldown from the map
-		this.serverData.pollCooldownExpiryTimes.delete(member.getID());
 		return poll.firePoll();
 	}
 
@@ -389,16 +361,17 @@ export class State {
 	async tick() {
 		// Check if we need to delete DMs from /clean-up
 		if (this.serverData.deleteMessagesChannel !== '0') {
+			const deleteChannel = this.serverData.deleteMessagesChannel;
 			this.serverData.deleteMessagesChannel = '0';
 			// Lets grab 50 ig
 			const count = 50; // range was 1-100 last i checked
-			const messages: APIMessage[] = await api(`channels/${this.serverData.deleteMessagesChannel}/messages?limit=${count}`);
+			const messages: APIMessage[] = await api(`channels/${deleteChannel}/messages?limit=${count}`);
 			console.log(`Deleting ${messages.length} message(s)`);
 			for (const message of messages) {
 				// We can't delete user messages
 				// for some reason .bot isn't defined?
 				if (message.author.id === this.env.OWNER_ID) continue;
-				await api(`channels/${this.serverData.deleteMessagesChannel}/messages/${message.id}`, {
+				await api(`channels/${deleteChannel}/messages/${message.id}`, {
 					method: 'DELETE',
 				}).catch((e) => {
 					console.error('Failed to delete message:', message);
@@ -418,7 +391,7 @@ export class State {
 		if (this.serverData.caqEntries.length > 0) {
 			// Wrap around when necessary
 			this.serverData.lastCAQMember = (this.serverData.lastCAQMember + 1) % this.serverData.caqEntries.length;
-			console.log('Updating CAQ with ID:', this.serverData.lastCAQMember);
+			console.log('Updating CAQ slot:', this.serverData.lastCAQMember);
 			await this.updateCAQ(this.serverData.lastCAQMember);
 		}
 
@@ -665,22 +638,28 @@ export class State {
 		const url = `channels/${this.serverData.commandersAndQueefsChannel}/messages/${entry.messageID}`;
 		// We need both the CAQ messsage object AND the discord user
 		const caqMessage = await api(url);
-		const [message_2, member] = await Promise.all([caqMessage, this.getDiscordMember(entry.user)]);
-		// Now modify the embed
-		let embed = message_2.embeds[0];
-		// Update title in case they changed their username
-		embed.title = `${this.ordinal(this.getPresidentialCount() + 1)} President of Discordias, **${escapeMarkdown(member.user.username)}**`;
-		embed.image = {
-			url: this.getSafeAvatar(member.user),
-		};
-		// Apply any additional changes, if any
-		embed = updater(embed);
-		return await api(url, {
-			method: 'PATCH',
-			body: {
-				embeds: [embed],
-			},
-		});
+		try {
+			const [message_2, member] = await Promise.all([caqMessage, api(`users/${entry.user}`)]);
+			// Now modify the embed
+			let embed = message_2.embeds[0];
+			// Update title in case they changed their username
+			embed.title = `${this.ordinal(index + 1)} President of Discordias, **${escapeMarkdown(member.username)}**`;
+			embed.image = {
+				url: this.getSafeAvatar(member),
+			};
+			// Apply any additional changes, if any
+			embed = updater(embed);
+			return await api(url, {
+				method: 'PATCH',
+				body: {
+					embeds: [embed],
+				},
+			});
+		} catch (e) {
+			console.error("Failed to update CAQ. Maybe it's a President that no longer is apart of this server?", e);
+			// exit gracefully
+			return;
+		}
 	}
 
 	getSafeAvatar(user: APIUser): string {

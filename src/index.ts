@@ -28,12 +28,14 @@ router.get('/data', async (request, env) => {
 	// meh who cares if the world can see it
 	// if (env.ENV !== 'DEV') return new Response('nope');
 	const rawData = await env.DBOT.get('data');
+	let response;
 	try {
-		plainToInstance(ServerData, JSON.parse(rawData));
-	} catch (e) {
+		response = JSON.stringify(plainToInstance(ServerData, JSON.parse(rawData)));
+	} catch (e: any) {
 		console.error(e);
+		response = `Parsing failed: ${e.stack ?? e}\n\n${rawData}`;
 	}
-	return new Response(JSON.stringify(plainToInstance(ServerData, JSON.parse(rawData))));
+	return new Response(response);
 });
 
 // Registering slash commands
@@ -182,7 +184,8 @@ async function errorWrapper(env: any, fn: () => Promise<any>) {
 		const newDataRaw = JSON.stringify(instanceToPlain(globalState.serverData));
 		const oldData = JSON.stringify(instanceToPlain(rawData));
 		if (!!oldData && oldData !== newDataRaw) {
-			console.log('Server data changed! Old:', oldData);
+			console.log('Server data changed!');
+			console.log('Old:', oldData);
 			console.log('New:', newDataRaw);
 			await env.DBOT.put('data', newDataRaw);
 		}

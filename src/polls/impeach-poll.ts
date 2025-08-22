@@ -6,7 +6,7 @@ export default class ImpeachPoll extends BasePoll {
 	reason: string;
 
 	constructor(reason: string) {
-		super('impeach', 0.75, 5, 604800000, '');
+		super('impeach', 0.75, 5, 604800000);
 		this.reason = reason;
 	}
 
