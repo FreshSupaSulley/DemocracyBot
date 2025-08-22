@@ -63,7 +63,7 @@ export default abstract class BasePoll {
 					},
 				},
 				{
-					answer_id: 0,
+					answer_id: 1,
 					poll_media: {
 						text: 'No',
 						emoji: {
@@ -107,8 +107,8 @@ export default abstract class BasePoll {
 	async endPoll(message: APIMessage) {
 		const poll = message.poll!;
 		// If no one votes, the answers can be undefined
-		const numYes = poll.results?.answer_counts[1]?.count ?? 0;
-		const numNo = poll.results?.answer_counts[2]?.count ?? 0;
+		const numYes = poll.results?.answer_counts[poll.answers[0].answer_id]?.count ?? 0;
+		const numNo = poll.results?.answer_counts[poll.answers[1].answer_id]?.count ?? 0;
 		console.log(`To decide: Yes = ${numYes}, No = ${numNo}`);
 		let response;
 		// If we passed

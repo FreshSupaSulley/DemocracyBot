@@ -623,7 +623,7 @@ export class State {
 		}
 
 		if (deleteMessage) {
-			console.log(`Deleting non-poll result message of type:`, message.type);
+			console.log(`Deleting message of type:`, message.type);
 			await api(`channels/${message.channel_id}/messages/${message.id}`, {
 				method: 'DELETE',
 			});

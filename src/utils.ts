@@ -8,7 +8,7 @@ export interface APIOptions {
 export async function api(endpoint: string, options: APIOptions = { method: 'GET' }): Promise<any> {
 	// append endpoint to root API URL
 	const url = 'https://discord.com/api/v10/' + endpoint;
-	console.log('Hitting ', url);
+	console.log('URL:', url);
 	// Stringify payloads
 	if (options.body) options.body = JSON.stringify(options.body);
 
