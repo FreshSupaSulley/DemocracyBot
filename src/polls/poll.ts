@@ -53,7 +53,7 @@ export default abstract class BasePoll {
 			layout_type: PollLayoutType.Default,
 			answers: [
 				{
-					answer_id: 0,
+					answer_id: 1,
 					poll_media: {
 						text: 'Yes',
 						emoji: {
@@ -63,7 +63,7 @@ export default abstract class BasePoll {
 					},
 				},
 				{
-					answer_id: 1,
+					answer_id: 2,
 					poll_media: {
 						text: 'No',
 						emoji: {
