@@ -5,12 +5,12 @@ export interface APIOptions {
 	body?: any;
 }
 
-export async function api(endpoint: string, options: APIOptions = { method: 'GET' }): Promise<any> {
+export async function api(endpoint: string, options: APIOptions = { method: 'GET' }, retry: boolean = false): Promise<any> {
 	// append endpoint to root API URL
 	const url = 'https://discord.com/api/v10/' + endpoint;
-	console.log('URL:', url);
 	// Stringify payloads
 	if (options.body) options.body = JSON.stringify(options.body);
+	console.log('URL:', url, 'Options:', JSON.stringify(options));
 
 	// Define a helper function for making the request and handling 429 retries
 	const makeRequest = async (): Promise<any> => {
@@ -28,7 +28,7 @@ export async function api(endpoint: string, options: APIOptions = { method: 'GET
 		]);
 
 		// If status is 429, handle the retry logic
-		if (res.status === 429) {
+		if (retry && res.status === 429) {
 			const retryAfter = res.headers.get('X-RateLimit-Reset-After') || '1'; // Default to 1 second if header is missing
 			const globalRateLimit = res.headers.get('X-RateLimit-Global'); // Check if global rate limit
 			const resetAfter = parseFloat(retryAfter) * 1000; // Convert to milliseconds

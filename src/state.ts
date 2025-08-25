@@ -85,7 +85,7 @@ export class State {
 		return this.serverData.candidates.some((sample) => sample.getID() == member.getID());
 	}
 
-	beginPoll(interaction: APIBaseInteraction<any, any>, poll: BasePoll) {
+	async beginPoll(interaction: APIBaseInteraction<any, any>, poll: BasePoll) {
 		// Because we're not going to try to retrieve too many Discord messages to check for completed polls
 		if (this.serverData.polls.length > MAX_POLLS) {
 			return {
@@ -365,7 +365,7 @@ export class State {
 			this.serverData.deleteMessagesChannel = '0';
 			// Lets grab 50 ig
 			const count = 50; // range was 1-100 last i checked
-			const messages: APIMessage[] = await api(`channels/${deleteChannel}/messages?limit=${count}`);
+			const messages: APIMessage[] = await api(`channels/${deleteChannel}/messages?limit=${count}`, undefined, true); // signals to retry on 429s (we have time for it in scheduled tasks)
 			console.log(`Deleting ${messages.length} message(s)`);
 			for (const message of messages) {
 				// We can't delete user messages
@@ -373,7 +373,7 @@ export class State {
 				if (message.author.id === this.env.OWNER_ID) continue;
 				await api(`channels/${deleteChannel}/messages/${message.id}`, {
 					method: 'DELETE',
-				}).catch((e) => {
+				}, true).catch((e) => {
 					console.error('Failed to delete message:', message);
 					console.error('Error:', e);
 				});
@@ -396,7 +396,7 @@ export class State {
 		}
 
 		// Fetch the max number of polls + 1 for election
-		const messages: APIMessage[] = await api(`channels/${this.serverData.votingBoothChannel}/messages?limit=${MAX_POLLS + 1}`);
+		const messages: APIMessage[] = await api(`channels/${this.serverData.votingBoothChannel}/messages?limit=${MAX_POLLS + 1}`, undefined, true);
 		for (const message of messages) {
 			await this.checkMessageForPollResult(message);
 		}
@@ -418,7 +418,7 @@ export class State {
 				const response = await api(`channels/${this.serverData.votingBoothChannel}/messages`, {
 					method: 'POST',
 					body: await this.buildPresidentialVote(),
-				});
+				}, true);
 
 				this.serverData.presidentialVoteMessageID = response.id;
 				this.serverData.presidentialVoteTimeCreated = Date.now();
@@ -431,7 +431,7 @@ export class State {
 						}/reactions/${this.unicodeToEmoji('U+31U+fe0fU+20e3')}/@me`,
 						{
 							method: 'PUT',
-						}
+						}, true
 					);
 				}
 			}
@@ -449,7 +449,7 @@ export class State {
 
 						// Update message to get reactions
 						const presidentialVote = (await api(
-							`channels/${this.serverData.votingBoothChannel}/messages/${this.serverData.presidentialVoteMessageID}`
+							`channels/${this.serverData.votingBoothChannel}/messages/${this.serverData.presidentialVoteMessageID}`, undefined, true
 						)) as APIMessage;
 
 						for (const r of presidentialVote.reactions!) {
@@ -514,14 +514,14 @@ export class State {
 								`guilds/${this.serverData.serverID}/members/${this.serverData.presidentID}/roles/${this.serverData.thePresidentRole}`,
 								{
 									method: 'DELETE',
-								}
+								}, true
 							);
 						}
 
 						// Delete Presidential vote
 						await api(`channels/${this.serverData.votingBoothChannel}/messages/${this.serverData.presidentialVoteMessageID}`, {
 							method: 'DELETE',
-						});
+						}, true);
 
 						this.serverData.presidentialVoteMessageID = '0';
 
@@ -542,17 +542,17 @@ export class State {
 							method: 'POST',
 							body: {
 								content: `Welcome <@${nextPresident.getID()}> to The White House!`,
-							},
-						});
+							}
+						}, true);
 
 						// Assign the president role to the new guy
 						await api(`guilds/${this.serverData.serverID}/members/${nextPresident.getID()}/roles/${this.serverData.thePresidentRole}`, {
 							method: 'PUT',
-						});
+						}, true);
 
 						this.serverData.presidentialCount++;
 						const apiMember = await this.getDiscordMember(nextPresident.getID());
-						const apiRole = (await api(`guilds/${this.serverData.serverID}/roles/${this.serverData.thePresidentRole}`)) as APIRole;
+						const apiRole = (await api(`guilds/${this.serverData.serverID}/roles/${this.serverData.thePresidentRole}`, undefined, true)) as APIRole;
 
 						// Add to commanders and queefs
 						const response = (await api(`channels/${this.serverData.commandersAndQueefsChannel}/messages`, {
@@ -580,7 +580,7 @@ export class State {
 									} as APIEmbed,
 								],
 							},
-						})) as APIMessage;
+						}, true)) as APIMessage;
 
 						this.serverData.caqEntries.push(new CAQEntry(nextPresident.getID(), response.id));
 						// i used to call update CAQ but ig we not doing that anymore
@@ -610,7 +610,7 @@ export class State {
 			if (pollIndex !== -1) {
 				console.log('Received poll end message');
 				// End the poll!
-				await this.serverData.polls[pollIndex].endPoll(await api(`channels/${this.serverData.votingBoothChannel}/messages/${pollID}`));
+				await this.serverData.polls[pollIndex].endPoll(await api(`channels/${this.serverData.votingBoothChannel}/messages/${pollID}`, undefined, true));
 				this.serverData.polls.splice(pollIndex, 1);
 			}
 		} else if (
@@ -626,7 +626,7 @@ export class State {
 			console.log(`Deleting message of type:`, message.type);
 			await api(`channels/${message.channel_id}/messages/${message.id}`, {
 				method: 'DELETE',
-			});
+			}, true);
 		}
 	}
 
