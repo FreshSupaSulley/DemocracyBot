@@ -156,8 +156,8 @@ async function errorWrapper(env: any, fn: () => Promise<any>) {
 
 		// Now run the function
 		return await fn();
-	} catch (e) {
-		console.error('Something went wrong:', e);
+	} catch (ogError) {
+		console.error('Something went wrong:', ogError);
 
 		// DM to me
 		await api(`users/@me/channels`, {
@@ -170,7 +170,7 @@ async function errorWrapper(env: any, fn: () => Promise<any>) {
 				return api(`channels/${response.id}/messages`, {
 					method: 'POST',
 					body: {
-						content: `An error occurred:\n\`\`\`${e instanceof Error ? e.stack : e}\`\`\``,
+						content: `An error occurred:\n\`\`\`${ogError instanceof Error ? ogError.stack : ogError}\`\`\``,
 					},
 				});
 			})

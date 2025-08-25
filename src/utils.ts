@@ -47,19 +47,29 @@ export async function api(endpoint: string, options: APIOptions = { method: 'GET
 			return makeRequest();
 		}
 
-		// If the response is not OK, throw an error with the details
-		if (!res.ok) {
-			const data = await res.json();
-			console.error(`Failed on ${url}: ${res.status}`);
-			console.error(`Content:`, options);
-			throw new Error(JSON.stringify(data));
-		}
-
-		// Don't try to parse JSON if it's just a 204 No Content
-		if (res.status === 204) return null;
-
+		const clonedRes = res.clone(); // for better logging
+		console.log('Response status:', res.status);
 		// Return original response data if no issues
-		return res.json();
+		try {
+			const json = await res.json();
+			// If the response is not OK, throw an error with the details
+			if (!res.ok) {
+				console.error(`Failed on ${url}: ${res.status}`);
+				console.error(`Content:`, options);
+				throw new Error(JSON.stringify(json));
+			}
+
+			// Don't try to parse JSON if it's just a 204 No Content
+			if (res.status === 204) return null;
+
+			// Otherwise, we're good!
+			return json;
+		} catch (e) {
+			console.error('Response is not valid JSON. Are we rate limited by CF? Raw response:', await clonedRes.text());
+			console.error('Caught error:', e);
+			// Throw to parent method
+			throw e;
+		}
 	};
 
 	// Make the request and return the result
