@@ -271,7 +271,7 @@ export class State {
 	 * @returns promise
 	 */
 	async addAmendment(content: string) {
-		return api(`channels/${this.serverData.amendments}/messages`, {
+		return api(`channels/${this.serverData.amendmentsChannel}/messages`, {
 			method: 'POST',
 			body: {
 				// Markdown is assumed to be escaped at this point
