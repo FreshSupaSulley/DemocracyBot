@@ -150,16 +150,15 @@ export class ServerMember {
 		// Find the cooldown for the specific poll type
 		const cooldown = this.cooldowns.find((sample) => sample.pollType === pollType);
 		// If there's an active cooldown, check if it has expired
-		if (cooldown) {
-			if (now < cooldown.expiryTime) {
-				// Still within the cooldown period
-				return false;
-			}
-			// If the cooldown has expired, allow proposing
-			return true;
+		if (cooldown && now < cooldown.expiryTime) {
+			// Still within the cooldown period
+			return false;
 		}
 		// If no cooldown exists, create one and allow proposing
 		const newCooldown = new ExpiryTime(pollType, now + poll.getVotingCooldown());
+		// Remove the old pollType from cooldowns if possible
+		this.cooldowns = this.cooldowns.filter((poll) => poll.pollType !== pollType);
+		// Add the cooldown
 		this.cooldowns.push(newCooldown);
 		return true;
 	}
