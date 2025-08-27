@@ -101,7 +101,7 @@ export default abstract class BasePoll {
 	}
 
 	/**
-	 * Runs actions depending on the result of the poll. Does **NOT** delete the poll message.
+	 * Runs actions depending on the result of the poll. This will also delete the poll message!
 	 * @param message original poll as {@link APIMessage}
 	 */
 	async endPoll(message: APIMessage) {
@@ -132,5 +132,13 @@ export default abstract class BasePoll {
 				content: response,
 			},
 		});
+		// Delete the poll object
+		await api(
+			`channels/${message.channel_id}/messages/${message.id}`,
+			{
+				method: 'DELETE',
+			},
+			true
+		);
 	}
 }
