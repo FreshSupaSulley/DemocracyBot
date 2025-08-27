@@ -626,6 +626,10 @@ export class State {
 		}
 	}
 
+	/**
+	 * Checks if this message in #voting-booth is important to democracy. If so, it will run poll processing on it. Otherwise, it gets deleted.
+	 * @param message message to check (it better be in #voting-booth)
+	 */
 	async checkMessageForPollResult(message: APIMessage) {
 		console.log('Checking message for poll result:', message);
 

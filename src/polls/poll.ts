@@ -101,15 +101,15 @@ export default abstract class BasePoll {
 	}
 
 	/**
-	 * Runs actions depending on the result of the poll. This will also delete the poll message!
+	 * Runs actions depending on the result of the poll. Does **NOT** delete the poll message!
 	 * @param message original poll as {@link APIMessage}
 	 */
 	async endPoll(message: APIMessage) {
 		const poll = message.poll!;
 		console.log('The poll:', JSON.stringify(poll));
 		// If no one votes, the answers can be undefined
-		const numYes = poll.results?.answer_counts[poll.answers.find((answer) => answer.answer_id === 1)!.answer_id]?.count ?? 0;
-		const numNo = poll.results?.answer_counts[poll.answers.find((answer) => answer.answer_id === 2)!.answer_id]?.count ?? 0;
+		const numYes = poll.results?.answer_counts.find((count) => count.id === 1)?.count ?? 0;
+		const numNo = poll.results?.answer_counts.find((count) => count.id === 2)?.count ?? 0;
 		console.log(`To decide: Yes = ${numYes}, No = ${numNo}`);
 		let response;
 		// If we passed
@@ -132,13 +132,5 @@ export default abstract class BasePoll {
 				content: response,
 			},
 		});
-		// Delete the poll object
-		await api(
-			`channels/${message.channel_id}/messages/${message.id}`,
-			{
-				method: 'DELETE',
-			},
-			true
-		);
 	}
 }
