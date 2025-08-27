@@ -1,4 +1,4 @@
-import { APIMessage, APIPoll, PollLayoutType, RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
+import { APIMessage, APIPoll, APIPollAnswer, PollLayoutType, RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
 import { InteractionResponseType } from 'discord-interactions';
 import { globalState } from '..';
 import { api } from '../utils';
@@ -106,9 +106,10 @@ export default abstract class BasePoll {
 	 */
 	async endPoll(message: APIMessage) {
 		const poll = message.poll!;
+		console.log('The poll:', JSON.stringify(poll));
 		// If no one votes, the answers can be undefined
-		const numYes = poll.results?.answer_counts[poll.answers[0].answer_id]?.count ?? 0;
-		const numNo = poll.results?.answer_counts[poll.answers[1].answer_id]?.count ?? 0;
+		const numYes = poll.results?.answer_counts[poll.answers.find((answer) => answer.answer_id === 1)!.answer_id]?.count ?? 0;
+		const numNo = poll.results?.answer_counts[poll.answers.find((answer) => answer.answer_id === 2)!.answer_id]?.count ?? 0;
 		console.log(`To decide: Yes = ${numYes}, No = ${numNo}`);
 		let response;
 		// If we passed

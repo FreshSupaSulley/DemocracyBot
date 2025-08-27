@@ -47,6 +47,9 @@ export async function api(endpoint: string, options: APIOptions = { method: 'GET
 			return makeRequest();
 		}
 
+		// Don't try to parse JSON if it's just a 204 No Content
+		if (res.status === 204) return null;
+
 		const clonedRes = res.clone(); // for better logging
 		console.log('Response status:', res.status);
 		// Return original response data if no issues
@@ -58,9 +61,6 @@ export async function api(endpoint: string, options: APIOptions = { method: 'GET
 				console.error(`Content:`, options);
 				throw new Error(JSON.stringify(json));
 			}
-
-			// Don't try to parse JSON if it's just a 204 No Content
-			if (res.status === 204) return null;
 
 			// Otherwise, we're good!
 			return json;
