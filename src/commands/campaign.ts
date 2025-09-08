@@ -43,7 +43,9 @@ export default class extends BaseCommand {
 						globalState.getPresidentialCount() + 1
 					)} Presidential Election** open **${globalState.getUSTime(
 						Date.now() + globalState.millisRemainingInTerm() - PRESIDENTIAL_VOTE_TIME
-					)} EST**. The President has ${daysRemaining} day${daysRemaining != 1 ? 's' : ''} left in office. You will be notified in <#${globalState.serverData.votingBoothChannel}> when the election begins`,
+					)} EST**. The President has ${daysRemaining} day${daysRemaining != 1 ? 's' : ''} left in office. You will be notified in <#${
+						globalState.serverData.votingBoothChannel
+					}> when the election begins`,
 				},
 			};
 		}
@@ -85,16 +87,16 @@ export default class extends BaseCommand {
 		globalState.serverData.candidates.push(new Candidate(sender.getID(), sender.getPartyID(), globalState.getNextCandidateSlot(), slogan));
 		const urlPrefix = `channels/${globalState.serverData.votingBoothChannel}/messages/${globalState.serverData.presidentialVoteMessageID}/reactions/`;
 
-		for (let i = 0; i < globalState.serverData.candidates.length; i++) {
-			if (i != 9) {
-				api(`${urlPrefix}${globalState.unicodeToEmoji(`U+3${i + 1}U+fe0fU+20e3`)}/@me`, {
-					method: 'PUT',
-				});
-			} else {
-				api(`${urlPrefix}${globalState.unicodeToEmoji(`U+1f51f`)}/@me`, {
-					method: 'PUT',
-				});
-			}
+		// Add the reaction
+		const i = globalState.serverData.candidates.length;
+		if (i != 9) {
+			api(`${urlPrefix}${globalState.unicodeToEmoji(`U+3${i + 1}U+fe0fU+20e3`)}/@me`, {
+				method: 'PUT',
+			});
+		} else {
+			api(`${urlPrefix}${globalState.unicodeToEmoji(`U+1f51f`)}/@me`, {
+				method: 'PUT',
+			});
 		}
 
 		// Rebuild the vote
