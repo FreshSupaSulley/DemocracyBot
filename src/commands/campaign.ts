@@ -33,8 +33,8 @@ export default class extends BaseCommand {
 			};
 		}
 
-		if (globalState.isPresidentialVoteActive()) {
-			const daysRemaining = globalState.millisRemainingInTerm() / 8.64e7;
+		if (!globalState.isPresidentialVoteActive()) {
+			const daysRemaining = Math.round((globalState.millisRemainingInTerm() / 8.64e7) * 100) / 100;
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
@@ -43,9 +43,7 @@ export default class extends BaseCommand {
 						globalState.getPresidentialCount() + 1
 					)} Presidential Election** open **${globalState.getUSTime(
 						Date.now() + globalState.millisRemainingInTerm() - PRESIDENTIAL_VOTE_TIME
-					)} EST**. The President has ${daysRemaining} day${daysRemaining != 1 ? 's' : ''} and ${
-						(daysRemaining % 1) * 24
-					} hours left in office. You will be notified in <#${globalState.serverData.votingBoothChannel}> when the election begins`,
+					)} EST**. The President has ${daysRemaining} day${daysRemaining != 1 ? 's' : ''} left in office. You will be notified in <#${globalState.serverData.votingBoothChannel}> when the election begins`,
 				},
 			};
 		}

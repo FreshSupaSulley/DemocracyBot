@@ -20,7 +20,7 @@ export default class extends BaseCommand {
 				},
 			} as APIInteractionResponseChannelMessageWithSource;
 		}
-		// Number to 0-based index
+
 		let raw = globalState.getAmendmentText(number);
 		const repealed = raw.startsWith('~~') && raw.endsWith('~~');
 
