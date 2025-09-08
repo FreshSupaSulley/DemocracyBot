@@ -97,7 +97,8 @@ export default class extends BaseCommand {
 			}
 		}
 
-		await api(`channels/${globalState.serverData.votingBoothChannel}/messages`, {
+		// Rebuild the vote
+		await api(`channels/${globalState.serverData.votingBoothChannel}/messages/${globalState.serverData.presidentialVoteMessageID}`, {
 			method: 'PATCH',
 			body: await globalState.buildPresidentialVote(),
 		});

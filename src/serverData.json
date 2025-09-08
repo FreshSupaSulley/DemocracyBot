@@ -534,7 +534,7 @@
 		"297517194735255562"
 	],
 	"naturalizationBlacklist": [],
-	"presidentID": "276886864525262850",
+	"presidentID": "722901879654449212",
 	"slogan": "Vote for Nick and I will turn you into an example.",
 	"termEndTime": 1757548800000,
 	"lastTerm": true,
@@ -543,7 +543,7 @@
 	"candidates": [
 		{
 			"partyRole": "1407386651294171310",
-			"userID": "276886864525262850",
+			"userID": "722901879654449212",
 			"cooldowns": [],
 			"slot": 0,
 			"slogan": "Vote for Nick and I will turn you into an example."
@@ -558,7 +558,7 @@
 	},
 	"amendmentCache": {},
 	"lastCAQTime": 1755724852853,
-	"serverID": "1403816472375066686",
+	"serverID": "1402465916326907904",
 	"constipationChannel": "1402465916867838113",
 	"amendmentsChannel": "1402465916867838114",
 	"commandersAndQueefsChannel": "1402465916867838115",

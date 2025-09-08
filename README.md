@@ -38,7 +38,7 @@ You can then test slash commands and test scheduled events with `curl "http://lo
 
 ### Deploy
 
-`npm run deploy`. Update your bot's **Interactions Endpoint URL** with the Cloudflare URL.
+`[sudo] npm run deploy`. Update your bot's **Interactions Endpoint URL** with the Cloudflare URL.
 
 # To-do
 * ~~Get rid of amendment cache. Store all amendments in the server data because it's a waste of an HTTP request and burns a good chunk of our allowed 10ms.~~
