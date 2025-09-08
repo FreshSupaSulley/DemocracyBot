@@ -451,6 +451,11 @@ export class State {
 			// Tick vote if already created
 			else {
 				console.log('Vote already created');
+				// Update the vote
+				await api(`channels/${this.serverData.votingBoothChannel}/messages/${this.serverData.presidentialVoteMessageID}`, {
+					method: 'PATCH',
+					body: await this.buildPresidentialVote(),
+				});
 				// If the election is over
 				if (Date.now() - this.serverData.presidentialVoteTimeCreated > PRESIDENTIAL_VOTE_TIME) {
 					// Each tick when we can decide the winner, keep checking if we have new candidates
