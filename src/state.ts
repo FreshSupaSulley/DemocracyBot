@@ -583,10 +583,9 @@ export class State {
 							true
 						);
 
-						this.serverData.presidentialCount++;
 						const apiMember = await this.getDiscordMember(nextPresident.getID());
-						const apiRole = (await api(
-							`guilds/${this.serverData.serverID}/roles/${this.serverData.thePresidentRole}`,
+						const partyAPIRole = (await api(
+							`guilds/${this.serverData.serverID}/roles/${nextPresident.getPoliticalParty()}`,
 							undefined,
 							true
 						)) as APIRole;
@@ -602,13 +601,11 @@ export class State {
 											title: `${this.ordinal(this.getPresidentialCount() + 1)} President of Discordias, **${escapeMarkdown(
 												apiMember.user.username
 											)}**`,
-											description: `<@${nextPresident.getID()}> of <@&${escapeMarkdown(
-												nextPresident.getPoliticalParty()?.getRoleID() || this.serverData.thePresidentRole
-											)}>\n\n*"${nextPresident.slogan}"*`,
+											description: `<@${nextPresident.getID()}> of **${escapeMarkdown(partyAPIRole.name)}**\n\n*"${nextPresident.slogan}"*`,
 											image: {
 												url: this.getSafeAvatar(apiMember.user),
 											},
-											color: apiRole.color,
+											color: partyAPIRole.color,
 											footer: {
 												text: `Served ${this.getUSTime(this.serverData.termEndTime - TERM_LENGTH, false)} - ${this.getUSTime(
 													this.serverData.termEndTime,
@@ -622,6 +619,9 @@ export class State {
 							},
 							true
 						)) as APIMessage;
+
+						// We are importantly doing this AFTER we update CAQ
+						this.serverData.presidentialCount++;
 
 						this.serverData.caqEntries.push(new CAQEntry(nextPresident.getID(), response.id));
 						// i used to call update CAQ but ig we not doing that anymore
