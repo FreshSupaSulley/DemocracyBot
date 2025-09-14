@@ -75,6 +75,10 @@ export class State {
 				},
 			},
 		});
+		// Make leader join that role
+		await api(`guilds/${this.serverData.serverID}/members/${leader}/roles/${response.id}`, {
+			method: 'PUT',
+		});
 		const role = response as APIRole;
 		const party = new PoliticalParty(role.id, leader);
 		this.serverData.parties.push(party);
