@@ -45,7 +45,6 @@ export default class extends PartyEditCommand {
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
-				flags: MessageFlags.Ephemeral,
 				content: `Transferred leadership of your party to <@${mentioned.id}>`,
 			},
 		};

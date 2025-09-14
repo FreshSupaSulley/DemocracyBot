@@ -19,7 +19,6 @@ export default class extends PartyEditCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Changed party name to ${escapeMarkdown(name)}`,
 				},
 			};
