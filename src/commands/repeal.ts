@@ -16,7 +16,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Enter a number between 1 - ${globalState.getTotalAmendments()}`,
 				},
 			} as APIInteractionResponseChannelMessageWithSource;

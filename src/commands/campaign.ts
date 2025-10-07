@@ -14,7 +14,6 @@ export default class extends BaseCommand {
 				return {
 					type: InteractionResponseType.ChannelMessageWithSource,
 					data: {
-						flags: MessageFlags.Ephemeral,
 						content: `You're already campaigning!`,
 					},
 				};
@@ -25,7 +24,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: globalState.isLastTerm()
 						? 'You cannot be elected President for more than two terms at a time'
 						: 'The President (you) automatically runs for re-election once voting begins',
@@ -38,7 +36,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Polls for the **${globalState.ordinal(
 						globalState.getPresidentialCount() + 1
 					)} Presidential Election** open **${globalState.getUSTime(
@@ -54,7 +51,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: 'There are too many candidates running for office. Only 10 at a time!',
 				},
 			};
@@ -65,7 +61,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Slogan must be less than ${maxSloganLength} characters`,
 				},
 			};
@@ -77,7 +72,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `You need to join a party first`,
 				},
 			};

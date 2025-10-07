@@ -104,7 +104,6 @@ export abstract class PartyEditCommand extends BaseCommand {
 			return {
 				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `You aren't in a party`,
 				},
 			};
@@ -113,7 +112,6 @@ export abstract class PartyEditCommand extends BaseCommand {
 			return {
 				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `You aren't the party leader (<@${party.getLeaderID()}> is)`,
 				},
 			};

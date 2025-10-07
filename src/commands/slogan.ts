@@ -21,7 +21,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `There's no active presidential election`,
 				},
 			};
@@ -44,7 +43,6 @@ export default class extends BaseCommand {
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
-				flags: MessageFlags.Ephemeral,
 				content: `You're not campaigning!`,
 			},
 		};

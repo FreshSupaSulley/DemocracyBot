@@ -10,7 +10,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: sender.getPoliticalParty()?.getRoleID() == role.id ? "You're already in this party" : 'You already belong to a party',
 				},
 			};
@@ -21,7 +20,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `That role isn't a political party`,
 				},
 			};
@@ -32,7 +30,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `You're banned from <@&${party.getRoleID()}>`,
 				},
 			};
@@ -43,7 +40,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Joined <@&${role.id}>`,
 					// Do not notify anyone that you joined ig
 					allowed_mentions: {

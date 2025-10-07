@@ -9,7 +9,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Nope`,
 				},
 			};
@@ -20,7 +19,6 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Deletion already queued`,
 				},
 			};
@@ -31,7 +29,6 @@ export default class extends BaseCommand {
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
-				flags: MessageFlags.Ephemeral,
 				content: `Deletion queued`,
 			},
 		};

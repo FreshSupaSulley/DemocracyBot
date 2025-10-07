@@ -18,7 +18,6 @@ export default class extends BaseCommand {
 				return {
 					type: InteractionResponseType.ChannelMessageWithSource,
 					data: {
-						// flags: MessageFlags.Ephemeral,
 						content: `Impeachment disabled, as an election is active`,
 					},
 				} as APIInteractionResponseChannelMessageWithSource;
@@ -26,7 +25,6 @@ export default class extends BaseCommand {
 				return {
 					type: InteractionResponseType.ChannelMessageWithSource,
 					data: {
-						// flags: MessageFlags.Ephemeral,
 						content: `Impeachment disabled because it's too close to the next election, which opens at **${globalState.getUSTime(
 							Date.now() + globalState.millisRemainingInTerm() - PRESIDENTIAL_VOTE_TIME
 						)} EST.**`,

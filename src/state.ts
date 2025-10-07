@@ -95,7 +95,6 @@ export class State {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Too many polls are active (max of ${MAX_POLLS})`,
 				},
 			} as APIInteractionResponseChannelMessageWithSource;
@@ -108,7 +107,6 @@ export class State {
 				return {
 					type: InteractionResponseType.ChannelMessageWithSource,
 					data: {
-						flags: MessageFlags.Ephemeral,
 						content: 'Another poll of this kind already exists!',
 					},
 				} as APIInteractionResponseChannelMessageWithSource;
@@ -122,7 +120,6 @@ export class State {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `You cannot ${this.getCommandReference(interaction)} this frequently (${
 						millisLeft < 0.1 ? '< 0.1' : millisLeft
 					} hr cooldown)`,
