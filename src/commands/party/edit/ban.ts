@@ -53,7 +53,6 @@ export default class extends PartyEditCommand {
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
-				flags: MessageFlags.Ephemeral,
 				content: `<@${mentioned.id}> is already banned`,
 			},
 		};

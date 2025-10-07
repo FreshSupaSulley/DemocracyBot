@@ -11,7 +11,6 @@ export default class extends PartyEditCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `Bots don't have rights :robot:`,
 				},
 			};
@@ -23,7 +22,6 @@ export default class extends PartyEditCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `That user isn't a member of your party`,
 				},
 			};
@@ -34,7 +32,6 @@ export default class extends PartyEditCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					flags: MessageFlags.Ephemeral,
 					content: `You're already the leader`,
 				},
 			};
