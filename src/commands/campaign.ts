@@ -84,7 +84,7 @@ export default class extends BaseCommand {
 		// Add the reaction
 		const i = globalState.serverData.candidates.length;
 		if (i != 9) {
-			api(`${urlPrefix}${globalState.unicodeToEmoji(`U+3${i + 1}U+fe0fU+20e3`)}/@me`, {
+			api(`${urlPrefix}${globalState.unicodeToEmoji(`U+3${i}U+fe0fU+20e3`)}/@me`, {
 				method: 'PUT',
 			});
 		} else {
