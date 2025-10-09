@@ -16,8 +16,11 @@ const router = AutoRouter();
 
 // Overrides dev server data
 router.get('/', async (request, env) => {
-	if (env.ENV !== 'DEV') return new Response('nope');
-	const json: ServerData = require('./serverData.json');
+	const devEnv = env.DEV_ENV;
+	console.log(devEnv);
+	if (!devEnv) return new Response('nope');
+	// Grab the template that best fits this env
+	const json: ServerData = require(`./${devEnv == 'dev' ? 'devS' : 's'}erverData.json`);
 	// The await here is important (too big of shit will cut off the writing process)
 	await env.DBOT.put('data', JSON.stringify(json));
 	return new Response(JSON.stringify(json));

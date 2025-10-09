@@ -10,12 +10,26 @@
 	"observability": {
 		"enabled": true
 	},
-	"kv_namespaces": [
-		{
-			"binding": "DBOT",
-			"id": "afeb48ffe39a424ca43fb0b394b0894c"
+	"env": {
+		// If I wanted to put different variables in here ig I could
+		"dev": {
+			// https://developers.cloudflare.com/workers/wrangler/configuration/#kv-namespaces
+			"kv_namespaces": [
+				{
+					"binding": "DBOT",
+					"id": "prodballsack"
+				}
+			]
+		},
+		"prod": {
+			"kv_namespaces": [
+				{
+					"binding": "DBOT",
+					"id": "devballsack"
+				}
+			]
 		}
-	]
+	}
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

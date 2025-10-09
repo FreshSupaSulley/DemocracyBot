@@ -162,12 +162,3 @@ function hexToColorInt(hex: string) {
 export function isPresidentialVoteActive(data: any) {
 	return !!data.presidentialVoteMessageID;
 }
-
-// export function fetchPresidentialVote(env: any) {
-// 	return env.DBOT.get('presidentialVoteMessageID').then((message: any) => {
-// 		if (message) {
-// 			return api(`channels/${env.DBOT.get('votingBooth')}/messages/${message}`);
-// 		}
-// 		return undefined;
-// 	});
-// }
