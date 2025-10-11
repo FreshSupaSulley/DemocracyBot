@@ -16,8 +16,8 @@
 			// https://developers.cloudflare.com/workers/wrangler/configuration/#kv-namespaces
 			"kv_namespaces": [
 				{
-					"binding": "DBOT",
-					"id": "prodballsack"
+					"binding": "DBOT-DEV",
+					"id": "devballsack"
 				}
 			]
 		},
@@ -25,7 +25,7 @@
 			"kv_namespaces": [
 				{
 					"binding": "DBOT",
-					"id": "devballsack"
+					"id": "afeb48ffe39a424ca43fb0b394b0894c"
 				}
 			]
 		}
