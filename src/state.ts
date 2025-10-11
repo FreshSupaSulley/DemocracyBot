@@ -576,6 +576,7 @@ export class State {
 						);
 
 						// Assign the president role to the new guy
+						console.log("Assigning role to new guy");
 						await api(
 							`guilds/${this.serverData.serverID}/members/${nextPresident.getID()}/roles/${this.serverData.thePresidentRole}`,
 							{
@@ -584,9 +585,10 @@ export class State {
 							true
 						);
 
+						console.log("Fetching API member to create CAQ entry");
 						const apiMember = await this.getDiscordMember(nextPresident.getID());
 						const partyAPIRole = (await api(
-							`guilds/${this.serverData.serverID}/roles/${nextPresident.getPoliticalParty()}`,
+							`guilds/${this.serverData.serverID}/roles/${nextPresident.getPoliticalParty()?.getRoleID()}`,
 							undefined,
 							true
 						)) as APIRole;
