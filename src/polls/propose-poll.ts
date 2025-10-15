@@ -12,7 +12,7 @@ export default class ProposePoll extends BasePoll {
 	}
 
 	firePoll() {
-		this.question = 'New amendment: ' + escapeMarkdown(this.proposal);
+		this.question = 'New amendment: ' + escapeMarkdown(this.proposal).replace(/<@\d+/g, '[A MENTIONED PERSON]');
 		return super.firePoll();
 	}
 
