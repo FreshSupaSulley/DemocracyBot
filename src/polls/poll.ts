@@ -11,15 +11,15 @@ export default abstract class BasePoll {
 	startTime!: number;
 
 	ratio: number;
-	minParticipation: number;
+	minYes: number;
 	votingCooldown: number;
 	// This is used in the result but not usually filled in the constructor
 	question!: string;
 
-	constructor(type: string, ratio: number, minParticipation: number, votingCooldown: number) {
+	constructor(type: string, ratio: number, minYes: number, votingCooldown: number) {
 		this.type = type;
 		this.ratio = ratio;
-		this.minParticipation = minParticipation;
+		this.minYes = minYes;
 		this.votingCooldown = votingCooldown;
 	}
 
@@ -95,8 +95,8 @@ export default abstract class BasePoll {
 	}
 
 	private passesPoll(numYes: number, numNo: number): boolean {
-		// Ignore if min participation wasn't met
-		if (numYes + numNo <= this.minParticipation) return false;
+		// Ignore if minYes wasn't met
+		if (numYes < this.minYes) return false;
 		return (numYes * 1) / (numYes + numNo) > this.ratio;
 	}
 
@@ -120,7 +120,7 @@ export default abstract class BasePoll {
 			await this.pollPassed();
 		} else {
 			console.log('Poll failed');
-			response = `**${this.question}** failed to pass. Needs ${this.minParticipation} voters and ${
+			response = `**${this.question}** failed to pass. Needs ${this.minYes} yes voters and ${
 				this.ratio * 100
 			}% approval (Yes / No ratio: **${numYes}** / **${numNo}**)`;
 			await this.pollFailed();

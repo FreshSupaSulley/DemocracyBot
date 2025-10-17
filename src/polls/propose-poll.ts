@@ -7,7 +7,7 @@ export default class ProposePoll extends BasePoll {
 
 	constructor(proposal: string) {
 		// Embed titles don't support markdown
-		super('propose', 0.5, 5, 43200000);
+		super('propose', 0.5, 3, 43200000);
 		this.proposal = proposal;
 	}
 

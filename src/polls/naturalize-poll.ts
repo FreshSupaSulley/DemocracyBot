@@ -10,7 +10,7 @@ export default class NaturalizePoll extends BasePoll {
 	username: string;
 
 	constructor(userID: string, username?: APIUser) {
-		super('naturalize', 0.75, 5, 259200000);
+		super('naturalize', 0.75, 3, 259200000);
 		this.userID = userID;
 		this.username = username?.username ?? "if you're reading this I fucked up";
 	}

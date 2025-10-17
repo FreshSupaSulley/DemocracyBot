@@ -9,12 +9,12 @@ export default class RepealPoll extends BasePoll {
 	amendment: number;
 
 	constructor(amendment: number) {
-		// We have to escape the markdown here (embeds dont render markdown in the title)
 		super('repeal', 0.5, 3, 43200000);
 		this.amendment = amendment;
 	}
 
 	async firePoll() {
+		// We have to escape the markdown here (embeds dont render markdown in the title)
 		this.question = `Repeal ${escapeMarkdown(globalState.getAmendmentText(this.amendment))}`;
 		return super.firePoll();
 	}
