@@ -134,14 +134,13 @@ const COLOR_NAME_TO_HEX: Record<string, string> = {
 };
 
 export function parseColor(raw: string) {
-	console.log(raw);
 	const lower = raw.toLowerCase();
 
 	// Try common color names
 	if (lower in COLOR_NAME_TO_HEX) {
 		return hexToColorInt(COLOR_NAME_TO_HEX[lower]);
 	} else {
-		console.warn(`Failed to parse user's color as a known name: ${raw}`);
+		console.warn(`Color (${raw}) is not part of our color name set. Will try to interpret as hex`);
 	}
 
 	// Try to parse it as hex (use regex to check if it's good)
