@@ -28,8 +28,6 @@ First, add BOT_TOKEN, APP_ID, and APP_PUBLIC_KEY to your `.env` just for testing
 
 ### Running
 
-npm scripts may show error logs if your user doesn't have perms to read/write local files that wrangler needs to get to. Use `sudo` if any commands fail from permission errors (or try chmod idk).
-
 1. `npm run ngrok`
 2. Pass the ngrok URL into the bot's **Interactions Endpoint URL**
 3. In another terminal window, `npm run dev`.
@@ -38,7 +36,7 @@ You can then test slash commands and test scheduled events with `curl "http://lo
 
 ### Deploy
 
-`[sudo] npm run deploy`. Update your bot's **Interactions Endpoint URL** with the Cloudflare URL.
+`npm run deploy`. Update your bot's **Interactions Endpoint URL** with the Cloudflare URL.
 
 # To-do
 * ~~Get rid of amendment cache. Store all amendments in the server data because it's a waste of an HTTP request and burns a good chunk of our allowed 10ms.~~
