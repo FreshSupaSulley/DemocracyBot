@@ -401,11 +401,16 @@ export class State {
 		}
 
 		// Fetch the max number of polls + 1 for election
-		const messages: APIMessage[] = await api(
+		var messages: APIMessage[] = await api(
 			`channels/${this.serverData.votingBoothChannel}/messages?limit=${MAX_POLLS + 1}`,
 			undefined,
 			true
 		);
+
+		// Let's try to process the polls in order at which they arrive (timestamp is supposedly ISO8601)
+		// https://discord.com/developers/docs/resources/message#message-object
+		messages.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+
 		for (const message of messages) {
 			await this.checkMessageForPollResult(message);
 		}
@@ -576,7 +581,7 @@ export class State {
 						);
 
 						// Assign the president role to the new guy
-						console.log("Assigning role to new guy");
+						console.log('Assigning role to new guy');
 						await api(
 							`guilds/${this.serverData.serverID}/members/${nextPresident.getID()}/roles/${this.serverData.thePresidentRole}`,
 							{
@@ -585,7 +590,7 @@ export class State {
 							true
 						);
 
-						console.log("Fetching API member to create CAQ entry");
+						console.log('Fetching API member to create CAQ entry');
 						const apiMember = await this.getDiscordMember(nextPresident.getID());
 						const partyAPIRole = (await api(
 							`guilds/${this.serverData.serverID}/roles/${nextPresident.getPoliticalParty()?.getRoleID()}`,

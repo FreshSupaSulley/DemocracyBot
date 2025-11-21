@@ -120,7 +120,7 @@ export default abstract class BasePoll {
 			await this.pollPassed();
 		} else {
 			console.log('Poll failed');
-			response = `**${this.question}** failed to pass. Needs ${this.minYes} yes voters and ${
+			response = `**${this.question}** failed to pass. Needs ${this.minYes} yes voters and >${
 				this.ratio * 100
 			}% approval (Yes / No ratio: **${numYes}** / **${numNo}**)`;
 			await this.pollFailed();
