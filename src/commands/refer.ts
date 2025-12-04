@@ -2,7 +2,6 @@ import {
 	APIBaseInteraction,
 	APIInteractionResponseChannelMessageWithSource,
 	InteractionResponseType,
-	MessageFlags,
 } from 'discord-api-types/v10';
 import { globalState } from '..';
 import { BaseCommand } from '../types';

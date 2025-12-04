@@ -644,7 +644,7 @@ export class State {
 	 * @param message message to check (it better be in #voting-booth)
 	 */
 	async checkMessageForPollResult(message: APIMessage) {
-		console.log('Checking message for poll result:', message);
+		console.log('Checking is voting booth message is a poll result:', message);
 
 		// This message is assumed to be in voting booth
 		if (message.channel_id !== this.serverData.votingBoothChannel) {
@@ -672,17 +672,14 @@ export class State {
 					deleteMessage = false;
 				}
 			}
-		} else if (
-			message.id !== this.serverData.presidentialVoteMessageID &&
-			(!message.poll || new Date(message.poll.expiry).getTime() <= Date.now())
-		) {
+		} else if (message.id !== this.serverData.presidentialVoteMessageID && !message.poll) {
 			// ^ do NOT delete if its the presidential vote
 			// AND don't delete if it's a poll
 			deleteMessage = true;
 		}
 
 		if (deleteMessage) {
-			console.log(`Deleting message of type:`, message.type);
+			console.log(`Deleting message:`, message);
 			await api(
 				`channels/${message.channel_id}/messages/${message.id}`,
 				{
