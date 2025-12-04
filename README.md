@@ -15,18 +15,18 @@ Use the server template: https://discord.new/qjjWS4zBUF2a. Then make your own Cl
 Just for me: if you ever need to go back to the pi, ssh into it and run `sudo nano /home/pi/.bashrc`. Scroll to the bottom and uncomment the `java -jar` line.
 To autoconnect to a WiFi network, add it using `sudo nano /etc/wpa_supplicant/wpa_supplicant.conf` (or I think you can just connect and it'll save it here automatically).
 
-## Building
+# Building
 
-### Resources
+## Resources
 
 [Guide](https://discord.com/developers/docs/tutorials/hosting-on-cloudflare-workers)
 [API reference](https://discord.com/developers/docs/reference)
 
-### Setup
+## Setup
 
 First, add BOT_TOKEN, APP_ID, and APP_PUBLIC_KEY to your `.env` just for testing (and ENV=DEV). Make sure you do the same with `npx wrangler secret put <KEY>` for all of them too. Then run `npm run register` to register the bot's slash commands.
 
-### Running
+## Running
 
 1. `npm run ngrok`
 2. Pass the ngrok URL into the bot's **Interactions Endpoint URL**
@@ -34,7 +34,7 @@ First, add BOT_TOKEN, APP_ID, and APP_PUBLIC_KEY to your `.env` just for testing
 
 You can then test slash commands and test scheduled events with `curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"`.
 
-### Deploy
+## Deploy
 
 `npm run deploy`. Update your bot's **Interactions Endpoint URL** with the Cloudflare URL.
 
@@ -42,3 +42,6 @@ You can then test slash commands and test scheduled events with `curl "http://lo
 * ~~Get rid of amendment cache. Store all amendments in the server data because it's a waste of an HTTP request and burns a good chunk of our allowed 10ms.~~
 * Change clean-up to a batch job that will queue the deletion to run on the next tick so we can get more CPU time.
 *
+
+## Disaster recovery
+If logic breaks, you can deploy temporary code in `next-election.ts` in the block that checks if you're the owner (like passing amendments that should've been passed).
