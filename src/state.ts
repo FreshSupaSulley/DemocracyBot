@@ -400,7 +400,7 @@ export class State {
 			await this.updateCAQ(this.serverData.lastCAQMember);
 		}
 
-		// Fetch the max number of polls + 1 for election
+		// Fetch messages. We want the max number of polls and + 1 for the presidential election
 		var messages: APIMessage[] = await api(
 			`channels/${this.serverData.votingBoothChannel}/messages?limit=${MAX_POLLS + 1}`,
 			undefined,

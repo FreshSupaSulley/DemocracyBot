@@ -17,7 +17,6 @@ const router = AutoRouter();
 // Overrides dev server data
 router.get('/', async (request, env) => {
 	const devEnv = env.DEV_ENV;
-	console.log(devEnv);
 	if (!devEnv) return new Response('nope');
 	// Grab the template that best fits this env
 	const json: ServerData = require(`./${devEnv == 'dev' ? 'devS' : 's'}erverData.json`);
