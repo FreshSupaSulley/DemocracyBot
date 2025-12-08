@@ -144,7 +144,7 @@ export function parseColor(raw: string) {
 	}
 
 	// Try to parse it as hex (use regex to check if it's good)
-	const hex = `#${raw}`;
+	const hex = '#' + raw.replace(/^#+/, '');
 	if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
 		return hexToColorInt(hex.toUpperCase());
 	} else {

@@ -1,6 +1,8 @@
 import { APIApplicationCommand, ApplicationIntegrationType, InteractionContextType } from 'discord-api-types/v10';
 import { api } from './utils';
 
+const colorNameOrHex = 'Color name or HEX (e.g., #FF5733)';
+
 const ALL_COMMANDS = [
 	{
 		name: 'party',
@@ -19,7 +21,7 @@ const ALL_COMMANDS = [
 					{
 						autocomplete: false,
 						name: 'color',
-						description: 'Color name or HEX (e.g., FF5733) without number sign (#)',
+						description: colorNameOrHex,
 						type: 3,
 						required: false,
 					},
@@ -85,7 +87,7 @@ const ALL_COMMANDS = [
 							{
 								autocomplete: false,
 								name: 'color',
-								description: 'Color name or HEX (e.g., FF5733) without number sign (#)',
+								description: colorNameOrHex,
 								type: 3,
 								required: true,
 							},
