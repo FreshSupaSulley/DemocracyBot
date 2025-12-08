@@ -42,7 +42,7 @@ router.get('/data', async (request, env) => {
 
 // Registering slash commands
 router.get('/register', async (request, env) => {
-	// if (env.ENV !== 'DEV') return new Response('nope');
+	if (env.ENV !== 'DEV') return new Response('nope');
 	globalState = new State(env, plainToInstance(ServerData, JSON.parse(await env.DBOT.get('data'))));
 	const response = await register(env);
 	return new Response(JSON.stringify(response));

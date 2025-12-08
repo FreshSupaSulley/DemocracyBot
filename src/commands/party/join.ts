@@ -37,7 +37,7 @@ export default class extends BaseCommand {
 
 		// Add the role
 		return globalState.addRoleToMember(sender.getID(), role.id).then(() => {
-			// Switch the user's role
+			// Switch the user's party when successful
 			sender.setPoliticalParty(party);
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
