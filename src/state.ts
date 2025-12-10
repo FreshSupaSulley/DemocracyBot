@@ -343,7 +343,7 @@ export class State {
 					footer: {
 						text: `Vote will be decided in ${
 							PRESIDENTIAL_VOTE_TIME / 3.6e6
-						} hours. Thank you for being an active participant in our perfect society.`,
+						} hours, at ${this.getUSTime(this.serverData.termEndTime)}. Thank you for being an active participant in our perfect society.`,
 					},
 				} as APIEmbed,
 			],

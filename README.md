@@ -45,3 +45,8 @@ You can then test slash commands and test scheduled events with `curl "http://lo
 
 ## Disaster recovery
 If logic breaks, you can deploy temporary code in `next-election.ts` in the block that checks if you're the owner (like passing amendments that should've been passed).
+
+# TODO
+- Delete expired poll cooldowns on the cron job tick
+- Handle what happens when the server data exceeds KV (move to proper DB?)
+- Maybe store user's PFP URL in the server data so I can put the icons in /party info

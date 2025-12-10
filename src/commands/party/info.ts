@@ -1,4 +1,4 @@
-import { APIBaseInteraction, APIRole, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
+import { APIBaseInteraction, APIEmbed, APIRole, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
 import { BaseCommand } from '../../types';
 import { globalState } from '../..';
 
@@ -45,8 +45,8 @@ export default class extends BaseCommand {
 					{
 						color: role.color,
 						description: description,
-						title: role.name,
-					},
+						title: role.name
+					} as APIEmbed,
 				],
 			},
 		};
