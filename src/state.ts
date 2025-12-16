@@ -672,7 +672,7 @@ export class State {
 					deleteMessage = false;
 				}
 			}
-		} else if (message.id !== this.serverData.presidentialVoteMessageID && !message.poll) {
+		} else if (message.id !== this.serverData.presidentialVoteMessageID && (!message?.poll || new Date(message.poll.expiry).getTime() <= Date.now())) {
 			// ^ do NOT delete if its the presidential vote
 			// AND don't delete if it's a poll
 			deleteMessage = true;
