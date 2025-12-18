@@ -210,7 +210,8 @@
 		{
 			"id": "1446202548074709073",
 			"content": "zyron cannot participate in the christmas wordle competition. Additionally, if a majority suspects a player of cheating on the christmas wordle, that player will instead be given the naughty lister role"
-		}
+		},
+		{ "id": "1450578448685731851", "content": "Those who propose amendments with inexcusable spelling mistakes will be castrated" }
 	],
 	"caqEntries": [
 		{ "user": "268508920530731008", "messageID": "1403768748250501223" },
@@ -225,16 +226,28 @@
 		{ "user": "722901879654449212", "messageID": "1404998286808715468" },
 		{ "user": "276886864525262849", "messageID": "1415487139277312111" },
 		{ "user": "296323749660196874", "messageID": "1426610399209586693" },
-		{ "user": "297517194735255562", "messageID": "1437592783035699212" }
+		{ "user": "297517194735255562", "messageID": "1437592783035699212" },
+		{ "user": "297517194735255562", "messageID": "1448464450712637653" }
 	],
-	"polls": [],
+	"polls": [
+		{
+			"type": "propose",
+			"ratio": 0.5,
+			"minYes": 3,
+			"votingCooldown": 43200000,
+			"proposal": "https://www.youtube.com/watch?v=Okeqy4B1lvc",
+			"question": "New amendment: https://www.youtube.com/watch?v=Okeqy4B1lvc",
+			"messageID": "1451001991420711024",
+			"startTime": 1766016233132
+		}
+	],
 	"members": [
 		{
-			"partyRole": "1425245128716718222",
+			"partyRole": "1447419479003893812",
 			"userID": "276886864525262849",
 			"cooldowns": [
 				{ "pollType": "RepealPoll", "expiryTime": 1757942202076 },
-				{ "pollType": "ProposePoll", "expiryTime": 1764774198561 }
+				{ "pollType": "ProposePoll", "expiryTime": 1765978977300 }
 			]
 		},
 		{
@@ -250,7 +263,7 @@
 			"userID": "268508920530731008",
 			"cooldowns": [
 				{ "pollType": "ImpeachPoll", "expiryTime": 1760829043330 },
-				{ "pollType": "ProposePoll", "expiryTime": 1764811545461 }
+				{ "pollType": "ProposePoll", "expiryTime": 1765724342030 }
 			]
 		},
 		{ "partyRole": "1403797076663337031", "userID": "297517194735255562", "cooldowns": [] },
@@ -265,16 +278,16 @@
 			"partyRole": "1425494974912401538",
 			"userID": "296323749660196874",
 			"cooldowns": [
-				{ "pollType": "ProposePoll", "expiryTime": 1756347973131 },
-				{ "pollType": "RepealPoll", "expiryTime": 1760261350966 }
+				{ "pollType": "RepealPoll", "expiryTime": 1760261350966 },
+				{ "pollType": "ProposePoll", "expiryTime": 1765856934706 }
 			]
 		},
 		{
-			"partyRole": null,
+			"partyRole": "1407386651294171310",
 			"userID": "267431503238135818",
 			"cooldowns": [
-				{ "pollType": "ProposePoll", "expiryTime": 1756298921350 },
-				{ "pollType": "ImpeachPoll", "expiryTime": 1762917148981 }
+				{ "pollType": "ImpeachPoll", "expiryTime": 1762917148981 },
+				{ "pollType": "ProposePoll", "expiryTime": 1766059433011 }
 			]
 		},
 		{ "partyRole": null, "cooldowns": [] },
@@ -283,9 +296,9 @@
 	"parties": [
 		{ "blacklist": [], "role": "1403797076663337031", "leader": "268508920530731008" },
 		{ "blacklist": [], "role": "1407386651294171310", "leader": "722901879654449212" },
-		{ "blacklist": [], "role": "1425245128716718222", "leader": "276886864525262849" },
 		{ "blacklist": [], "role": "1425494974912401538", "leader": "296323749660196874" },
-		{ "blacklist": [], "role": "1436475443179163722", "leader": "269872388064280581" }
+		{ "blacklist": [], "role": "1436475443179163722", "leader": "269872388064280581" },
+		{ "blacklist": [], "role": "1447419479003893812", "leader": "276886864525262849" }
 	],
 	"naturalizedCitizens": [
 		"268508920530731008",
@@ -307,15 +320,14 @@
 	"naturalizationBlacklist": [],
 	"presidentID": "297517194735255562",
 	"slogan": "My brethren - The people's time has come! Repose not your confidence in charlatans and scandalmongers; give me the sceptre, and I will give you all the joy this world has to offer!",
-	"termEndTime": 1765411227823,
+	"termEndTime": 1768003235349,
 	"lastTerm": true,
 	"presidentialVoteMessageID": "0",
-	"presidentialVoteTimeCreated": 1762545648824,
+	"presidentialVoteTimeCreated": 1765152031242,
 	"candidates": [],
-	"lastCAQMember": 11,
+	"lastCAQMember": 0,
 	"deleteMessagesChannel": "0",
 	"pollCooldownExpiryTimes": { "268508920530731008": { "ProposePoll": 1755861128183 } },
-	"amendmentCache": {},
 	"lastCAQTime": 1755724852853,
 	"serverID": "1402465916326907904",
 	"constipationChannel": "1402465916867838113",
@@ -326,5 +338,5 @@
 	"testChannel": "1402465916326907909",
 	"thePresidentRole": "1402465916326907906",
 	"citizen": "1402465916326907905",
-	"presidentialCount": 13
+	"presidentialCount": 14
 }
