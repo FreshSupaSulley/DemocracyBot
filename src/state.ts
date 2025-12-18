@@ -409,7 +409,12 @@ export class State {
 
 		// Let's try to process the polls in order at which they arrive (timestamp is supposedly ISO8601)
 		// https://discord.com/developers/docs/resources/message#message-object
-		messages.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+		messages.sort((a, b) => {
+			// If it's a poll, shove it to the back of the array so we process poll results first and polls last
+			if(a.poll && !b.poll) return 1;
+			if(!a.poll && b.poll) return -1;
+			return Date.parse(a.timestamp) - Date.parse(b.timestamp)
+		});
 
 		for (const message of messages) {
 			await this.checkMessageForPollResult(message);
@@ -663,6 +668,7 @@ export class State {
 			if (pollIndex !== -1) {
 				console.log('Received poll end message');
 				// End the poll ONLY IF it's finalized (the results are confirmed)
+				// TODO: make this use the messages[] we fetch anyways (check the code invoking this method)?? maybe?
 				const pollMessage: APIMessage = await api(`channels/${this.serverData.votingBoothChannel}/messages/${pollID}`, undefined, true);
 				if (pollMessage.poll?.results?.is_finalized) {
 					await this.serverData.polls[pollIndex].endPoll(pollMessage);
