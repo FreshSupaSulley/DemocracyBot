@@ -169,10 +169,11 @@ async function errorWrapper(env: any, fn: () => Promise<any>) {
 			},
 		})
 			.then((response: APIDMChannel) => {
+				let truncatedError = String(ogError instanceof Error ? ogError.stack : ogError).slice(0, 2000); // 2k is the max length
 				return api(`channels/${response.id}/messages`, {
 					method: 'POST',
 					body: {
-						content: `An error occurred:\n\`\`\`${ogError instanceof Error ? ogError.stack : ogError}\`\`\``,
+						content: `An error occurred:\n\`\`\`${truncatedError}\`\`\``,
 					},
 				});
 			})
