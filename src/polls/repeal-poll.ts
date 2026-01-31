@@ -33,7 +33,7 @@ export default class RepealPoll extends BasePoll {
 		// Get the amendment to edit
 		const raw = amendment.content;
 		// Edit the message
-		return api(`channels/${globalState.serverData.amendments}/messages/${amendment.id}`, {
+		return api(`channels/${globalState.serverData.amendmentsChannel}/messages/${amendment.id}`, {
 			method: 'PATCH',
 			body: {
 				// This adds the squiggles for strikethrough if it's repealed
