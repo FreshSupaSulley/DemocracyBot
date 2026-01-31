@@ -10,24 +10,6 @@ export default class extends BaseCommand {
 			// await globalState.addAmendment("truth nuke");
 			// await globalState.addAmendment("the winner/tied winners of the Christmas wordle will be given be given the special Christmas Spirit role and thus will automatically be on the nice list next year and earn extra presents from Santa Claus");
 			// await globalState.addAmendment("zyron cannot participate in the christmas wordle competition. Additionally, if a majority suspects a player of cheating on the christmas wordle, that player will instead be given the naughty lister role");
-			// Update server data
-			let amendment = globalState.serverData.amendments[90];
-			// Flip repealed flag
-			amendment.repealed = !amendment.repealed;
-			// Assign to OG slot (... do I need to do this?)
-			globalState.serverData.amendments[90] = amendment;
-			// Get the amendment to edit
-			const raw = amendment.content;
-			// Edit the message
-			await api(`channels/${globalState.serverData.amendmentsChannel}/messages/${amendment.id}`, {
-				method: 'PATCH',
-				body: {
-					// This adds the squiggles for strikethrough if it's repealed
-					content: globalState.getAmendmentText(91),
-					// if repealed, don't let gifs and shit stay in the amendment
-					flags: MessageFlags.SuppressEmbeds,
-				},
-			});
 		}
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
