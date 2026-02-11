@@ -31,21 +31,34 @@ export default class extends PartyEditCommand {
 			};
 		}
 
+		// Ensure this user isn't campaigning rn (AND they're a member of this party)
+		if (globalState.serverData.candidates.some((c) => c.getID() == mentioned.id && c.getPartyID() == party.getID())) {
+			return {
+				type: InteractionResponseType.ChannelMessageWithSource,
+				data: {
+					content: `This user is campaigning. Wait until after the election to ban.`,
+				},
+			};
+		}
+
 		// guaranteed to be in a party thanks to super class
-		if (party?.addBan(mentioned.id)) {
+		if (party.addBan(mentioned.id)) {
 			const mentionedMember = globalState.getMemberByID(mentioned.id);
 			// If they're in this party already, remove them
-			if (mentionedMember.getPoliticalParty()?.getRoleID() == party?.getRoleID()) {
+			if (mentionedMember.getPartyID() == party.getID()) {
 				mentionedMember.setPoliticalParty(null);
 				// Remove the role too
-				api(`/guilds/${globalState.serverData.serverID}/members/${mentionedMember.getID()}/roles/${mentionedMember.getPoliticalParty()}`, {
-					method: 'DELETE',
-				});
+				await api(
+					`/guilds/${globalState.serverData.serverID}/members/${mentionedMember.getID()}/roles/${mentionedMember.getPoliticalParty()}`,
+					{
+						method: 'DELETE',
+					},
+				);
 			}
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					content: `Banned <@${mentioned.id}> from <@&${party.getRoleID()}>`,
+					content: `Banned <@${mentioned.id}> from <@&${party.getID()}>`,
 				},
 			};
 		}

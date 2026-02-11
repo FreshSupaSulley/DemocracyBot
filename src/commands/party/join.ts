@@ -10,7 +10,7 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					content: sender.getPoliticalParty()?.getRoleID() == role.id ? "You're already in this party" : 'You already belong to a party',
+					content: sender.getPoliticalParty()?.getID() == role.id ? "You're already in this party" : 'You already belong to a party',
 				},
 			};
 		}
@@ -30,7 +30,7 @@ export default class extends BaseCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					content: `You're banned from <@&${party.getRoleID()}>`,
+					content: `You're banned from <@&${party.getID()}>`,
 				},
 			};
 		}

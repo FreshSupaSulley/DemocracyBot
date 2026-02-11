@@ -30,11 +30,11 @@ export default class extends BaseCommand {
 				// Remove from the owner
 				sender.setPoliticalParty(null);
 				// Remove the party from server data
-				const index = globalState.serverData.parties.findIndex((sample) => sample.getRoleID() == party?.getRoleID());
+				const index = globalState.serverData.parties.findIndex((sample) => sample.getID() == party?.getID());
 				globalState.serverData.parties.splice(index, 1);
 				// Delete the role
 				// dont really care to gracefully error check this
-				return api(`/guilds/${globalState.serverData.serverID}/roles/${party.getRoleID()}`, {
+				return api(`/guilds/${globalState.serverData.serverID}/roles/${party.getID()}`, {
 					method: 'DELETE',
 				}).then(() => {
 					return {
@@ -55,13 +55,13 @@ export default class extends BaseCommand {
 		// Otherwise we are a party member but not the leader
 		// Remove the party from this member
 		sender.setPoliticalParty(null);
-		return api(`/guilds/${globalState.serverData.serverID}/members/${sender.getID()}/roles/${party?.getRoleID()}`, {
+		return api(`/guilds/${globalState.serverData.serverID}/members/${sender.getID()}/roles/${party?.getID()}`, {
 			method: 'DELETE',
 		}).then(() => {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					content: `Left <@&${party?.getRoleID()}>`,
+					content: `Left <@&${party?.getID()}>`,
 				},
 			};
 		});

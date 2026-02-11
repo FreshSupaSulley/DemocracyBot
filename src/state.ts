@@ -52,7 +52,7 @@ export class State {
 
 	// any because it's Snowflakes returned for IDs
 	getParty(partyID: any): PoliticalParty | undefined {
-		return this.serverData.parties.find((value) => value.getRoleID() == partyID);
+		return this.serverData.parties.find((value) => value.getID() == partyID);
 	}
 
 	isParty(role: APIRole): boolean {
@@ -60,7 +60,7 @@ export class State {
 	}
 
 	getPartyMembers(party: PoliticalParty) {
-		return this.serverData.members.filter((member) => member.getPartyID() === party.getRoleID());
+		return this.serverData.members.filter((member) => member.getPartyID() === party.getID());
 	}
 
 	async createParty(name: string, color: number, leader: string): Promise<PoliticalParty> {
@@ -323,7 +323,7 @@ export class State {
 			"@everyone it's time. By the power of the people and the Magna Farta, we will elect our next monthly President that represents the core of this nation's beliefs and thereby representing the people. Cast your vote below:\n";
 		this.serverData.candidates.forEach((candidate) => {
 			description += `\n**#${candidate.getSlot() + 1}: <@${candidate.getID()}>** (<@&${
-				candidate.getPoliticalParty()?.getRoleID() || this.serverData.thePresidentRole
+				candidate.getPoliticalParty()?.getID() || this.serverData.thePresidentRole
 			}>) - *"${candidate.getSlogan()}"*`;
 		});
 
@@ -598,7 +598,7 @@ export class State {
 						console.log('Fetching API member to create CAQ entry');
 						const apiMember = await this.getDiscordMember(nextPresident.getID());
 						const partyAPIRole = (await api(
-							`guilds/${this.serverData.serverID}/roles/${nextPresident.getPoliticalParty()?.getRoleID()}`,
+							`guilds/${this.serverData.serverID}/roles/${nextPresident.getPoliticalParty()?.getID()}`,
 							undefined,
 							true
 						)) as APIRole;

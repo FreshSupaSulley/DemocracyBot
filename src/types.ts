@@ -139,7 +139,7 @@ export class ServerMember {
 	}
 
 	public setPoliticalParty(party?: PoliticalParty | null): void {
-		this.partyRole = party ? party.getRoleID() : null;
+		this.partyRole = party ? party.getID() : null;
 	}
 
 	public canPropose(poll: BasePoll): boolean {
@@ -176,6 +176,10 @@ export class ServerMember {
 		return this.userID;
 	}
 
+	/**
+	 * Equivalent to {@link ServerMember.getPoliticalParty}()?.{@link PoliticalParty.getID | getRoleID()}.
+	 * @returns party's role ID
+	 */
 	public getPartyID(): string | null {
 		return this.partyRole;
 	}

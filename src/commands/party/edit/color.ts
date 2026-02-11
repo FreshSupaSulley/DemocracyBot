@@ -17,7 +17,7 @@ export default class extends PartyEditCommand {
 			};
 		}
 		// Change the color
-		return api(`/guilds/${globalState.serverData.serverID}/roles/${party.getRoleID()}`, {
+		return api(`/guilds/${globalState.serverData.serverID}/roles/${party.getID()}`, {
 			method: 'PATCH',
 			body: {
 				colors: {

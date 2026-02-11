@@ -18,6 +18,14 @@ export class PoliticalParty {
 		return this.blacklist;
 	}
 
+	/**
+	 * Adds this user to the party blacklist.
+	 *
+	 * Does **NOT** perform any API calls.
+	 *
+	 * @param member Discord user ID
+	 * @returns true if user was blacklisted, false if already banned
+	 */
 	public addBan(member: string): boolean {
 		if (this.isBanned(member)) return false;
 		this.blacklist.push(member);
@@ -33,7 +41,11 @@ export class PoliticalParty {
 		return false;
 	}
 
-	public getRoleID(): string {
+	/**
+	 * Gets the role ID of this party.
+	 * @returns the Discord role ID of this party
+	 */
+	public getID(): string {
 		return this.role;
 	}
 
@@ -46,6 +58,6 @@ export class PoliticalParty {
 	}
 
 	public equals(party: PoliticalParty | null): boolean {
-		return party !== null && party.getRoleID() === this.role;
+		return party !== null && party.getID() === this.role;
 	}
 }

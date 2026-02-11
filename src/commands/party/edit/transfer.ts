@@ -18,7 +18,7 @@ export default class extends PartyEditCommand {
 
 		// Check if the mentioned user is part of the party
 		const mentionedMember = globalState.getMemberByID(mentioned.id);
-		if (mentionedMember.getPoliticalParty()?.getRoleID() !== party.getRoleID()) {
+		if (mentionedMember.getPoliticalParty()?.getID() !== party.getID()) {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {

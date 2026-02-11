@@ -12,7 +12,7 @@ export default class extends PartyEditCommand {
 			return {
 				type: InteractionResponseType.ChannelMessageWithSource,
 				data: {
-					content: `Unbanned <@${mentioned.id}> from <@&${party.getRoleID()}>`,
+					content: `Unbanned <@${mentioned.id}> from <@&${party.getID()}>`,
 				},
 			};
 		}

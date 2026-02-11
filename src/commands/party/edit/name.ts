@@ -10,7 +10,7 @@ export default class extends PartyEditCommand {
 		// holy fuck
 		const name = interaction.data.options[0].options[0].options[0].value;
 		// Change the color
-		return api(`/guilds/${globalState.serverData.serverID}/roles/${party.getRoleID()}`, {
+		return api(`/guilds/${globalState.serverData.serverID}/roles/${party.getID()}`, {
 			method: 'PATCH',
 			body: {
 				name,

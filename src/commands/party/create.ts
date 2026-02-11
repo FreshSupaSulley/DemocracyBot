@@ -37,7 +37,7 @@ export default class extends BaseCommand {
 		return {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data: {
-				content: `Congratulations! :tada: You are now the proud leader of the <@&${party.getRoleID()}> party!`,
+				content: `Congratulations! :tada: You are now the proud leader of the <@&${party.getID()}> party!`,
 			},
 		};
 	}
